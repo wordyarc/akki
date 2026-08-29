@@ -1,9 +1,5 @@
-@file:OptIn(ExperimentalWasmDsl::class)
-
-import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
-
 plugins {
-    alias(libs.plugins.kotlin.multiplatform)
+    id("lokki.kotlin-multiplatform")
 }
 
 kotlin {
@@ -18,8 +14,6 @@ kotlin {
     iosSimulatorArm64()
     iosX64()
 
-    js().nodejs()
-
     jvm()
 
     linuxArm64()
@@ -31,9 +25,6 @@ kotlin {
 
     tvosArm64()
     tvosSimulatorArm64()
-
-    wasmJs().nodejs()
-    wasmWasi().nodejs()
 
     watchosArm32()
     watchosArm64()

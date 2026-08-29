@@ -1,7 +1,7 @@
 plugins {
-    alias(libs.plugins.kotlin.jvm)
+    id("lokki.kotlin-jvm")
     alias(libs.plugins.buildconfig)
-    alias(libs.plugins.gradle.plugin)
+    `java-gradle-plugin`
 }
 
 sourceSets {
@@ -21,16 +21,16 @@ dependencies {
 }
 
 buildConfig {
-    packageName(project.group.toString())
+    packageName("org.jetbrains.kotlin.compiler.plugin.template")
 
-    buildConfigField("String", "KOTLIN_PLUGIN_ID", "\"${rootProject.group}\"")
+    buildConfigField("String", "KOTLIN_PLUGIN_ID", "\"${providers.gradleProperty("lokki.plugin.id").get()}\"")
 
-    val pluginProject = project(":compiler-plugin")
+    val pluginProject = project(":lokki-compiler")
     buildConfigField("String", "KOTLIN_PLUGIN_GROUP", "\"${pluginProject.group}\"")
     buildConfigField("String", "KOTLIN_PLUGIN_NAME", "\"${pluginProject.name}\"")
     buildConfigField("String", "KOTLIN_PLUGIN_VERSION", "\"${pluginProject.version}\"")
 
-    val annotationsProject = project(":plugin-annotations")
+    val annotationsProject = project(":lokki-annotations")
     buildConfigField(
         type = "String",
         name = "ANNOTATIONS_LIBRARY_COORDINATES",
@@ -41,9 +41,9 @@ buildConfig {
 gradlePlugin {
     plugins {
         create("SimplePlugin") {
-            id = rootProject.group.toString()
-            displayName = "SimplePlugin"
-            description = "SimplePlugin"
+            id = providers.gradleProperty("lokki.plugin.id").get()
+            displayName = "Lokki"
+            description = "Adds the Lokki compiler plugin to Kotlin compilations"
             implementationClass = "org.jetbrains.kotlin.compiler.plugin.template.SimpleGradlePlugin"
         }
     }

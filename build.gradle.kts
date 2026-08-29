@@ -1,11 +1,6 @@
 plugins {
-    alias(libs.plugins.kotlin.jvm) apply false
-    alias(libs.plugins.kotlin.multiplatform) apply false
-    alias(libs.plugins.node.gradle) apply false
-    alias(libs.plugins.buildconfig) apply false
+    base
 }
 
-allprojects {
-    group = "org.jetbrains.kotlin.compiler.plugin.template"
-    version = "0.1.0-SNAPSHOT"
-}
+group = providers.gradleProperty("lokki.group").get()
+version = providers.gradleProperty("lokki.version").get()

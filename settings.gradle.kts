@@ -1,9 +1,12 @@
 pluginManagement {
     repositories {
-        mavenCentral()
         gradlePluginPortal()
+        mavenCentral()
     }
-    
+}
+
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
 dependencyResolutionManagement {
@@ -12,8 +15,13 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "compiler-plugin-template"
+rootProject.name = "lokki"
 
-include("compiler-plugin")
-include("gradle-plugin")
-include("plugin-annotations")
+listOf(
+    "lokki-annotations",
+    "lokki-compiler",
+    "lokki-gradle",
+).forEach { module ->
+    include(module)
+    project(":$module").projectDir = file("modules/$module")
+}
