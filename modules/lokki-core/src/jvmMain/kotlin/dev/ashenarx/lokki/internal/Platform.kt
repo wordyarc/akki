@@ -1,18 +1,18 @@
 package dev.ashenarx.lokki.internal
 
-import dev.ashenarx.lokki.Log
 import dev.ashenarx.lokki.LogBackend
 import dev.ashenarx.lokki.LogName
+import dev.ashenarx.lokki.Logger
 import java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.reflect.KClass
 
 private object JvmLogRegistry {
-    private val logs: ConcurrentHashMap<String, Log> = ConcurrentHashMap()
+    private val loggers: ConcurrentHashMap<String, Logger> = ConcurrentHashMap()
     private val backend: AtomicReference<LogBackend> = AtomicReference(NoOpBackend)
 
-    fun log(name: String): Log = logs.computeIfAbsent(name, ::Log)
+    fun logger(name: String): Logger = loggers.computeIfAbsent(name, ::LoggerImpl)
 
     fun backend(): LogBackend = backend.get()
 
@@ -26,14 +26,14 @@ private object JvmCaller {
     private const val INTRINSIC_CLASS: String = "dev.ashenarx.lokki.IntrinsicKt"
 
     private val walker: StackWalker = StackWalker.getInstance(RETAIN_CLASS_REFERENCE)
-    private val logs: ClassValue<Log> = object : ClassValue<Log>() {
-        override fun computeValue(type: Class<*>): Log {
+    private val loggers: ClassValue<Logger> = object : ClassValue<Logger>() {
+        override fun computeValue(type: Class<*>): Logger {
             val name = type.getDeclaredAnnotation(LogName::class.java)?.value ?: type.name
             return LogRegistry.of(name)
         }
     }
 
-    fun log(): Log {
+    fun logger(): Logger {
         val caller = walker.walk { frames ->
             frames
                 .map(StackWalker.StackFrame::getDeclaringClass)
@@ -41,7 +41,7 @@ private object JvmCaller {
                 .findFirst()
                 .orElseThrow()
         }
-        return logs.get(caller)
+        return loggers.get(caller)
     }
 
     private fun isCaller(type: Class<*>): Boolean {
@@ -52,12 +52,12 @@ private object JvmCaller {
     }
 }
 
-internal actual fun platformLog(name: String): Log = JvmLogRegistry.log(name)
+internal actual fun platformLogger(name: String): Logger = JvmLogRegistry.logger(name)
 
 internal actual fun platformBackend(): LogBackend = JvmLogRegistry.backend()
 
 internal actual fun installPlatformBackend(backend: LogBackend): Unit = JvmLogRegistry.install(backend)
 
-internal actual fun platformCallerLog(): Log = JvmCaller.log()
+internal actual fun platformCallerLogger(): Logger = JvmCaller.logger()
 
 internal actual fun platformTypeName(type: KClass<*>): String = type.java.name

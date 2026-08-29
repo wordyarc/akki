@@ -2,4 +2,4 @@
 
 package dev.ashenarx.lokki
 
-internal fun fileLogger(): Log = log
+internal fun fileLogger(): Logger = log

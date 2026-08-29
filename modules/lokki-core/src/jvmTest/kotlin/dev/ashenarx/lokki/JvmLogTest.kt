@@ -31,11 +31,11 @@ class JvmLogTest {
     }
 
     private class Caller {
-        fun logger(): Log = log
+        fun logger(): Logger = log
     }
 
     @LogName("audit")
     private class NamedCaller {
-        fun logger(): Log = log
+        fun logger(): Logger = log
     }
 }

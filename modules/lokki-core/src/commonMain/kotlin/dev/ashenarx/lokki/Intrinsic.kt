@@ -4,5 +4,5 @@ import dev.ashenarx.lokki.internal.CallSite
 import dev.ashenarx.lokki.internal.LogRegistry
 
 @CallSite
-public val log: Log
+public val log: Logger
     get() = LogRegistry.forCaller()

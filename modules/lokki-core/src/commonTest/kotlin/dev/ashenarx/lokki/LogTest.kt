@@ -18,7 +18,20 @@ class LogTest {
         val logger = Log.named("audit")
 
         assertEquals("audit", logger.name)
-        assertEquals("Log(audit)", logger.toString())
+        assertEquals("Logger(audit)", logger.toString())
+    }
+
+    @Test
+    fun loggerCanBeImplementedByConsumers(): Unit {
+        val logger = RecordingLogger()
+        val fields = mapOf("source" to "test")
+
+        logger.info("implemented", fields)
+
+        assertEquals(
+            listOf(Event("custom", Level.INFO, "implemented", fields)),
+            logger.events,
+        )
     }
 
     @Test
@@ -90,5 +103,16 @@ private class RecordingBackend(
         return Sink { emittedLevel, message, fields ->
             events += Event(name, emittedLevel, message, fields)
         }
+    }
+}
+
+private class RecordingLogger : Logger {
+    override val name: String = "custom"
+    val events: MutableList<Event> = mutableListOf()
+
+    override fun isEnabled(level: Level): Boolean = true
+
+    override fun emit(level: Level, message: String, fields: Map<String, Any?>): Unit {
+        events += Event(name, level, message, fields)
     }
 }
