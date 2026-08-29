@@ -18,9 +18,11 @@ dependencyResolutionManagement {
 rootProject.name = "lokki"
 
 listOf(
-    "lokki-annotations",
+    "lokki-core",
+    "lokki-slf4j",
     "lokki-compiler",
     "lokki-gradle",
+    "lokki-test",
 ).forEach { module ->
     include(module)
     project(":$module").projectDir = file("modules/$module")

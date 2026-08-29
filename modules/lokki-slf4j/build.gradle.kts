@@ -7,5 +7,6 @@ kotlin {
 }
 
 dependencies {
-    compileOnly(libs.kotlin.compiler)
+    api(project(":lokki-core"))
+    implementation(libs.slf4j.api)
 }
