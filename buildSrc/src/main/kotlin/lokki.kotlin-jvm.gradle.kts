@@ -1,5 +1,6 @@
 import lokki.buildlogic.jvmVersion
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 
 plugins {
     id("lokki.base")
@@ -13,6 +14,9 @@ java {
 }
 
 kotlin {
+    @OptIn(ExperimentalAbiValidation::class)
+    abiValidation()
+
     compilerOptions {
         jvmTarget = JvmTarget.fromTarget(jvmVersion.toString())
     }

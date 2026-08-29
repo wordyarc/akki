@@ -1,0 +1,61 @@
+public final class dev/ashenarx/lokki/IntrinsicKt {
+	public static final fun getLog ()Ldev/ashenarx/lokki/Log;
+}
+
+public final class dev/ashenarx/lokki/Level : java/lang/Enum {
+	public static final field DEBUG Ldev/ashenarx/lokki/Level;
+	public static final field ERROR Ldev/ashenarx/lokki/Level;
+	public static final field INFO Ldev/ashenarx/lokki/Level;
+	public static final field TRACE Ldev/ashenarx/lokki/Level;
+	public static final field WARN Ldev/ashenarx/lokki/Level;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/ashenarx/lokki/Level;
+	public static fun values ()[Ldev/ashenarx/lokki/Level;
+}
+
+public final class dev/ashenarx/lokki/Log {
+	public static final field Companion Ldev/ashenarx/lokki/Log$Companion;
+	public final fun debug (Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun debug$default (Ldev/ashenarx/lokki/Log;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public final fun emit (Ldev/ashenarx/lokki/Level;Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun emit$default (Ldev/ashenarx/lokki/Log;Ldev/ashenarx/lokki/Level;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public final fun error (Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun error$default (Ldev/ashenarx/lokki/Log;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public final fun getName ()Ljava/lang/String;
+	public final fun info (Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun info$default (Ldev/ashenarx/lokki/Log;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public final fun isEnabled (Ldev/ashenarx/lokki/Level;)Z
+	public fun toString ()Ljava/lang/String;
+	public final fun trace (Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun trace$default (Ldev/ashenarx/lokki/Log;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public final fun warn (Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun warn$default (Ldev/ashenarx/lokki/Log;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+}
+
+public final class dev/ashenarx/lokki/Log$Companion {
+	public final fun install (Ldev/ashenarx/lokki/LogBackend;)V
+	public final fun named (Ljava/lang/String;)Ldev/ashenarx/lokki/Log;
+	public final fun of (Lkotlin/reflect/KClass;)Ldev/ashenarx/lokki/Log;
+}
+
+public abstract interface class dev/ashenarx/lokki/LogBackend {
+	public abstract fun resolve (Ljava/lang/String;Ldev/ashenarx/lokki/Level;)Ldev/ashenarx/lokki/Sink;
+}
+
+public abstract interface annotation class dev/ashenarx/lokki/LogName : java/lang/annotation/Annotation {
+	public abstract fun value ()Ljava/lang/String;
+}
+
+public final class dev/ashenarx/lokki/Log_jvmKt {
+	public static final fun of (Ldev/ashenarx/lokki/Log$Companion;Ljava/lang/Class;)Ldev/ashenarx/lokki/Log;
+}
+
+public abstract interface class dev/ashenarx/lokki/Sink {
+	public abstract fun emit (Ldev/ashenarx/lokki/Level;Ljava/lang/String;Ljava/util/Map;)V
+}
+
+public final class dev/ashenarx/lokki/internal/LogRegistry {
+	public static final field INSTANCE Ldev/ashenarx/lokki/internal/LogRegistry;
+	public final fun of (Ljava/lang/String;)Ldev/ashenarx/lokki/Log;
+}
+
