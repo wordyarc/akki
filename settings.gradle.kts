@@ -15,14 +15,14 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "lokki"
+rootProject.name = "akki"
 
 listOf(
-    "lokki-core",
-    "lokki-slf4j",
-    "lokki-compiler",
-    "lokki-gradle",
-    "lokki-test",
+    "akki-core",
+    "akki-slf4j",
+    "akki-compiler",
+    "akki-gradle",
+    "akki-test",
 ).forEach { module ->
     include(module)
     project(":$module").projectDir = file("modules/$module")

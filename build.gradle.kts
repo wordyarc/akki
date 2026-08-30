@@ -2,8 +2,8 @@ plugins {
     base
 }
 
-group = providers.gradleProperty("lokki.group").get()
-version = providers.gradleProperty("lokki.version").get()
+group = providers.gradleProperty("akki.group").get()
+version = providers.gradleProperty("akki.version").get()
 
 tasks.register("apiCheck") {
     group = "verification"

@@ -1,0 +1,76 @@
+public final class dev/ashenarx/akki/IntrinsicKt {
+	public static final fun getLog ()Ldev/ashenarx/akki/Logger;
+	public static final fun logger ()Ldev/ashenarx/akki/Logger;
+}
+
+public final class dev/ashenarx/akki/Level : java/lang/Enum {
+	public static final field DEBUG Ldev/ashenarx/akki/Level;
+	public static final field ERROR Ldev/ashenarx/akki/Level;
+	public static final field INFO Ldev/ashenarx/akki/Level;
+	public static final field TRACE Ldev/ashenarx/akki/Level;
+	public static final field WARN Ldev/ashenarx/akki/Level;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/ashenarx/akki/Level;
+	public static fun values ()[Ldev/ashenarx/akki/Level;
+}
+
+public final class dev/ashenarx/akki/Log {
+	public static final field INSTANCE Ldev/ashenarx/akki/Log;
+	public final fun forCaller ()Ldev/ashenarx/akki/Logger;
+	public final fun install (Ldev/ashenarx/akki/LogBackend;)V
+	public final fun named (Ljava/lang/String;)Ldev/ashenarx/akki/Logger;
+	public final fun of (Lkotlin/reflect/KClass;)Ldev/ashenarx/akki/Logger;
+}
+
+public abstract interface class dev/ashenarx/akki/LogBackend {
+	public abstract fun resolve (Ljava/lang/String;Ldev/ashenarx/akki/Level;)Ldev/ashenarx/akki/Sink;
+}
+
+public abstract interface annotation class dev/ashenarx/akki/LogName : java/lang/annotation/Annotation {
+	public abstract fun value ()Ljava/lang/String;
+}
+
+public final class dev/ashenarx/akki/Log_jvmKt {
+	public static final fun of (Ldev/ashenarx/akki/Log;Ljava/lang/Class;)Ldev/ashenarx/akki/Logger;
+}
+
+public abstract interface class dev/ashenarx/akki/Logger {
+	public fun debug (Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun debug$default (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public abstract fun emit (Ldev/ashenarx/akki/Level;Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun emit$default (Ldev/ashenarx/akki/Logger;Ldev/ashenarx/akki/Level;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public fun error (Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun error$default (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public abstract fun getName ()Ljava/lang/String;
+	public fun info (Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun info$default (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public abstract fun isEnabled (Ldev/ashenarx/akki/Level;)Z
+	public fun trace (Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun trace$default (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public fun warn (Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun warn$default (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+}
+
+public final class dev/ashenarx/akki/Logger$DefaultImpls {
+	public static fun debug (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun debug$default (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public static synthetic fun emit$default (Ldev/ashenarx/akki/Logger;Ldev/ashenarx/akki/Level;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public static fun error (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun error$default (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public static fun info (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun info$default (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public static fun trace (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun trace$default (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public static fun warn (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun warn$default (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+}
+
+public abstract interface class dev/ashenarx/akki/Sink {
+	public abstract fun emit (Ldev/ashenarx/akki/Level;Ljava/lang/String;Ljava/util/Map;)V
+}
+
+public final class dev/ashenarx/akki/internal/LogRegistry {
+	public static final field INSTANCE Ldev/ashenarx/akki/internal/LogRegistry;
+	public final fun of (Ljava/lang/String;)Ldev/ashenarx/akki/Logger;
+}
+
