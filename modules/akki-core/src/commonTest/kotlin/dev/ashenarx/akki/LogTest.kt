@@ -2,10 +2,12 @@ package dev.ashenarx.akki
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
+@OptIn(DelicateAkkiApi::class)
 class LogTest {
     @Test
     fun factoriesResolveTheSameInstance(): Unit {
@@ -39,13 +41,13 @@ class LogTest {
         val backend = RecordingBackend()
         val logger = Log.named("checkout")
         val fields = mapOf("orderId" to 42)
-        Log.install(backend)
-
-        logger.trace("trace", fields)
-        logger.debug("debug", fields)
-        logger.info("info", fields)
-        logger.warn("warn", fields)
-        logger.error("error", fields)
+        withBackend(backend) {
+            logger.trace("trace", fields)
+            logger.debug("debug", fields)
+            logger.info("info", fields)
+            logger.warn("warn", fields)
+            logger.error("error", fields)
+        }
 
         assertEquals(Level.entries, backend.events.map(Event::level))
         assertTrue(backend.events.all { it.name == "checkout" })
@@ -57,44 +59,105 @@ class LogTest {
     fun backendControlsLevelFiltering(): Unit {
         val backend = RecordingBackend(setOf(Level.ERROR))
         val logger = Log.named("filtered")
-        Log.install(backend)
+        withBackend(backend) {
+            assertFalse(logger.isEnabled(Level.INFO))
+            assertTrue(logger.isEnabled(Level.ERROR))
 
-        assertFalse(logger.isEnabled(Level.INFO))
-        assertTrue(logger.isEnabled(Level.ERROR))
-
-        logger.info("ignored")
-        logger.error("recorded")
+            logger.info("ignored")
+            logger.error("recorded")
+        }
 
         assertEquals(listOf("recorded"), backend.events.map(Event::message))
     }
 
     @Test
-    fun existingLogUsesReplacementBackend(): Unit {
+    fun uninstallRestoresPreviousBackend(): Unit {
         val logger = Log.named("replaceable")
         val first = RecordingBackend()
         val second = RecordingBackend()
+        val firstInstallation = Log.install(first)
 
-        Log.install(first)
-        logger.info("first")
-        Log.install(second)
-        logger.info("second")
+        try {
+            logger.info("first")
+            val secondInstallation = Log.install(second)
+            try {
+                logger.info("second")
+            } finally {
+                secondInstallation.uninstall()
+            }
+            logger.info("restored")
+        } finally {
+            firstInstallation.uninstall()
+        }
 
-        assertEquals(listOf("first"), first.events.map(Event::message))
+        assertEquals(listOf("first", "restored"), first.events.map(Event::message))
         assertEquals(listOf("second"), second.events.map(Event::message))
+    }
+
+    @Test
+    fun staleInstallationCannotReplaceNewerBackend(): Unit {
+        val logger = Log.named("ordered")
+        val first = RecordingBackend()
+        val second = RecordingBackend()
+        val firstInstallation = Log.install(first)
+        val secondInstallation = Log.install(second)
+
+        try {
+            assertFailsWith<IllegalStateException> { firstInstallation.uninstall() }
+            logger.info("current")
+        } finally {
+            secondInstallation.uninstall()
+            firstInstallation.uninstall()
+        }
+
+        assertTrue(first.events.isEmpty())
+        assertEquals(listOf("current"), second.events.map(Event::message))
+    }
+
+    @Test
+    fun installationCanBeUninstalledMoreThanOnce(): Unit {
+        val installation = Log.install(RecordingBackend())
+
+        installation.uninstall()
+        installation.uninstall()
+    }
+
+    @Test
+    fun repeatedInstallationOfSameBackendHasIndependentLifecycle(): Unit {
+        val backend = RecordingBackend()
+        val first = Log.install(backend)
+        val second = Log.install(backend)
+
+        try {
+            assertFailsWith<IllegalStateException> { first.uninstall() }
+        } finally {
+            second.uninstall()
+            first.uninstall()
+        }
     }
 
     @Test
     fun causeIsForwardedToSink(): Unit {
         val backend = RecordingBackend()
         val cause = IllegalStateException("failed")
-        Log.install(backend)
-
-        Log.named("failure").error("operation failed", cause = cause)
+        withBackend(backend) {
+            Log.named("failure").error("operation failed", cause = cause)
+        }
 
         assertSame(cause, backend.events.single().cause)
     }
 
     private class Sample
+}
+
+@OptIn(DelicateAkkiApi::class)
+private inline fun <T> withBackend(backend: LogBackend, block: () -> T): T {
+    val installation = Log.install(backend)
+    return try {
+        block()
+    } finally {
+        installation.uninstall()
+    }
 }
 
 private data class Event(

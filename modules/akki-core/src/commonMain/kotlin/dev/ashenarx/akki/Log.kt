@@ -7,6 +7,12 @@ import dev.ashenarx.akki.internal.platformTypeName
 import kotlin.reflect.KClass
 
 public object Log {
+    public class Installation internal constructor(
+        private val uninstall: () -> Unit,
+    ) {
+        public fun uninstall(): Unit = uninstall.invoke()
+    }
+
     public fun of(type: KClass<*>): Logger = LogRegistry.of(platformTypeName(type))
 
     public inline fun <reified T : Any> of(): Logger = of(T::class)
@@ -19,5 +25,6 @@ public object Log {
 
     public fun named(name: String): Logger = LogRegistry.of(name)
 
-    public fun install(backend: LogBackend): Unit = installPlatformBackend(backend)
+    @DelicateAkkiApi
+    public fun install(backend: LogBackend): Installation = installPlatformBackend(backend)
 }

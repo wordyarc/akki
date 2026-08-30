@@ -1,3 +1,6 @@
+public abstract interface annotation class dev/ashenarx/akki/DelicateAkkiApi : java/lang/annotation/Annotation {
+}
+
 public final class dev/ashenarx/akki/IntrinsicKt {
 	public static final fun getLog ()Ldev/ashenarx/akki/Logger;
 	public static final fun logger ()Ldev/ashenarx/akki/Logger;
@@ -16,10 +19,15 @@ public final class dev/ashenarx/akki/Level : java/lang/Enum {
 
 public final class dev/ashenarx/akki/Log {
 	public static final field INSTANCE Ldev/ashenarx/akki/Log;
+	public final fun auto ()Ldev/ashenarx/akki/Logger;
 	public final fun forCaller ()Ldev/ashenarx/akki/Logger;
-	public final fun install (Ldev/ashenarx/akki/LogBackend;)V
+	public final fun install (Ldev/ashenarx/akki/LogBackend;)Ldev/ashenarx/akki/Log$Installation;
 	public final fun named (Ljava/lang/String;)Ldev/ashenarx/akki/Logger;
 	public final fun of (Lkotlin/reflect/KClass;)Ldev/ashenarx/akki/Logger;
+}
+
+public final class dev/ashenarx/akki/Log$Installation {
+	public final fun uninstall ()V
 }
 
 public abstract interface class dev/ashenarx/akki/LogBackend {

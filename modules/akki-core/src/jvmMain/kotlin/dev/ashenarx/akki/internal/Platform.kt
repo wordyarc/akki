@@ -6,20 +6,33 @@ import dev.ashenarx.akki.LogName
 import dev.ashenarx.akki.Logger
 import java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.reflect.KClass
 
 private object JvmLogRegistry {
     private val loggers: ConcurrentHashMap<String, Logger> = ConcurrentHashMap()
-    private val backend: AtomicReference<LogBackend> = AtomicReference(NoOpBackend)
+    private val backend: AtomicReference<BackendState> = AtomicReference(BackendState(NoOpBackend))
 
     fun logger(name: String): Logger = loggers.computeIfAbsent(name, ::LoggerImpl)
 
-    fun backend(): LogBackend = backend.get()
+    fun backend(): LogBackend = backend.get().backend
 
-    fun install(backend: LogBackend): Unit {
-        this.backend.set(backend)
+    fun install(backend: LogBackend): Log.Installation {
+        val installed = BackendState(backend)
+        val previous = this.backend.getAndSet(installed)
+        val active = AtomicBoolean(true)
+        return Log.Installation {
+            if (active.compareAndSet(true, false)) {
+                if (!this.backend.compareAndSet(installed, previous)) {
+                    active.set(true)
+                    error("Backend installations must be uninstalled in reverse order")
+                }
+            }
+        }
     }
+
+    private class BackendState(val backend: LogBackend)
 }
 
 private object JvmCaller {
@@ -58,7 +71,7 @@ internal actual fun platformLogger(name: String): Logger = JvmLogRegistry.logger
 
 internal actual fun platformBackend(): LogBackend = JvmLogRegistry.backend()
 
-internal actual fun installPlatformBackend(backend: LogBackend): Unit = JvmLogRegistry.install(backend)
+internal actual fun installPlatformBackend(backend: LogBackend): Log.Installation = JvmLogRegistry.install(backend)
 
 internal actual fun platformCallerLogger(): Logger = JvmCaller.logger()
 
