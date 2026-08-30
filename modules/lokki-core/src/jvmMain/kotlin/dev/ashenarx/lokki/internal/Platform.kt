@@ -1,5 +1,6 @@
 package dev.ashenarx.lokki.internal
 
+import dev.ashenarx.lokki.Log
 import dev.ashenarx.lokki.LogBackend
 import dev.ashenarx.lokki.LogName
 import dev.ashenarx.lokki.Logger
@@ -48,6 +49,7 @@ private object JvmCaller {
         val packageName = type.packageName
         return packageName != INTERNAL_PACKAGE &&
             !packageName.startsWith("$INTERNAL_PACKAGE.") &&
+            type != Log::class.java &&
             type.name != INTRINSIC_CLASS
     }
 }

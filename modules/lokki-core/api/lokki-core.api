@@ -1,5 +1,6 @@
 public final class dev/ashenarx/lokki/IntrinsicKt {
 	public static final fun getLog ()Ldev/ashenarx/lokki/Logger;
+	public static final fun logger ()Ldev/ashenarx/lokki/Logger;
 }
 
 public final class dev/ashenarx/lokki/Level : java/lang/Enum {
@@ -18,6 +19,7 @@ public final class dev/ashenarx/lokki/Log {
 	public final fun install (Ldev/ashenarx/lokki/LogBackend;)V
 	public final fun named (Ljava/lang/String;)Ldev/ashenarx/lokki/Logger;
 	public final fun of (Lkotlin/reflect/KClass;)Ldev/ashenarx/lokki/Logger;
+	public final fun ofCaller ()Ldev/ashenarx/lokki/Logger;
 }
 
 public abstract interface class dev/ashenarx/lokki/LogBackend {

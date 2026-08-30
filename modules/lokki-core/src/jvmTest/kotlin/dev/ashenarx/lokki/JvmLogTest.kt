@@ -13,29 +13,47 @@ class JvmLogTest {
 
     @Test
     fun intrinsicResolvesCallingClassWithoutCompilerPlugin(): Unit {
-        val logger = Caller().logger()
+        val caller = Caller()
+        val expected = Log.of<Caller>()
 
-        assertSame(Log.of<Caller>(), logger)
+        assertSame(expected, caller.intrinsic())
+        assertSame(expected, caller.functionAnchor())
+        assertSame(expected, caller.factoryAnchor())
     }
 
     @Test
     fun intrinsicUsesClassLogName(): Unit {
-        val logger = NamedCaller().logger()
+        val caller = NamedCaller()
+        val expected = Log.named("audit")
 
-        assertSame(Log.named("audit"), logger)
+        assertSame(expected, caller.intrinsic())
+        assertSame(expected, caller.functionAnchor())
+        assertSame(expected, caller.factoryAnchor())
     }
 
     @Test
     fun intrinsicUsesFileLogName(): Unit {
-        assertSame(Log.named("file-audit"), fileLogger())
+        val expected = Log.named("file-audit")
+
+        assertSame(expected, fileLogger())
+        assertSame(expected, fileLoggerFromFunction())
+        assertSame(expected, fileLoggerFromFactory())
     }
 
     private class Caller {
-        fun logger(): Logger = log
+        fun intrinsic(): Logger = log
+
+        fun functionAnchor(): Logger = logger()
+
+        fun factoryAnchor(): Logger = Log.ofCaller()
     }
 
     @LogName("audit")
     private class NamedCaller {
-        fun logger(): Logger = log
+        fun intrinsic(): Logger = log
+
+        fun functionAnchor(): Logger = logger()
+
+        fun factoryAnchor(): Logger = Log.ofCaller()
     }
 }
