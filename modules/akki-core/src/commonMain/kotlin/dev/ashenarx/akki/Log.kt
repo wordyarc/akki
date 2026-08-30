@@ -1,3 +1,5 @@
+@file:OptIn(InternalAkkiApi::class)
+
 package dev.ashenarx.akki
 
 import dev.ashenarx.akki.internal.CallSite
@@ -9,8 +11,10 @@ import kotlin.reflect.KClass
 public object Log {
     public class Installation internal constructor(
         private val uninstall: () -> Unit,
-    ) {
+    ) : AutoCloseable {
         public fun uninstall(): Unit = uninstall.invoke()
+
+        override fun close(): Unit = uninstall()
     }
 
     public fun of(type: KClass<*>): Logger = LogRegistry.of(platformTypeName(type))

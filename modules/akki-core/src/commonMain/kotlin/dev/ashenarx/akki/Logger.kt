@@ -8,37 +8,37 @@ public interface Logger {
     public fun emit(
         level: Level,
         message: String,
-        fields: Map<String, Any?> = emptyMap(),
         cause: Throwable? = null,
+        fields: Map<String, Any?> = emptyMap(),
     ): Unit
 
     public fun trace(
         message: String,
-        fields: Map<String, Any?> = emptyMap(),
         cause: Throwable? = null,
-    ): Unit = emit(Level.TRACE, message, fields, cause)
+        fields: Map<String, Any?> = emptyMap(),
+    ): Unit = emit(Level.TRACE, message, cause, fields)
 
     public fun debug(
         message: String,
-        fields: Map<String, Any?> = emptyMap(),
         cause: Throwable? = null,
-    ): Unit = emit(Level.DEBUG, message, fields, cause)
+        fields: Map<String, Any?> = emptyMap(),
+    ): Unit = emit(Level.DEBUG, message, cause, fields)
 
     public fun info(
         message: String,
-        fields: Map<String, Any?> = emptyMap(),
         cause: Throwable? = null,
-    ): Unit = emit(Level.INFO, message, fields, cause)
+        fields: Map<String, Any?> = emptyMap(),
+    ): Unit = emit(Level.INFO, message, cause, fields)
 
     public fun warn(
         message: String,
-        fields: Map<String, Any?> = emptyMap(),
         cause: Throwable? = null,
-    ): Unit = emit(Level.WARN, message, fields, cause)
+        fields: Map<String, Any?> = emptyMap(),
+    ): Unit = emit(Level.WARN, message, cause, fields)
 
     public fun error(
         message: String,
-        fields: Map<String, Any?> = emptyMap(),
         cause: Throwable? = null,
-    ): Unit = emit(Level.ERROR, message, fields, cause)
+        fields: Map<String, Any?> = emptyMap(),
+    ): Unit = emit(Level.ERROR, message, cause, fields)
 }

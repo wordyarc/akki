@@ -5,5 +5,5 @@ public fun interface LogBackend {
 }
 
 public fun interface Sink {
-    public fun emit(message: String, fields: Map<String, Any?>, cause: Throwable?)
+    public fun emit(message: String, cause: Throwable?, fields: Map<String, Any?>)
 }

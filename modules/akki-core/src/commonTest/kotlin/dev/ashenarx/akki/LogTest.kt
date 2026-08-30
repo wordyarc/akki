@@ -28,7 +28,7 @@ class LogTest {
         val logger = RecordingLogger()
         val fields = mapOf("source" to "test")
 
-        logger.info("implemented", fields)
+        logger.info("implemented", fields = fields)
 
         assertEquals(
             listOf(Event("custom", Level.INFO, "implemented", fields)),
@@ -42,11 +42,11 @@ class LogTest {
         val logger = Log.named("checkout")
         val fields = mapOf("orderId" to 42)
         withBackend(backend) {
-            logger.trace("trace", fields)
-            logger.debug("debug", fields)
-            logger.info("info", fields)
-            logger.warn("warn", fields)
-            logger.error("error", fields)
+            logger.trace("trace", fields = fields)
+            logger.debug("debug", fields = fields)
+            logger.info("info", fields = fields)
+            logger.warn("warn", fields = fields)
+            logger.error("error", fields = fields)
         }
 
         assertEquals(Level.entries, backend.events.map(Event::level))
@@ -137,11 +137,26 @@ class LogTest {
     }
 
     @Test
+    fun installationIsUninstalledOnClose(): Unit {
+        val outer = RecordingBackend()
+        val inner = RecordingBackend()
+        val logger = Log.named("closeable")
+
+        withBackend(outer) {
+            Log.install(inner).use { logger.info("inside") }
+            logger.info("outside")
+        }
+
+        assertEquals(listOf("inside"), inner.events.map(Event::message))
+        assertEquals(listOf("outside"), outer.events.map(Event::message))
+    }
+
+    @Test
     fun causeIsForwardedToSink(): Unit {
         val backend = RecordingBackend()
         val cause = IllegalStateException("failed")
         withBackend(backend) {
-            Log.named("failure").error("operation failed", cause = cause)
+            Log.named("failure").error("operation failed", cause)
         }
 
         assertSame(cause, backend.events.single().cause)
@@ -175,7 +190,7 @@ private class RecordingBackend(
 
     override fun resolve(name: String, level: Level): Sink? {
         if (level !in enabledLevels) return null
-        return Sink { message, fields, cause ->
+        return Sink { message, cause, fields ->
             events += Event(name, level, message, fields, cause)
         }
     }
@@ -190,8 +205,8 @@ private class RecordingLogger : Logger {
     override fun emit(
         level: Level,
         message: String,
-        fields: Map<String, Any?>,
         cause: Throwable?,
+        fields: Map<String, Any?>,
     ): Unit {
         events += Event(name, level, message, fields, cause)
     }

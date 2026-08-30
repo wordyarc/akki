@@ -14,3 +14,5 @@ internal expect fun installPlatformBackend(backend: LogBackend): Log.Installatio
 internal expect fun platformCallerLogger(): Logger
 
 internal expect fun platformTypeName(type: KClass<*>): String
+
+internal expect fun printError(message: String)

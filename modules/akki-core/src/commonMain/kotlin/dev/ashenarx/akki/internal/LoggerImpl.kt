@@ -10,10 +10,10 @@ internal class LoggerImpl(override val name: String) : Logger {
     override fun emit(
         level: Level,
         message: String,
-        fields: Map<String, Any?>,
         cause: Throwable?,
+        fields: Map<String, Any?>,
     ): Unit {
-        platformBackend().resolve(name, level)?.emit(message, fields, cause)
+        platformBackend().resolve(name, level)?.emit(message, cause, fields)
     }
 
     override fun toString(): String = "Logger($name)"

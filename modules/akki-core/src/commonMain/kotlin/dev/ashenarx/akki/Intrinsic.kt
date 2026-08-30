@@ -1,3 +1,5 @@
+@file:OptIn(InternalAkkiApi::class)
+
 package dev.ashenarx.akki
 
 import dev.ashenarx.akki.internal.CallSite

@@ -1,5 +1,8 @@
+@file:OptIn(InternalAkkiApi::class)
+
 package dev.ashenarx.akki.internal
 
+import dev.ashenarx.akki.InternalAkkiApi
 import dev.ashenarx.akki.Log
 import dev.ashenarx.akki.LogBackend
 import dev.ashenarx.akki.LogName
@@ -12,7 +15,7 @@ import kotlin.reflect.KClass
 
 private object JvmLogRegistry {
     private val loggers: ConcurrentHashMap<String, Logger> = ConcurrentHashMap()
-    private val backend: AtomicReference<BackendState> = AtomicReference(BackendState(NoOpBackend))
+    private val backend: AtomicReference<BackendState> = AtomicReference(BackendState(DefaultBackend))
 
     fun logger(name: String): Logger = loggers.computeIfAbsent(name, ::LoggerImpl)
 
@@ -76,3 +79,5 @@ internal actual fun installPlatformBackend(backend: LogBackend): Log.Installatio
 internal actual fun platformCallerLogger(): Logger = JvmCaller.logger()
 
 internal actual fun platformTypeName(type: KClass<*>): String = type.java.name
+
+internal actual fun printError(message: String): Unit = System.err.println(message)
