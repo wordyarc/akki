@@ -5,8 +5,8 @@ import dev.ashenarx.akki.LogBackend
 import dev.ashenarx.akki.Logger
 import dev.ashenarx.akki.Sink
 
-public object LogRegistry {
-    public fun of(name: String): Logger = platformLogger(name)
+internal object LogRegistry {
+    internal fun of(name: String): Logger = platformLogger(name)
 
     internal fun forCaller(): Logger = platformCallerLogger()
 }

@@ -83,6 +83,17 @@ class LogTest {
         assertEquals(listOf("second"), second.events.map(Event::message))
     }
 
+    @Test
+    fun causeIsForwardedToSink(): Unit {
+        val backend = RecordingBackend()
+        val cause = IllegalStateException("failed")
+        Log.install(backend)
+
+        Log.named("failure").error("operation failed", cause = cause)
+
+        assertSame(cause, backend.events.single().cause)
+    }
+
     private class Sample
 }
 
@@ -91,6 +102,7 @@ private data class Event(
     val level: Level,
     val message: String,
     val fields: Map<String, Any?>,
+    val cause: Throwable? = null,
 )
 
 private class RecordingBackend(
@@ -100,8 +112,8 @@ private class RecordingBackend(
 
     override fun resolve(name: String, level: Level): Sink? {
         if (level !in enabledLevels) return null
-        return Sink { emittedLevel, message, fields ->
-            events += Event(name, emittedLevel, message, fields)
+        return Sink { message, fields, cause ->
+            events += Event(name, level, message, fields, cause)
         }
     }
 }
@@ -112,7 +124,12 @@ private class RecordingLogger : Logger {
 
     override fun isEnabled(level: Level): Boolean = true
 
-    override fun emit(level: Level, message: String, fields: Map<String, Any?>): Unit {
-        events += Event(name, level, message, fields)
+    override fun emit(
+        level: Level,
+        message: String,
+        fields: Map<String, Any?>,
+        cause: Throwable?,
+    ): Unit {
+        events += Event(name, level, message, fields, cause)
     }
 }
