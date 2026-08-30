@@ -14,6 +14,9 @@ public object Log {
     @CallSite
     public fun forCaller(): Logger = LogRegistry.forCaller()
 
+    @CallSite
+    public fun auto(): Logger = LogRegistry.forCaller()
+
     public fun named(name: String): Logger = LogRegistry.of(name)
 
     public fun install(backend: LogBackend): Unit = installPlatformBackend(backend)
