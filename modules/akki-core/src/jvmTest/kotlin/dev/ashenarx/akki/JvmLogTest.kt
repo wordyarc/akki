@@ -40,6 +40,27 @@ class JvmLogTest {
         assertSame(expected, fileLoggerFromFactory())
     }
 
+    @Test
+    fun factoriesUseClassLogName(): Unit {
+        val expected = Log.named("audit")
+
+        assertSame(expected, Log.of<NamedCaller>())
+        assertSame(expected, Log.of(NamedCaller::class))
+        assertSame(expected, Log.of(NamedCaller::class.java))
+    }
+
+    @Test
+    fun runtimeTypeFactoryUsesLogName(): Unit {
+        assertSame(Log.named("audit-processor"), AuditProcessor().log)
+    }
+
+    @Test
+    fun logNameIsNotInherited(): Unit {
+        val logger = PlainProcessor().log
+
+        assertEquals(PlainProcessor::class.java.name, logger.name)
+    }
+
     private class Caller {
         fun intrinsic(): Logger = log
 
@@ -56,4 +77,13 @@ class JvmLogTest {
 
         fun factoryAnchor(): Logger = Log.forCaller()
     }
+
+    private abstract class Processor {
+        val log: Logger = Log.of(javaClass)
+    }
+
+    @LogName("audit-processor")
+    private class AuditProcessor : Processor()
+
+    private class PlainProcessor : Processor()
 }

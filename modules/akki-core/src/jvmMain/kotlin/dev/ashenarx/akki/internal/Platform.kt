@@ -44,10 +44,7 @@ private object JvmCaller {
 
     private val walker: StackWalker = StackWalker.getInstance(RETAIN_CLASS_REFERENCE)
     private val loggers: ClassValue<Logger> = object : ClassValue<Logger>() {
-        override fun computeValue(type: Class<*>): Logger {
-            val name = type.getDeclaredAnnotation(LogName::class.java)?.value ?: type.name
-            return LogRegistry.of(name)
-        }
+        override fun computeValue(type: Class<*>): Logger = LogRegistry.of(platformTypeName(type))
     }
 
     fun logger(): Logger {
@@ -78,6 +75,9 @@ internal actual fun installPlatformBackend(backend: LogBackend): Log.Installatio
 
 internal actual fun platformCallerLogger(): Logger = JvmCaller.logger()
 
-internal actual fun platformTypeName(type: KClass<*>): String = type.java.name
+internal actual fun platformTypeName(type: KClass<*>): String = platformTypeName(type.java)
+
+internal fun platformTypeName(type: Class<*>): String =
+    type.getDeclaredAnnotation(LogName::class.java)?.value ?: type.name
 
 internal actual fun printError(message: String): Unit = System.err.println(message)
