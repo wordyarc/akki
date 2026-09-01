@@ -1,11 +1,16 @@
 package dev.ashenarx.akki.internal
 
 import dev.ashenarx.akki.Level
+import dev.ashenarx.akki.InternalAkkiApi
 import dev.ashenarx.akki.Logger
+import dev.ashenarx.akki.Sink
 
+@OptIn(InternalAkkiApi::class)
 internal class LoggerImpl(override val name: String) : Logger {
     override fun isEnabled(level: Level): Boolean =
         platformBackend().resolve(name, level) != null
+
+    override fun sink(level: Level): Sink? = platformBackend().resolve(name, level)
 
     override fun emit(
         level: Level,

@@ -29,9 +29,13 @@ class LogTest {
         val fields = mapOf("source" to "test")
 
         logger.info("implemented", fields = fields)
+        logger.info(fields = fields) { "implemented lazily" }
 
         assertEquals(
-            listOf(Event("custom", Level.INFO, "implemented", fields)),
+            listOf(
+                Event("custom", Level.INFO, "implemented", fields),
+                Event("custom", Level.INFO, "implemented lazily", fields),
+            ),
             logger.events,
         )
     }
@@ -53,6 +57,50 @@ class LogTest {
         assertTrue(backend.events.all { it.name == "checkout" })
         assertEquals(listOf("trace", "debug", "info", "warn", "error"), backend.events.map(Event::message))
         assertTrue(backend.events.all { it.fields == fields })
+    }
+
+    @Test
+    fun lazyLevelMethodsEmitThroughTheInstalledBackend(): Unit {
+        val backend = RecordingBackend()
+        val logger = Log.named("lazy-checkout")
+        val fields = mapOf("orderId" to 42)
+        val cause = IllegalStateException("failed")
+        withBackend(backend) {
+            logger.trace(fields = fields) { "trace" }
+            logger.debug(fields = fields) { "debug" }
+            logger.info(fields = fields) { "info" }
+            logger.warn(fields = fields) { "warn" }
+            logger.error(cause, fields) { "error" }
+        }
+
+        assertEquals(Level.entries, backend.events.map(Event::level))
+        assertEquals(listOf("trace", "debug", "info", "warn", "error"), backend.events.map(Event::message))
+        assertTrue(backend.events.all { it.fields == fields })
+        assertSame(cause, backend.events.last().cause)
+    }
+
+    @Test
+    fun lazyMessageIsEvaluatedOnlyForEnabledLevel(): Unit {
+        val backend = RecordingBackend(setOf(Level.ERROR))
+        val logger = Log.named("lazy-filtered")
+        val evaluatedLevels: MutableList<Level> = mutableListOf()
+        withBackend(backend) {
+            logger.info {
+                evaluatedLevels += Level.INFO
+                "ignored"
+            }
+            logger.error {
+                evaluatedLevels += Level.ERROR
+                "recorded"
+            }
+        }
+
+        assertEquals(listOf(Level.ERROR), evaluatedLevels)
+        assertEquals(listOf("recorded"), backend.events.map(Event::message))
+        assertEquals(
+            listOf("lazy-filtered" to Level.INFO, "lazy-filtered" to Level.ERROR),
+            backend.resolutions,
+        )
     }
 
     @Test
@@ -187,8 +235,10 @@ private class RecordingBackend(
     private val enabledLevels: Set<Level> = Level.entries.toSet(),
 ) : LogBackend {
     val events: MutableList<Event> = mutableListOf()
+    val resolutions: MutableList<Pair<String, Level>> = mutableListOf()
 
     override fun resolve(name: String, level: Level): Sink? {
+        resolutions += name to level
         if (level !in enabledLevels) return null
         return Sink { message, cause, fields ->
             events += Event(name, level, message, fields, cause)
