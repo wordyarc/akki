@@ -1,9 +1,13 @@
+@file:OptIn(UnsafeDuringIrConstructionAPI::class)
+
 package dev.ashenarx.akki.compiler
 
 import org.jetbrains.kotlin.backend.common.IrElementTransformerVoidWithContext
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
 import org.jetbrains.kotlin.backend.common.lower.irIfThen
+import org.jetbrains.kotlin.ir.IrElement
+import org.jetbrains.kotlin.ir.builders.IrBlockBuilder
 import org.jetbrains.kotlin.ir.builders.IrBuilderWithScope
 import org.jetbrains.kotlin.ir.builders.irBlock
 import org.jetbrains.kotlin.ir.builders.irCall
@@ -11,93 +15,71 @@ import org.jetbrains.kotlin.ir.builders.irGet
 import org.jetbrains.kotlin.ir.builders.irNotEquals
 import org.jetbrains.kotlin.ir.builders.irNull
 import org.jetbrains.kotlin.ir.builders.irTemporary
-import org.jetbrains.kotlin.ir.declarations.IrClass
-import org.jetbrains.kotlin.ir.declarations.IrEnumEntry
-import org.jetbrains.kotlin.ir.declarations.IrParameterKind
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
+import org.jetbrains.kotlin.ir.declarations.IrVariable
+import org.jetbrains.kotlin.ir.expressions.IrBlock
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrFunctionExpression
+import org.jetbrains.kotlin.ir.expressions.IrGetValue
+import org.jetbrains.kotlin.ir.expressions.IrStatementOrigin
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetEnumValueImpl
-import org.jetbrains.kotlin.ir.types.classOrNull
-import org.jetbrains.kotlin.ir.util.defaultType
-import org.jetbrains.kotlin.ir.util.functions
-import org.jetbrains.kotlin.ir.util.kotlinFqName
-import org.jetbrains.kotlin.ir.util.parentAsClass
+import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.util.resolveFakeOverrideOrSelf
+import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
+import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
+import org.jetbrains.kotlin.ir.visitors.acceptVoid
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
-import org.jetbrains.kotlin.name.CallableId
-import org.jetbrains.kotlin.name.FqName
-import org.jetbrains.kotlin.name.Name
 
 internal class LoggerCallLowering(
     private val context: IrPluginContext,
+    private val symbols: AkkiSymbols,
 ) : IrElementTransformerVoidWithContext() {
+    override fun visitBlock(expression: IrBlock): IrExpression {
+        if (expression.origin != IrStatementOrigin.ARGUMENTS_REORDERING_FOR_CALL) return super.visitBlock(expression)
+        val call = expression.statements.lastOrNull() as? IrCall ?: return super.visitBlock(expression)
+        val hoisted = expression.statements.dropLast(1).map { it as? IrVariable ?: return super.visitBlock(expression) }
+        val target = call.target() ?: return super.visitBlock(expression)
+        expression.statements.forEach { it.transformChildrenVoid() }
+        return lower(call, target, hoisted) ?: expression
+    }
+
     override fun visitCall(expression: IrCall): IrExpression {
         expression.transformChildrenVoid()
-
         val target = expression.target() ?: return expression
-        val scope = currentScope?.scope?.scopeOwnerSymbol ?: return expression
-        val builder = DeclarationIrBuilder(context, scope, expression.startOffset, expression.endOffset)
+        return lower(expression, target, emptyList()) ?: expression
+    }
+
+    private fun IrCall.target(): LoggerCall? {
+        if (superQualifierSymbol != null) return null
+        val function = symbol.owner.resolveFakeOverrideOrSelf() as? IrSimpleFunction ?: return null
+        return symbols.callFor(function)
+    }
+
+    private fun lower(call: IrCall, target: LoggerCall, hoisted: List<IrVariable>): IrExpression? {
+        val receiver = call.arguments[0] ?: return null
+        val message = call.arguments[target.message] ?: return null
+        val scope = currentScope?.scope?.scopeOwnerSymbol ?: return null
+        val outer = hoisted.reachableFrom(receiver)
+        val builder = DeclarationIrBuilder(context, scope, call.startOffset, call.endOffset)
         return with(builder) {
             irBlock(resultType = context.irBuiltIns.unitType) {
-                val receiver = irTemporary(requireNotNull(expression.arguments[0]), "logger")
-
-                val sinkCall = irCall(target.sink.symbol).apply {
-                    arguments[0] = irGet(receiver)
-                    arguments[1] = IrGetEnumValueImpl(
-                        startOffset,
-                        endOffset,
-                        target.level.parentAsClass.defaultType,
-                        target.level.symbol,
-                    )
-                }
-                val sink = irTemporary(sinkCall, "sink")
-
+                hoisted.forEach { if (it in outer) +it }
+                val logger = irTemporary(receiver, "logger")
+                val sink = irTemporary(
+                    irCall(symbols.sink).apply {
+                        arguments[0] = irGet(logger)
+                        arguments[1] = IrGetEnumValueImpl(startOffset, endOffset, symbols.levelType, target.level)
+                    },
+                    "sink",
+                )
                 +irIfThen(
                     irNotEquals(irGet(sink), irNull()),
-                    if (target.isLazy) {
-                        irBlock {
-                            val cause = irTemporary(
-                                expression.arguments[1] ?: irNull(target.emit.parameters[2].type),
-                                "cause",
-                            )
-                            val fields = irTemporary(
-                                expression.arguments[2] ?: emptyFields(target.emit),
-                                "fields",
-                            )
-
-                            val messageArgument = requireNotNull(expression.arguments[3])
-                            val message = if (messageArgument is IrFunctionExpression) {
-                                +messageArgument.function
-                                irCall(messageArgument.function.symbol)
-                            } else {
-                                val provider = irTemporary(messageArgument, "message")
-                                val invoke = provider.type.classOrNull?.owner
-                                    ?.functions
-                                    ?.single { function ->
-                                        function.name.asString() == "invoke" &&
-                                            function.parameters.count { it.kind == IrParameterKind.Regular } == 0
-                                    }
-                                    ?: error("Cannot resolve Function0.invoke")
-                                irCall(invoke.symbol, context.irBuiltIns.stringType).apply {
-                                    arguments[0] = irGet(provider)
-                                }
-                            }
-
-                            +irCall(target.emit.symbol).apply {
-                                arguments[0] = irGet(sink)
-                                arguments[1] = message
-                                arguments[2] = irGet(cause)
-                                arguments[3] = irGet(fields)
-                            }
-                        }
-                    } else {
-                        irCall(target.emit.symbol).apply {
+                    irBlock {
+                        hoisted.forEach { if (it !in outer) +it }
+                        +irCall(symbols.emit).apply {
                             arguments[0] = irGet(sink)
-                            arguments[1] = requireNotNull(expression.arguments[1])
-                            arguments[2] = expression.arguments[2] ?: irNull(target.emit.parameters[2].type)
-                            arguments[3] = expression.arguments[3] ?: emptyFields(target.emit)
+                            emitArguments(call, target, message).forEach { (index, value) -> arguments[index] = value }
                         }
                     },
                 )
@@ -105,67 +87,57 @@ internal class LoggerCallLowering(
         }
     }
 
-    private fun IrCall.target(): Target? {
-        val function = symbol.owner.resolveFakeOverrideOrSelf() as? IrSimpleFunction ?: return null
-        val logger = function.parent as? IrClass ?: return null
-        if (logger.kotlinFqName != LOGGER_FQ_NAME) return null
-        val levelName = LEVELS[function.name.asString()] ?: return null
-        val regularParameters = function.parameters.filter { it.kind == IrParameterKind.Regular }
-        if (regularParameters.size != 3) return null
-
-        val sink = logger.functions.single { candidate ->
-            candidate.name.asString() == "sink" &&
-                candidate.parameters.count { it.kind == IrParameterKind.Regular } == 1
-        }
-        val sinkClass = sink.returnType.classOrNull?.owner ?: return null
-        val emit = sinkClass.functions.single { candidate ->
-            candidate.name.asString() == "emit" &&
-                candidate.parameters.count { it.kind == IrParameterKind.Regular } == 3
-        }
-        val levelClass = sink.parameters.single { it.kind == IrParameterKind.Regular }.type.classOrNull?.owner
-            ?: return null
-        val level = levelClass.declarations
-            .filterIsInstance<IrEnumEntry>()
-            .single { it.name.asString() == levelName }
-        return Target(
-            sink = sink,
-            emit = emit,
-            level = level,
-            isLazy = regularParameters.last().name.asString() == "message",
-        )
-    }
-
-    private fun IrBuilderWithScope.emptyFields(
-        emit: IrSimpleFunction,
-    ): IrExpression {
-        val fieldsType = emit.parameters[3].type
-        val emptyMap = context.irBuiltIns.symbolFinder.findFunctions(EMPTY_MAP_CALLABLE_ID)
-            .single { it.owner.parameters.none { parameter -> parameter.kind == IrParameterKind.Regular } }
-        return irCall(emptyMap, fieldsType).apply {
-            typeArguments[0] = context.irBuiltIns.stringType
-            typeArguments[1] = context.irBuiltIns.anyNType
+    private fun IrBlockBuilder.emitArguments(
+        call: IrCall,
+        target: LoggerCall,
+        message: IrExpression,
+    ): Map<Int, IrExpression> {
+        val slots = listOf(
+            target.message to symbols.emitMessage,
+            target.cause to symbols.emitCause,
+            target.fields to symbols.emitFields,
+        ).sortedBy { (source, _) -> source }
+        val emitOrder = slots.map { (_, destination) -> destination }
+        val reordered = emitOrder != emitOrder.sorted()
+        return slots.associate { (source, destination) ->
+            val value = when (source) {
+                target.message -> if (target.isLazy) invoke(message) else message
+                target.cause -> call.arguments[target.cause] ?: irNull(symbols.causeType)
+                else -> call.arguments[target.fields] ?: emptyFields()
+            }
+            destination to if (reordered) irGet(irTemporary(value, "argument")) else value
         }
     }
 
-    private data class Target(
-        val sink: IrSimpleFunction,
-        val emit: IrSimpleFunction,
-        val level: IrEnumEntry,
-        val isLazy: Boolean,
-    )
+    private fun IrBlockBuilder.invoke(message: IrExpression): IrExpression =
+        if (message is IrFunctionExpression) {
+            +message.function
+            irCall(message.function.symbol)
+        } else {
+            val provider = irTemporary(message, "message")
+            irCall(symbols.invoke, context.irBuiltIns.stringType).apply { arguments[0] = irGet(provider) }
+        }
 
-    private companion object {
-        val LOGGER_FQ_NAME: FqName = FqName("dev.ashenarx.akki.Logger")
-        val EMPTY_MAP_CALLABLE_ID: CallableId = CallableId(
-            packageName = FqName("kotlin.collections"),
-            callableName = Name.identifier("emptyMap"),
-        )
-        val LEVELS: Map<String, String> = mapOf(
-            "trace" to "TRACE",
-            "debug" to "DEBUG",
-            "info" to "INFO",
-            "warn" to "WARN",
-            "error" to "ERROR",
-        )
+    private fun IrBuilderWithScope.emptyFields(): IrExpression {
+        val typeArguments = symbols.fieldsType.typeArguments().orEmpty()
+        return irCall(symbols.emptyMap, symbols.fieldsType).apply {
+            typeArguments.forEachIndexed { index, argument -> this.typeArguments[index] = argument }
+        }
+    }
+
+    private fun List<IrVariable>.reachableFrom(expression: IrExpression): Set<IrVariable> {
+        if (isEmpty()) return emptySet()
+        val declared = associateBy { it.symbol }
+        val reached = linkedSetOf<IrVariable>()
+        val visitor = object : IrVisitorVoid() {
+            override fun visitElement(element: IrElement): Unit = element.acceptChildrenVoid(this)
+
+            override fun visitGetValue(expression: IrGetValue) {
+                val variable = declared[expression.symbol] ?: return
+                if (reached.add(variable)) variable.initializer?.acceptVoid(this)
+            }
+        }
+        expression.acceptVoid(visitor)
+        return reached
     }
 }

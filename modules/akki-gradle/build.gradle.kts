@@ -1,48 +1,48 @@
-import org.gradle.api.tasks.WriteProperties
-import org.gradle.api.tasks.bundling.Jar
+import akki.buildlogic.ClasspathSystemProperty
 
 plugins {
     id("akki.kotlin-jvm")
     `java-gradle-plugin`
 }
 
-evaluationDependsOn(":akki-compiler")
-evaluationDependsOn(":akki-core")
+fun artifactConfiguration(name: String): Configuration = configurations.create(name) {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    isTransitive = false
+}
+
+val akkiCompilerJar: Configuration = artifactConfiguration("akkiCompilerJar")
+val akkiCoreJar: Configuration = artifactConfiguration("akkiCoreJar")
 
 dependencies {
     implementation(libs.kotlin.gradle.plugin.api)
+    akkiCompilerJar(project(":akki-compiler"))
+    akkiCoreJar(project(":akki-core"))
     testImplementation(gradleTestKit())
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 
-val compilerPluginJar = project(":akki-compiler").tasks.named<Jar>("jar")
-val coreJar = project(":akki-core").tasks.named<Jar>("jvmJar")
-val gradlePluginJar = tasks.named<Jar>("jar")
-val compilerPluginJarPath = compilerPluginJar.flatMap { it.archiveFile }.get().asFile.absolutePath
-val coreJarPath = coreJar.flatMap { it.archiveFile }.get().asFile.absolutePath
-val gradlePluginJarPath = gradlePluginJar.flatMap { it.archiveFile }.get().asFile.absolutePath
-
-tasks.test {
-    dependsOn(compilerPluginJar, coreJar, gradlePluginJar)
-    systemProperty("akki.compiler.plugin.jar", compilerPluginJarPath)
-    systemProperty("akki.core.jar", coreJarPath)
-    systemProperty("akki.gradle.plugin.jar", gradlePluginJarPath)
+kotlin {
+    explicitApi()
 }
 
-val akkiVersion = project.version.toString()
 val writeAkkiGradleProperties = tasks.register<WriteProperties>("writeAkkiGradleProperties") {
     destinationFile = layout.buildDirectory.file("generated/akki-gradle.properties")
-    property("version", akkiVersion)
+    property("version", project.version.toString())
 }
 
 tasks.processResources {
     from(writeAkkiGradleProperties)
 }
 
-kotlin {
-    explicitApi()
+tasks.test {
+    jvmArgumentProviders.add(ClasspathSystemProperty("akki.compiler.plugin.jar", akkiCompilerJar))
+    jvmArgumentProviders.add(ClasspathSystemProperty("akki.core.jar", akkiCoreJar))
+    jvmArgumentProviders.add(ClasspathSystemProperty("akki.gradle.plugin.jar", files(tasks.jar)))
+    systemProperty("akki.version", project.version.toString())
+    systemProperty("akki.kotlin.version", libs.versions.kotlin.get())
 }
 
 gradlePlugin {
