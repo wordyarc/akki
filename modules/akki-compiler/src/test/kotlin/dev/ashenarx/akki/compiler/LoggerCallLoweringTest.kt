@@ -1,22 +1,13 @@
 package dev.ashenarx.akki.compiler
 
-import java.io.ByteArrayOutputStream
-import java.io.PrintStream
-import java.net.URLClassLoader
 import java.nio.file.Path
-import kotlin.io.path.createDirectories
-import kotlin.io.path.writeText
+import dev.ashenarx.akki.compiler.FixtureCompiler.constantPool
+import dev.ashenarx.akki.compiler.FixtureCompiler.invoke
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import org.jetbrains.kotlin.cli.common.ExitCode
-import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
-import org.jetbrains.kotlin.cli.common.messages.MessageRenderer
-import org.jetbrains.kotlin.cli.common.messages.PrintingMessageCollector
-import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
-import org.jetbrains.kotlin.config.Services
 import org.junit.jupiter.api.io.TempDir
 
 class LoggerCallLoweringTest {
@@ -65,23 +56,26 @@ class LoggerCallLoweringTest {
 
     @Test
     fun allocatesNoLambdaForLazyCalls(@TempDir directory: Path) {
-        val classes = compile(directory, LAMBDA_FIXTURE, plugin = true)
-        val constants = constantPool(classes.resolve("fixture/FixtureKt.class"))
+        val constants = FixtureCompiler.compile(directory, LAMBDA_FIXTURE).constantPool("fixture.FixtureKt")
         assertFalse(constants.any { it.contains("Function0") }, constants.toString())
         assertTrue(constants.any { it.contains("box\$lambda") }, constants.toString())
     }
 
     @Test
     fun leavesUnresolvableCallSitesAlone(@TempDir directory: Path) {
-        val classes = compile(directory, BAILOUT_FIXTURE, plugin = true)
-        assertEquals("via-type-parameter,via-super", invoke(classes, "fixture.FixtureKt", "box"))
+        assertEquals("via-type-parameter", FixtureCompiler.box(directory, BAILOUT_FIXTURE))
     }
 
     @Test
-    fun warnsOnOverriddenLevelMethod(@TempDir directory: Path) {
-        val output = ByteArrayOutputStream()
-        compile(directory, OVERRIDE_FIXTURE, plugin = true, output = output)
-        assertContains(output.toString(), "Logger.info has no effect")
+    fun reportsExactCallerLocation(@TempDir directory: Path) {
+        val line = LOCATION_FIXTURE.lines().indexOfFirst { it.contains(""".info("located")""") } + 1
+        assertEquals("fixture.FixtureKt|box|$line", FixtureCompiler.box(directory, LOCATION_FIXTURE))
+    }
+
+    @Test
+    fun rejectsOverridingLevelMethods(@TempDir directory: Path) {
+        val failure = FixtureCompiler.compileExpectingFailure(directory, OVERRIDE_FIXTURE)
+        assertContains(failure, "'info' overrides nothing")
     }
 
     @Test
@@ -99,59 +93,9 @@ class LoggerCallLoweringTest {
         plugin: Boolean,
         enabled: Boolean = true,
     ): Result {
-        val classes = compile(directory, fixture, plugin, enabled)
-        val parts = invoke(classes, "fixture.FixtureKt", "box").split("|")
+        val parts = FixtureCompiler.box(directory, fixture, plugin, enabled).split("|")
         return Result(parts[0], parts[1], parts[2])
     }
-
-    private fun compile(
-        directory: Path,
-        fixture: String,
-        plugin: Boolean,
-        enabled: Boolean = true,
-        output: ByteArrayOutputStream = ByteArrayOutputStream(),
-    ): Path {
-        val source = directory.createDirectories().resolve("Fixture.kt")
-        val classes = directory.resolve("classes").createDirectories()
-        source.writeText(fixture)
-
-        val pluginArguments = if (!plugin) {
-            emptyList()
-        } else {
-            listOf("-Xplugin=${property("akki.compiler.plugin.jar")}", "-P", "plugin:$PLUGIN_ID:enabled=$enabled")
-        }
-        val compiler = K2JVMCompiler()
-        val arguments = K2JVMCompilerArguments()
-        compiler.parseArguments(
-            (
-                listOf(
-                    "-d", classes.toString(),
-                    "-classpath", property("akki.fixture.classpath"),
-                    "-jvm-target", property("akki.jvm.target"),
-                ) + pluginArguments + source.toString()
-                ).toTypedArray(),
-            arguments,
-        )
-        val exitCode = compiler.exec(
-            PrintingMessageCollector(PrintStream(output), MessageRenderer.PLAIN_RELATIVE_PATHS, true),
-            Services.EMPTY,
-            arguments,
-        )
-        assertEquals(ExitCode.OK, exitCode, output.toString())
-        return classes
-    }
-
-    private fun invoke(classes: Path, className: String, method: String): String =
-        URLClassLoader(arrayOf(classes.toUri().toURL()), javaClass.classLoader).use { classLoader ->
-            classLoader.loadClass(className).getMethod(method).invoke(null) as String
-        }
-
-    private fun constantPool(classFile: Path): List<String> {
-        val bytes = classFile.toFile().readBytes()
-        return Regex("[\\w$/.-]{4,}").findAll(String(bytes, Charsets.ISO_8859_1)).map { it.value }.toList()
-    }
-
-    private fun property(name: String): String = requireNotNull(System.getProperty(name)) { "missing -D$name" }
 
     private companion object {
         const val PLUGIN_ID = "dev.ashenarx.akki"
@@ -161,12 +105,7 @@ class LoggerCallLoweringTest {
             """
             package fixture
 
-            import dev.ashenarx.akki.DelicateAkkiApi
-            import dev.ashenarx.akki.Level
-            import dev.ashenarx.akki.Log
-            import dev.ashenarx.akki.LogBackend
-            import dev.ashenarx.akki.Logger
-            import dev.ashenarx.akki.Sink
+            import dev.ashenarx.akki.*
 
             private class Backend(private val disabled: Set<Level>) : LogBackend {
                 val resolutions = mutableListOf<Level>()
@@ -304,20 +243,6 @@ class LoggerCallLoweringTest {
                 }
             }
 
-            private class Delegating(private val effects: MutableList<String>) : Logger {
-                override val name: String = "delegating"
-
-                override fun isEnabled(level: Level): Boolean = true
-
-                override fun emit(level: Level, message: String, cause: Throwable?, fields: Map<String, Any?>) {
-                    effects += message
-                }
-
-                fun record(message: String) {
-                    super.info(message, null, emptyMap())
-                }
-            }
-
             private fun <T : () -> String> viaTypeParameter(logger: Logger, message: T) {
                 logger.info(message = message)
             }
@@ -325,8 +250,44 @@ class LoggerCallLoweringTest {
             fun box(): String {
                 val effects = mutableListOf<String>()
                 viaTypeParameter(Recording(effects)) { "via-type-parameter" }
-                Delegating(effects).record("via-super")
                 return effects.joinToString(",")
+            }
+            """.trimIndent()
+
+        val LOCATION_FIXTURE: String =
+            """
+            package fixture
+
+            import ch.qos.logback.classic.Level as LogbackLevel
+            import ch.qos.logback.classic.LoggerContext
+            import ch.qos.logback.classic.spi.ILoggingEvent
+            import ch.qos.logback.core.AppenderBase
+            import dev.ashenarx.akki.*
+            import dev.ashenarx.akki.slf4j.Slf4jBackend
+            import org.slf4j.LoggerFactory
+
+            private class Capturing : AppenderBase<ILoggingEvent>() {
+                val callers = mutableListOf<StackTraceElement>()
+
+                override fun append(event: ILoggingEvent) {
+                    callers += event.callerData.first()
+                }
+            }
+
+            @OptIn(DelicateAkkiApi::class)
+            fun box(): String {
+                val context = LoggerFactory.getILoggerFactory() as LoggerContext
+                context.reset()
+                val appender = Capturing().also { it.context = context; it.start() }
+                context.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).apply {
+                    level = LogbackLevel.TRACE
+                    addAppender(appender)
+                }
+                Log.install(Slf4jBackend).use {
+                    Log.named("caller").info("located")
+                }
+                val caller = appender.callers.single()
+                return listOf(caller.className, caller.methodName, caller.lineNumber).joinToString("|")
             }
             """.trimIndent()
 

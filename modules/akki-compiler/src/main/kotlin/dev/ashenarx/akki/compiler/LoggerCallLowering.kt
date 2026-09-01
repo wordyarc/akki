@@ -15,7 +15,6 @@ import org.jetbrains.kotlin.ir.builders.irGet
 import org.jetbrains.kotlin.ir.builders.irNotEquals
 import org.jetbrains.kotlin.ir.builders.irNull
 import org.jetbrains.kotlin.ir.builders.irTemporary
-import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.expressions.IrBlock
 import org.jetbrains.kotlin.ir.expressions.IrCall
@@ -25,7 +24,6 @@ import org.jetbrains.kotlin.ir.expressions.IrGetValue
 import org.jetbrains.kotlin.ir.expressions.IrStatementOrigin
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetEnumValueImpl
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
-import org.jetbrains.kotlin.ir.util.resolveFakeOverrideOrSelf
 import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
@@ -50,11 +48,7 @@ internal class LoggerCallLowering(
         return lower(expression, target, emptyList()) ?: expression
     }
 
-    private fun IrCall.target(): LoggerCall? {
-        if (superQualifierSymbol != null) return null
-        val function = symbol.owner.resolveFakeOverrideOrSelf() as? IrSimpleFunction ?: return null
-        return symbols.callFor(function)
-    }
+    private fun IrCall.target(): LoggerCall? = symbols.callFor(symbol.owner)
 
     private fun lower(call: IrCall, target: LoggerCall, hoisted: List<IrVariable>): IrExpression? {
         val receiver = call.arguments[0] ?: return null

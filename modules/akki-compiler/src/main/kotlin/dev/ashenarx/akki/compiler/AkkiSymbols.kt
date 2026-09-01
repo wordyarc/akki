@@ -17,8 +17,8 @@ import org.jetbrains.kotlin.ir.types.classOrNull
 import org.jetbrains.kotlin.ir.types.typeOrNull
 import org.jetbrains.kotlin.ir.util.defaultType
 import org.jetbrains.kotlin.ir.util.functions
+import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.isNullable
-import org.jetbrains.kotlin.ir.util.parentClassOrNull
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
@@ -34,6 +34,9 @@ internal class LoggerCall(
 
 internal class AkkiSymbols private constructor(
     val logger: IrClassSymbol,
+    val loggerType: IrType,
+    val logRegistry: IrClassSymbol,
+    val forCaller: IrSimpleFunctionSymbol,
     val sink: IrSimpleFunctionSymbol,
     val emit: IrSimpleFunctionSymbol,
     val invoke: IrSimpleFunctionSymbol,
@@ -46,14 +49,25 @@ internal class AkkiSymbols private constructor(
     val emitFields: Int,
     private val calls: Map<IrSimpleFunctionSymbol, LoggerCall>,
 ) {
-    fun callFor(function: IrSimpleFunction): LoggerCall? {
-        if (function.parentClassOrNull?.symbol != logger) return null
-        return calls[function.symbol]
-    }
+    fun callFor(function: IrSimpleFunction): LoggerCall? = calls[function.symbol]
+
+    fun isCallSite(function: IrSimpleFunction): Boolean =
+        function.returnType.classOrNull == logger &&
+            function.regular.isEmpty() &&
+            (
+                function.hasAnnotation(CALL_SITE) ||
+                    function.correspondingPropertySymbol?.owner?.hasAnnotation(CALL_SITE) == true
+                )
 
     companion object {
-        private val LOGGER_ID = ClassId(FqName("dev.ashenarx.akki"), Name.identifier("Logger"))
+        private val AKKI_PACKAGE = FqName("dev.ashenarx.akki")
+        private val INTERNAL_PACKAGE = FqName("dev.ashenarx.akki.internal")
+        private val CALL_SITE = FqName("dev.ashenarx.akki.internal.CallSite")
+        private val LOG_REGISTRY_ID = ClassId(INTERNAL_PACKAGE, Name.identifier("LogRegistry"))
+        private val FOR_CALLER = Name.identifier("forCaller")
+        private val LOGGER_ID = ClassId(AKKI_PACKAGE, Name.identifier("Logger"))
         private val EMPTY_MAP_ID = CallableId(FqName("kotlin.collections"), Name.identifier("emptyMap"))
+        private val LEVEL_NAMES = listOf("trace", "debug", "info", "warn", "error")
         private val SINK = Name.identifier("sink")
         private val EMIT = Name.identifier("emit")
         private val INVOKE = Name.identifier("invoke")
@@ -81,7 +95,11 @@ internal class AkkiSymbols private constructor(
             val entries = levelClass.owner.declarations
                 .filterIsInstance<IrEnumEntry>()
                 .associateBy { it.name.asString() }
-            val calls = logger.owner.functions.mapNotNull { function ->
+            val calls = LEVEL_NAMES.asSequence().flatMap { name ->
+                finder.findFunctions(CallableId(AKKI_PACKAGE, Name.identifier(name))).asSequence()
+            }.mapNotNull { symbol ->
+                val function = symbol.owner
+                if (function.parameters.firstOrNull()?.type?.classOrNull != logger) return@mapNotNull null
                 val level = entries[function.name.asString().uppercase()] ?: return@mapNotNull null
                 val parameters = function.regular
                 if (parameters.size != 3) return@mapNotNull null
@@ -92,7 +110,7 @@ internal class AkkiSymbols private constructor(
                 val message = parameters.singleOrNull { it != cause && it != fields } ?: return@mapNotNull null
                 val isLazy = message.type.classOrNull == function0
                 if (!isLazy && message.type != context.irBuiltIns.stringType) return@mapNotNull null
-                function.symbol to LoggerCall(
+                symbol to LoggerCall(
                     level = level.symbol,
                     message = message.indexInParameters,
                     cause = cause.indexInParameters,
@@ -102,11 +120,20 @@ internal class AkkiSymbols private constructor(
             }.toMap()
             if (calls.isEmpty()) return null
 
+            val logRegistry = finder.findClass(LOG_REGISTRY_ID) ?: return null
+            val forCaller = logRegistry.owner.functions
+                .singleOrNull { it.name == FOR_CALLER && it.regular.isEmpty() }
+                ?: return null
+            if (forCaller.returnType.classOrNull != logger) return null
+
             val invoke = function0.owner.functions.singleOrNull { it.name == INVOKE } ?: return null
             val emptyMap = finder.findFunctions(EMPTY_MAP_ID).singleOrNull { it.owner.regular.isEmpty() } ?: return null
 
             return AkkiSymbols(
                 logger = logger,
+                loggerType = logger.owner.defaultType,
+                logRegistry = logRegistry,
+                forCaller = forCaller.symbol,
                 sink = sink.symbol,
                 emit = emit.symbol,
                 invoke = invoke.symbol,

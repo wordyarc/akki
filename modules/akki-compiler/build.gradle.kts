@@ -4,7 +4,7 @@ plugins {
     id("akki.kotlin-jvm")
 }
 
-val fixtureRuntime: Configuration by configurations.creating {
+val fixtureRuntime: Configuration = configurations.create("fixtureRuntime") {
     isCanBeConsumed = false
     isCanBeResolved = true
 }
@@ -12,7 +12,11 @@ val fixtureRuntime: Configuration by configurations.creating {
 dependencies {
     compileOnly(libs.kotlin.compiler)
     fixtureRuntime(project(":akki-core"))
+    fixtureRuntime(project(":akki-slf4j"))
+    fixtureRuntime(libs.logback.classic)
     testImplementation(project(":akki-core"))
+    testImplementation(project(":akki-slf4j"))
+    testImplementation(libs.logback.classic)
     testImplementation(libs.kotlin.compiler)
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.junit.jupiter)

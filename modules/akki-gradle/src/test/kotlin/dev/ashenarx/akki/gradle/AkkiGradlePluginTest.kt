@@ -13,13 +13,13 @@ class AkkiGradlePluginTest {
     @Test
     fun lowersLoggerCallsInConsumerProject(@TempDir projectDirectory: Path) {
         val output = build(projectDirectory, enabled = null)
-        assertTrue(output.contains("AKKI evaluated=0"), output)
+        assertTrue(output.contains("AKKI name=consumer.OrderService evaluated=0"), output)
     }
 
     @Test
     fun leavesConsumerUntouchedWhenDisabled(@TempDir projectDirectory: Path) {
         val output = build(projectDirectory, enabled = false)
-        assertTrue(output.contains("AKKI evaluated=1"), output)
+        assertTrue(output.contains("AKKI name=consumer.OrderService evaluated=1"), output)
     }
 
     private fun build(projectDirectory: Path, enabled: Boolean?): String {
@@ -139,11 +139,13 @@ class AkkiGradlePluginTest {
             """
             package consumer
 
-            import dev.ashenarx.akki.DelicateAkkiApi
-            import dev.ashenarx.akki.Level
-            import dev.ashenarx.akki.Log
-            import dev.ashenarx.akki.LogBackend
-            import dev.ashenarx.akki.Sink
+            import dev.ashenarx.akki.*
+
+            class OrderService {
+                fun handle(): String = log.name
+
+                fun suppressed(counter: () -> Int): Unit = log.debug("value=${'$'}{counter()}")
+            }
 
             @OptIn(DelicateAkkiApi::class)
             fun main() {
@@ -151,10 +153,11 @@ class AkkiGradlePluginTest {
                 val backend = LogBackend { _, level ->
                     if (level == Level.DEBUG) null else Sink { _, _, _ -> }
                 }
+                val service = OrderService()
                 Log.install(backend).use {
-                    Log.named("consumer").debug("value=${'$'}{++evaluated}")
+                    service.suppressed { ++evaluated }
                 }
-                println("AKKI evaluated=${'$'}evaluated")
+                println("AKKI name=${'$'}{service.handle()} evaluated=${'$'}evaluated")
             }
             """.trimIndent()
     }
