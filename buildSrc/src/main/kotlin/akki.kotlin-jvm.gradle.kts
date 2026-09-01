@@ -1,4 +1,5 @@
-import akki.buildlogic.jvmVersion
+import akki.buildlogic.jvmTargetVersion
+import akki.buildlogic.jvmToolchainVersion
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 
@@ -8,9 +9,9 @@ plugins {
 }
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(jvmVersion)
-    sourceCompatibility = JavaVersion.toVersion(jvmVersion)
-    targetCompatibility = JavaVersion.toVersion(jvmVersion)
+    toolchain.languageVersion = JavaLanguageVersion.of(jvmToolchainVersion)
+    sourceCompatibility = JavaVersion.toVersion(jvmTargetVersion)
+    targetCompatibility = JavaVersion.toVersion(jvmTargetVersion)
 }
 
 kotlin {
@@ -18,7 +19,7 @@ kotlin {
     abiValidation()
 
     compilerOptions {
-        jvmTarget = JvmTarget.fromTarget(jvmVersion.toString())
+        jvmTarget = JvmTarget.fromTarget(jvmTargetVersion.toString())
     }
 }
 
