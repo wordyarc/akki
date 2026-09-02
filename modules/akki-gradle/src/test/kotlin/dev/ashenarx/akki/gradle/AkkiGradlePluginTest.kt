@@ -38,7 +38,15 @@ class AkkiGradlePluginTest {
 
     private fun publishRepository(repository: Path): Path {
         publish(repository, "dev.ashenarx", "akki-compiler", path("akki.compiler.plugin.jar"))
-        publish(repository, "dev.ashenarx", "akki-core", path("akki.core.jar"))
+        publish(
+            repository,
+            "dev.ashenarx",
+            "akki-core",
+            path("akki.core.jar"),
+            dependencies = listOf(
+                Triple("org.jetbrains.kotlin", "kotlin-metadata-jvm", property("akki.kotlin.version")),
+            ),
+        )
         publish(
             repository,
             "dev.ashenarx",

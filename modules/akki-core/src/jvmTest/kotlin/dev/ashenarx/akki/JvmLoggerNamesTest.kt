@@ -51,8 +51,8 @@ class JvmLoggerNamesTest {
 
     @Test
     fun sourceStyleUsesKotlinNamesForMappedTypes(): Unit {
-        assertEquals("kotlin.String", platformTypeName(String::class.java, null, JvmLoggerNameStyle.SOURCE))
-        assertEquals("java.lang.String", platformTypeName(String::class.java, null, JvmLoggerNameStyle.JVM_CLASS))
+        assertEquals("kotlin.String", platformTypeName(String::class.java, JvmLoggerNameStyle.SOURCE))
+        assertEquals("java.lang.String", platformTypeName(String::class.java, JvmLoggerNameStyle.JVM_CLASS))
         val expected = when (configuredStyle()) {
             JvmLoggerNameStyle.SOURCE -> "kotlin.String"
             JvmLoggerNameStyle.JVM_CLASS -> "java.lang.String"
@@ -63,14 +63,14 @@ class JvmLoggerNamesTest {
     }
 
     @Test
-    fun topLevelGeneratedTypeFactoriesUseSourceFileOwner(): Unit {
+    fun topLevelGeneratedTypeFactoriesUseFacadeOwner(): Unit {
         val customJvmName = customJvmNameLocalLoggers()
         val multifile = multifileLocalLoggers()
         val expectedCustomJvmName: String
         val expectedMultifile: String
         when (configuredStyle()) {
             JvmLoggerNameStyle.SOURCE -> {
-                expectedCustomJvmName = "dev.ashenarx.akki.CustomJvmNameProbeSite"
+                expectedCustomJvmName = "dev.ashenarx.akki.CustomProbeFacade"
                 expectedMultifile = "dev.ashenarx.akki.MultifileProbeSite"
             }
             JvmLoggerNameStyle.JVM_CLASS -> {

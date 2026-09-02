@@ -58,21 +58,13 @@ class JvmLoggerNameProbeTest {
         assertEquals(
             expectedSourceNames,
             probes.map { probe ->
-                probe.site to platformTypeName(
-                    probe.stackType,
-                    probe.sourceFileName,
-                    JvmLoggerNameStyle.SOURCE,
-                )
+                probe.site to platformTypeName(probe.stackType, JvmLoggerNameStyle.SOURCE)
             },
         )
         assertEquals(
             expectedJvmClassNames,
             probes.map { probe ->
-                probe.site to platformTypeName(
-                    probe.stackType,
-                    probe.sourceFileName,
-                    JvmLoggerNameStyle.JVM_CLASS,
-                )
+                probe.site to platformTypeName(probe.stackType, JvmLoggerNameStyle.JVM_CLASS)
             },
         )
     }
@@ -207,21 +199,18 @@ internal data class JvmLoggerNameProbe(
     val slf4jName: String,
     val akkiName: String,
     val stackType: Class<*>,
-    val sourceFileName: String?,
 )
 
 internal fun captureLoggerNames(site: String, akkiLogger: Logger): JvmLoggerNameProbe {
-    val stackFrame = probeWalker.walk { frames ->
-        frames.skip(1).findFirst().orElseThrow()
+    val stackClass = probeWalker.walk { frames ->
+        frames.skip(1).map(StackWalker.StackFrame::getDeclaringClass).findFirst().orElseThrow()
     }
-    val stackClass = stackFrame.declaringClass
     return JvmLoggerNameProbe(
         site = site,
         stackClass = stackClass.name,
         slf4jName = LoggerFactory.getLogger(stackClass).name,
         akkiName = akkiLogger.name,
         stackType = stackClass,
-        sourceFileName = stackFrame.fileName,
     )
 }
 
@@ -236,7 +225,7 @@ private fun List<JvmLoggerNameProbe>.render(): String = buildString {
         append(" | ")
         append(probe.akkiName)
         append(" | ")
-        appendLine(platformTypeName(probe.stackType, probe.sourceFileName, JvmLoggerNameStyle.JVM_CLASS))
+        appendLine(platformTypeName(probe.stackType, JvmLoggerNameStyle.JVM_CLASS))
     }
 }
 
@@ -292,7 +281,7 @@ private val expectedSourceNames: List<Pair<String, String>> = listOf(
     "suspend function" to "dev.ashenarx.akki.JvmLoggerNameProbeTest",
     "inline function" to "dev.ashenarx.akki.JvmLoggerNameProbeTest",
     "top-level function" to "dev.ashenarx.akki.JvmLoggerNameProbeTest",
-    "@file:JvmName" to "dev.ashenarx.akki.CustomJvmNameProbeSite",
+    "@file:JvmName" to "dev.ashenarx.akki.CustomProbeFacade",
     "multifile" to "dev.ashenarx.akki.MultifileProbeSite",
     "@LogName multifile" to "named-multifile-probe",
     "@LogName class" to "named-probe",

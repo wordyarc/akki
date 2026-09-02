@@ -19,6 +19,7 @@ junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher
 # -- Compiler API -------------------------------------------------------------
 kotlin-compiler = { group = "org.jetbrains.kotlin", name = "kotlin-compiler", version.ref = "kotlin" }
 kotlin-gradle-plugin-api = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin-api", version.ref = "kotlin" }
+kotlin-metadata-jvm = { group = "org.jetbrains.kotlin", name = "kotlin-metadata-jvm", version.ref = "kotlin" }
 
 # -- Logging API --------------------------------------------------------------
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }

@@ -18,6 +18,10 @@ kotlin {
     }
 
     sourceSets {
+        jvmMain.dependencies {
+            implementation(libs.kotlin.metadata.jvm)
+        }
+
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
