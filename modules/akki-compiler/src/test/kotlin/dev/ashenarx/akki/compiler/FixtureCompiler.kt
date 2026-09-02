@@ -7,6 +7,7 @@ import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.writeText
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import org.jetbrains.kotlin.cli.common.ExitCode
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.common.messages.MessageRenderer
@@ -19,15 +20,25 @@ internal class Compilation(val classes: Path, val output: String)
 internal object FixtureCompiler {
     private const val PLUGIN_ID = "dev.ashenarx.akki"
 
-    fun compile(directory: Path, fixture: String, plugin: Boolean = true, enabled: Boolean = true): Compilation {
-        val (compilation, exitCode) = run(directory, fixture, plugin, enabled)
+    fun compile(
+        directory: Path,
+        fixture: String,
+        plugin: Boolean = true,
+        enabled: Boolean = true,
+        classpath: String = property("akki.fixture.classpath"),
+    ): Compilation {
+        val (compilation, exitCode) = run(directory, fixture, plugin, enabled, classpath)
         assertEquals(ExitCode.OK, exitCode, compilation.output)
         return compilation
     }
 
-    fun compileExpectingFailure(directory: Path, fixture: String): String {
-        val (compilation, exitCode) = run(directory, fixture, plugin = true, enabled = true)
-        assertEquals(ExitCode.COMPILATION_ERROR, exitCode, compilation.output)
+    fun compileExpectingFailure(
+        directory: Path,
+        fixture: String,
+        classpath: String = property("akki.fixture.classpath"),
+    ): String {
+        val (compilation, exitCode) = run(directory, fixture, plugin = true, enabled = true, classpath = classpath)
+        assertNotEquals(ExitCode.OK, exitCode, compilation.output)
         return compilation.output
     }
 
@@ -49,6 +60,7 @@ internal object FixtureCompiler {
         fixture: String,
         plugin: Boolean,
         enabled: Boolean,
+        classpath: String,
     ): Pair<Compilation, ExitCode> {
         val source = directory.createDirectories().resolve("Fixture.kt")
         val classes = directory.resolve("classes").createDirectories()
@@ -65,7 +77,7 @@ internal object FixtureCompiler {
             (
                 listOf(
                     "-d", classes.toString(),
-                    "-classpath", property("akki.fixture.classpath"),
+                    "-classpath", classpath,
                     "-jvm-target", property("akki.jvm.target"),
                 ) + pluginArguments + source.toString()
                 ).toTypedArray(),
