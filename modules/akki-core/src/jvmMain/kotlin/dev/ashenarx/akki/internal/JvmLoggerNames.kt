@@ -2,8 +2,6 @@ package dev.ashenarx.akki.internal
 
 import dev.ashenarx.akki.LogName
 import kotlin.metadata.ClassKind
-import kotlin.metadata.ClassName
-import kotlin.metadata.isLocalClassName
 import kotlin.metadata.jvm.KotlinClassMetadata
 import kotlin.metadata.kind
 import kotlin.reflect.KClass
@@ -35,10 +33,10 @@ internal fun platformTypeName(type: Class<*>, style: JvmLoggerNameStyle): String
     var owner = type
     while (true) {
         owner.getDeclaredAnnotation(LogName::class.java)?.let { return it.value }
-        owner = logicalEnclosingOwner(owner) ?: break
+        owner = owner.logicalEnclosingOwner() ?: break
     }
     return when (style) {
-        JvmLoggerNameStyle.SOURCE -> sourceName(owner)
+        JvmLoggerNameStyle.SOURCE -> owner.sourceName()
         JvmLoggerNameStyle.JVM_CLASS -> owner.name
     }
 }
@@ -59,64 +57,69 @@ private fun loggerNameStyleProperty(): String? =
         null
     }
 
-private fun logicalEnclosingOwner(type: Class<*>): Class<*>? {
-    type.superclass?.takeIf(Class<*>::isEnum)?.let { return it }
-    val metadata = type.kotlinMetadata()
-    if (metadata.isCompanionObject()) type.declaringClass?.let { return it }
-    if (!type.isUnstableGeneratedClass(metadata)) return null
-    return type.enclosingClass ?: indyHost(type)
+private fun Class<*>.logicalEnclosingOwner(): Class<*>? = ignoringMalformedClass { enclosingOwner() }
+
+private fun Class<*>.enclosingOwner(): Class<*>? {
+    superclass?.takeIf(Class<*>::isEnum)?.let { return it }
+    declaringClass?.takeIf { isCompanionObject() }?.let { return it }
+    if (!isGeneratedClass()) return null
+    return enclosingClass ?: indyHost()
 }
 
-private fun KotlinClassMetadata?.isCompanionObject(): Boolean =
-    this is KotlinClassMetadata.Class && kmClass.kind == ClassKind.COMPANION_OBJECT
-
-private fun Class<*>.isUnstableGeneratedClass(metadata: KotlinClassMetadata?): Boolean =
+private fun Class<*>.isGeneratedClass(): Boolean =
     isLocalClass ||
         isAnonymousClass ||
         isSynthetic ||
         isHidden ||
-        metadata is KotlinClassMetadata.SyntheticClass
+        kotlinMetadata?.kind == KotlinClassMetadata.SYNTHETIC_CLASS_KIND
 
-private fun indyHost(type: Class<*>): Class<*>? {
-    val binaryName = type.name.substringBefore('/')
+private fun Class<*>.isCompanionObject(): Boolean {
+    val metadata = kotlinMetadata?.takeIf { it.kind == KotlinClassMetadata.CLASS_KIND } ?: return false
+    val declaration = metadata.readLenientOrNull() as? KotlinClassMetadata.Class ?: return false
+    return declaration.kmClass.kind == ClassKind.COMPANION_OBJECT
+}
+
+private fun Class<*>.indyHost(): Class<*>? {
+    val binaryName = name.substringBefore('/')
     val markerIndex = binaryName.indexOf("\$\$Lambda")
     if (markerIndex < 0) return null
     return try {
-        Class.forName(binaryName.substring(0, markerIndex), false, type.classLoader)
+        Class.forName(binaryName.substring(0, markerIndex), false, classLoader)
     } catch (_: ClassNotFoundException) {
         null
-    } catch (_: LinkageError) {
-        null
     }
 }
 
-private fun sourceName(type: Class<*>): String {
-    val kotlinName = when (val metadata = type.kotlinMetadata()) {
-        is KotlinClassMetadata.Class ->
-            metadata.kmClass.name.takeUnless(ClassName::isLocalClassName)?.replace('/', '.')
-        is KotlinClassMetadata.FileFacade, is KotlinClassMetadata.MultiFileClassPart -> type.fileFacadeName()
-        else -> null
+private fun Class<*>.sourceName(): String {
+    val metadata = kotlinMetadata
+    return when (metadata?.kind) {
+        KotlinClassMetadata.FILE_FACADE_KIND, KotlinClassMetadata.MULTI_FILE_CLASS_PART_KIND -> fileClassName(metadata)
+        else -> ignoringMalformedClass { kotlin.qualifiedName } ?: name
     }
-    return kotlinName ?: type.kotlin.qualifiedName ?: type.canonicalName ?: type.name
 }
 
-private fun Class<*>.fileFacadeName(): String {
+private fun Class<*>.fileClassName(metadata: Metadata): String {
     val stem = name
         .substringAfterLast('.')
         .substringAfterLast(MULTIFILE_PART_DELIMITER)
         .removeSuffix(FACADE_SUFFIX)
-    val packageName = kotlinPackageName().ifEmpty(::getPackageName)
+    val packageName = metadata.packageName.ifEmpty(::getPackageName)
     return if (packageName.isEmpty()) stem else "$packageName.$stem"
 }
 
-private fun Class<*>.kotlinPackageName(): String =
-    getDeclaredAnnotation(Metadata::class.java)?.packageName.orEmpty()
+private val Class<*>.kotlinMetadata: Metadata?
+    get() = getDeclaredAnnotation(Metadata::class.java)
 
-private fun Class<*>.kotlinMetadata(): KotlinClassMetadata? {
-    val metadata = getDeclaredAnnotation(Metadata::class.java) ?: return null
-    return try {
-        KotlinClassMetadata.readLenient(metadata)
+private inline fun <T : Any> ignoringMalformedClass(read: () -> T?): T? =
+    try {
+        read()
+    } catch (_: LinkageError) {
+        null
+    }
+
+private fun Metadata.readLenientOrNull(): KotlinClassMetadata? =
+    try {
+        KotlinClassMetadata.readLenient(this)
     } catch (_: IllegalArgumentException) {
         null
     }
-}
