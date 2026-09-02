@@ -3,36 +3,49 @@ package dev.ashenarx.akki.internal
 import dev.ashenarx.akki.Level
 import dev.ashenarx.akki.LogBackend
 import dev.ashenarx.akki.Sink
+import kotlin.concurrent.atomics.AtomicBoolean
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
-internal object DefaultBackend : LogBackend {
-    private const val NOTICE: String =
-        "akki: no backend installed, writing to stderr at INFO. Install one with Log.install(backend)."
-
-    internal var noticed: Boolean = false
+@OptIn(ExperimentalAtomicApi::class)
+internal class DefaultBackend : LogBackend {
+    private val announced = AtomicBoolean(false)
 
     override fun isEnabled(name: String, level: Level): Boolean = level >= Level.INFO
 
     override fun resolve(name: String, level: Level): Sink? {
         if (level < Level.INFO) return null
-        return Sink { message, cause, fields ->
-            if (!noticed) {
-                noticed = true
-                printError(NOTICE)
-            }
-            printError(format(level, name, message, fields))
-            cause?.let { printError(it.stackTraceToString().trimEnd()) }
+        return Sink { message, cause, fields -> printError(record(level, name, message, cause, fields)) }
+    }
+
+    private fun record(
+        level: Level,
+        name: String,
+        message: String,
+        cause: Throwable?,
+        fields: Map<String, Any?>,
+    ): String = buildString {
+        if (!announced.load() && announced.compareAndSet(false, true)) {
+            append(NOTICE)
+            append('\n')
+        }
+        append(LABELS[level.ordinal])
+        append(' ')
+        append(name)
+        append(" - ")
+        append(message)
+        if (fields.isNotEmpty()) {
+            fields.entries.joinTo(this, prefix = " {", postfix = "}") { (key, value) -> "$key=$value" }
+        }
+        cause?.let {
+            append('\n')
+            append(it.stackTraceToString().trimEnd())
         }
     }
 
-    private fun format(level: Level, name: String, message: String, fields: Map<String, Any?>): String =
-        buildString {
-            append(level.name.padEnd(5))
-            append(' ')
-            append(name)
-            append(" - ")
-            append(message)
-            if (fields.isNotEmpty()) {
-                fields.entries.joinTo(this, prefix = " {", postfix = "}") { (key, value) -> "$key=$value" }
-            }
-        }
+    private companion object {
+        const val NOTICE: String =
+            "akki: no backend installed, writing to stderr at INFO. Install one with Log.install(backend)."
+
+        val LABELS: List<String> = Level.entries.map { it.name.padEnd(5) }
+    }
 }

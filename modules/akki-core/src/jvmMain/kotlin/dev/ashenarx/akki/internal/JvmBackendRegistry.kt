@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 private object JvmBackendRegistry {
-    private val backend: AtomicReference<BackendState> = AtomicReference(BackendState(DefaultBackend))
+    private val backend: AtomicReference<BackendState> = AtomicReference(BackendState(DefaultBackend()))
 
     fun backend(): LogBackend = backend.get().backend
 

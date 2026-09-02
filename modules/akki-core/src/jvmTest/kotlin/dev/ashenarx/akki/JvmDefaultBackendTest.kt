@@ -8,6 +8,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 
+@OptIn(DelicateAkkiApi::class)
 class JvmDefaultBackendTest {
     @Test
     fun defaultBackendWritesToStandardError(): Unit {
@@ -20,17 +21,12 @@ class JvmDefaultBackendTest {
 
     @Test
     fun defaultBackendAnnouncesItselfOnce(): Unit {
-        DefaultBackend.noticed = false
-
         val output = captureError {
             Log.named("acme.Notice").error("first")
             Log.named("acme.Notice").error("second")
         }
 
-        assertEquals(
-            1,
-            output.lineSequence().count { it.startsWith("akki: no backend installed") },
-        )
+        assertEquals(1, output.lineSequence().count { it.startsWith("akki: no backend installed") })
     }
 
     @Test
@@ -44,13 +40,14 @@ class JvmDefaultBackendTest {
     }
 
     @Test
-    fun defaultBackendPrintsCause(): Unit {
+    fun defaultBackendKeepsCauseAttachedToItsMessage(): Unit {
         val output = captureError {
             Log.named("acme.Failing").error("failed", IllegalStateException("broken"))
         }
 
-        assertContains(output, "ERROR acme.Failing - failed")
-        assertContains(output, "java.lang.IllegalStateException: broken")
+        val lines = output.lines()
+        val message = lines.indexOfFirst { it.startsWith("ERROR acme.Failing - failed") }
+        assertEquals("java.lang.IllegalStateException: broken", lines[message + 1])
     }
 
     private fun captureError(block: () -> Unit): String {
@@ -58,7 +55,7 @@ class JvmDefaultBackendTest {
         val original = System.err
         System.setErr(PrintStream(buffer, true))
         try {
-            block()
+            Log.install(DefaultBackend()).use { block() }
         } finally {
             System.setErr(original)
         }
