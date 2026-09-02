@@ -4,6 +4,10 @@ package dev.ashenarx.akki.compiler
 
 import org.jetbrains.kotlin.backend.common.IrElementTransformerVoidWithContext
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
+import org.jetbrains.kotlin.backend.common.ir.IrInlinableLambda
+import org.jetbrains.kotlin.backend.common.ir.IrInvokable
+import org.jetbrains.kotlin.backend.common.ir.asInlinable
+import org.jetbrains.kotlin.backend.common.ir.inline
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
 import org.jetbrains.kotlin.backend.common.lower.irIfThen
 import org.jetbrains.kotlin.ir.IrElement
@@ -15,11 +19,11 @@ import org.jetbrains.kotlin.ir.builders.irGet
 import org.jetbrains.kotlin.ir.builders.irNotEquals
 import org.jetbrains.kotlin.ir.builders.irNull
 import org.jetbrains.kotlin.ir.builders.irTemporary
+import org.jetbrains.kotlin.ir.builders.parent
 import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.expressions.IrBlock
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
-import org.jetbrains.kotlin.ir.expressions.IrFunctionExpression
 import org.jetbrains.kotlin.ir.expressions.IrGetValue
 import org.jetbrains.kotlin.ir.expressions.IrStatementOrigin
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetEnumValueImpl
@@ -57,7 +61,7 @@ internal class LoggerCallLowering(
         val outer = hoisted.reachableFrom(receiver)
         val builder = DeclarationIrBuilder(context, scope, call.startOffset, call.endOffset)
         return with(builder) {
-            irBlock(resultType = context.irBuiltIns.unitType) {
+            irBlock(origin = SINK_GUARD, resultType = context.irBuiltIns.unitType) {
                 hoisted.forEach { if (it in outer) +it }
                 val logger = irTemporary(receiver, "logger")
                 val sink = irTemporary(
@@ -104,20 +108,17 @@ internal class LoggerCallLowering(
     }
 
     private fun IrBlockBuilder.invoke(message: IrExpression): IrExpression =
-        if (message is IrFunctionExpression) {
-            +message.function
-            irCall(message.function.symbol)
-        } else {
-            val provider = irTemporary(message, "message")
-            irCall(symbols.invoke, context.irBuiltIns.stringType).apply { arguments[0] = irGet(provider) }
+        when (val inlinable = message.asInlinable(this)) {
+            is IrInlinableLambda -> inlinable.inline(parent)
+            is IrInvokable -> irCall(symbols.invoke, context.irBuiltIns.stringType).apply {
+                arguments[0] = irGet(inlinable.invokable)
+            }
         }
 
-    private fun IrBuilderWithScope.emptyFields(): IrExpression {
-        val typeArguments = symbols.fieldsType.typeArguments().orEmpty()
-        return irCall(symbols.emptyMap, symbols.fieldsType).apply {
-            typeArguments.forEachIndexed { index, argument -> this.typeArguments[index] = argument }
+    private fun IrBuilderWithScope.emptyFields(): IrExpression =
+        irCall(symbols.emptyMap, symbols.fieldsType).apply {
+            symbols.fieldTypes.forEachIndexed { index, argument -> typeArguments[index] = argument }
         }
-    }
 
     private fun List<IrVariable>.reachableFrom(expression: IrExpression): Set<IrVariable> {
         if (isEmpty()) return emptySet()

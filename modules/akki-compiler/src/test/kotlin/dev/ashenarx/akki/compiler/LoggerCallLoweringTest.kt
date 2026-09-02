@@ -7,7 +7,6 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 
 class LoggerCallLoweringTest {
@@ -55,10 +54,10 @@ class LoggerCallLoweringTest {
     }
 
     @Test
-    fun allocatesNoLambdaForLazyCalls(@TempDir directory: Path) {
+    fun inlinesLazyMessagesInsteadOfAllocatingOrCallingThem(@TempDir directory: Path) {
         val constants = FixtureCompiler.compile(directory, LAMBDA_FIXTURE).constantPool("fixture.FixtureKt")
         assertFalse(constants.any { it.contains("Function0") }, constants.toString())
-        assertTrue(constants.any { it.contains("box\$lambda") }, constants.toString())
+        assertFalse(constants.any { it.contains("box\$lambda") }, constants.toString())
     }
 
     @Test

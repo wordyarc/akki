@@ -15,11 +15,12 @@ import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.types.IrSimpleType
 import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.types.classOrNull
-import org.jetbrains.kotlin.ir.types.typeOrNull
+import org.jetbrains.kotlin.ir.types.typeOrFail
 import org.jetbrains.kotlin.ir.util.defaultType
 import org.jetbrains.kotlin.ir.util.fqNameWhenAvailable
 import org.jetbrains.kotlin.ir.util.functions
 import org.jetbrains.kotlin.ir.util.hasAnnotation
+import org.jetbrains.kotlin.ir.util.invokeFun
 import org.jetbrains.kotlin.ir.util.kotlinFqName
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.ClassId
@@ -46,6 +47,7 @@ internal class AkkiSymbols private constructor(
     val levelType: IrType,
     val causeType: IrType,
     val fieldsType: IrType,
+    val fieldTypes: List<IrType>,
     val emitMessage: Int,
     val emitCause: Int,
     val emitFields: Int,
@@ -70,11 +72,9 @@ internal class AkkiSymbols private constructor(
         private val SINK_ID = ClassId(AKKI_PACKAGE, Name.identifier("Sink"))
         private val LOG_REGISTRY_ID = ClassId(INTERNAL_PACKAGE, Name.identifier("LogRegistry"))
         private val EMPTY_MAP_ID = CallableId(FqName("kotlin.collections"), Name.identifier("emptyMap"))
-        private val LEVEL_NAMES = listOf("trace", "debug", "info", "warn", "error")
         private val FOR_CALLER = Name.identifier("forCaller")
         private val SINK = Name.identifier("sink")
         private val EMIT = Name.identifier("emit")
-        private val INVOKE = Name.identifier("invoke")
         private val MESSAGE = Name.identifier("message")
         private val CAUSE = Name.identifier("cause")
         private val FIELDS = Name.identifier("fields")
@@ -92,12 +92,14 @@ internal class AkkiSymbols private constructor(
             val forCaller = logRegistry.function(FOR_CALLER, arity = 0)
             val emptyMap = finder.findFunctions(EMPTY_MAP_ID).singleOrNull { it.owner.regular.isEmpty() }
                 ?: missing("function ${EMPTY_MAP_ID.asSingleFqName()} without parameters")
+            val invoke = context.irBuiltIns.functionN(0).invokeFun ?: missing("function invoke of kotlin.Function0")
 
             val emitMessage = emit.parameter(MESSAGE)
             val emitCause = emit.parameter(CAUSE)
             val emitFields = emit.parameter(FIELDS)
+            val fieldTypes = emitFields.type.arguments()
             check(emitMessage.type == context.irBuiltIns.stringType) { emitMessage.mismatch("kotlin.String") }
-            check(emitFields.type.typeArguments()?.size == 2) { emitFields.mismatch("kotlin.collections.Map") }
+            check(fieldTypes.size == 2) { emitFields.mismatch("kotlin.collections.Map") }
             check(sink.regular.single().type.classOrNull == level) {
                 sink.regular.single().mismatch(LEVEL_ID.asFqNameString())
             }
@@ -111,11 +113,12 @@ internal class AkkiSymbols private constructor(
                 forCaller = forCaller.symbol,
                 sink = sink.symbol,
                 emit = emit.symbol,
-                invoke = context.irBuiltIns.functionN(0).symbol.function(INVOKE, arity = 0).symbol,
+                invoke = invoke.symbol,
                 emptyMap = emptyMap,
                 levelType = level.owner.defaultType,
                 causeType = emitCause.type,
                 fieldsType = emitFields.type,
+                fieldTypes = fieldTypes,
                 emitMessage = emitMessage.indexInParameters,
                 emitCause = emitCause.indexInParameters,
                 emitFields = emitFields.indexInParameters,
@@ -129,14 +132,9 @@ internal class AkkiSymbols private constructor(
             logger: IrClassSymbol,
             level: IrClassSymbol,
         ): Map<IrSimpleFunctionSymbol, LoggerCall> {
-            val entries = level.owner.declarations
-                .filterIsInstance<IrEnumEntry>()
-                .associateBy { it.name.asString() }
             val function0 = context.irBuiltIns.functionN(0).symbol
-            return LEVEL_NAMES.flatMap { name ->
-                val id = CallableId(AKKI_PACKAGE, Name.identifier(name))
-                val entry = entries[name.uppercase()]
-                    ?: missing("entry ${name.uppercase()} of ${LEVEL_ID.asFqNameString()}")
+            return level.owner.declarations.filterIsInstance<IrEnumEntry>().flatMap { entry ->
+                val id = CallableId(AKKI_PACKAGE, Name.identifier(entry.name.asString().lowercase()))
                 val overloads = finder.findFunctions(id)
                     .filter { it.owner.parameters.firstOrNull()?.type?.classOrNull == logger }
                 check(overloads.size == 2) {
@@ -195,7 +193,5 @@ internal class AkkiSymbols private constructor(
 internal val IrSimpleFunction.regular: List<IrValueParameter>
     get() = parameters.filter { it.kind == IrParameterKind.Regular }
 
-internal fun IrType.typeArguments(): List<IrType>? {
-    val arguments = (this as? IrSimpleType)?.arguments ?: return null
-    return arguments.map { it.typeOrNull ?: return null }
-}
+private fun IrType.arguments(): List<IrType> =
+    (this as? IrSimpleType)?.arguments.orEmpty().map { it.typeOrFail }

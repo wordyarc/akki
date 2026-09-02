@@ -67,6 +67,15 @@ class LoggerFieldLoweringTest {
         assertTrue(compilation.constantPool("fixture.FixtureKt").any { it.contains("IntrinsicKt") })
     }
 
+    @Test
+    fun resolvesTheLoggerBeforeTheStaticInitializersThatUseIt(@TempDir directory: Path) {
+        val lowered = FixtureCompiler.box(directory.resolve("lowered"), STATIC_INIT_FIXTURE, plugin = true)
+        val plain = FixtureCompiler.box(directory.resolve("plain"), STATIC_INIT_FIXTURE, plugin = false)
+
+        assertEquals("fixture.Fixture,fixture.Holder", plain)
+        assertEquals(plain, lowered)
+    }
+
     private companion object {
         val MATRIX_FIXTURE: String =
             """
@@ -193,6 +202,21 @@ class LoggerFieldLoweringTest {
             import dev.ashenarx.akki.*
 
             inline fun probe(): String = log.name
+            """.trimIndent()
+
+        val STATIC_INIT_FIXTURE: String =
+            """
+            package fixture
+
+            import dev.ashenarx.akki.*
+
+            private val topLevel: String = log.name
+
+            object Holder {
+                val member: String = log.name
+            }
+
+            fun box(): String = topLevel + "," + Holder.member
             """.trimIndent()
     }
 }

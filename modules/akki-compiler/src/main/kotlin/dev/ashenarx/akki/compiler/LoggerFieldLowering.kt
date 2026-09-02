@@ -5,14 +5,15 @@ package dev.ashenarx.akki.compiler
 import org.jetbrains.kotlin.backend.common.IrElementTransformerVoidWithContext
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
+import org.jetbrains.kotlin.descriptors.DescriptorVisibility
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
+import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.builders.declarations.buildField
 import org.jetbrains.kotlin.ir.builders.irCall
 import org.jetbrains.kotlin.ir.builders.irGetObject
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationContainer
-import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationParent
 import org.jetbrains.kotlin.ir.declarations.IrField
 import org.jetbrains.kotlin.ir.declarations.IrFile
@@ -23,16 +24,25 @@ import org.jetbrains.kotlin.ir.expressions.impl.IrGetFieldImpl
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.isAnonymousObject
+import org.jetbrains.kotlin.ir.util.SYNTHETIC_OFFSET
 import org.jetbrains.kotlin.ir.util.isInterface
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
+import org.jetbrains.kotlin.load.java.JavaDescriptorVisibilities
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
+import org.jetbrains.kotlin.platform.jvm.isJvm
 
 internal class LoggerFieldLowering(
     private val context: IrPluginContext,
     private val symbols: AkkiSymbols,
 ) : IrElementTransformerVoidWithContext() {
     private val fields: MutableMap<IrDeclarationContainer, IrField> = mutableMapOf()
+
+    override fun visitClassNew(declaration: IrClass): IrStatement =
+        super.visitClassNew(declaration).also { declaration.prependLoggerField() }
+
+    override fun visitFileNew(declaration: IrFile): IrFile =
+        super.visitFileNew(declaration).also { declaration.prependLoggerField() }
 
     override fun visitCall(expression: IrCall): IrExpression {
         expression.transformChildrenVoid()
@@ -63,26 +73,34 @@ internal class LoggerFieldLowering(
 
     private fun IrDeclarationContainer.createLoggerField(): IrField {
         val field = context.irFactory.buildField {
+            startOffset = SYNTHETIC_OFFSET
+            endOffset = SYNTHETIC_OFFSET
             name = FIELD_NAME
             type = symbols.loggerType
-            visibility = DescriptorVisibilities.PRIVATE
+            visibility = context.fieldVisibility()
             isStatic = true
             isFinal = true
-            origin = IrDeclarationOrigin.DEFINED
+            origin = LOGGER_FIELD
         }
         field.parent = this
-        val builder = DeclarationIrBuilder(context, field.symbol)
+        val builder = DeclarationIrBuilder(context, field.symbol, SYNTHETIC_OFFSET, SYNTHETIC_OFFSET)
         field.initializer = context.irFactory.createExpressionBody(
             builder.startOffset,
             builder.endOffset,
             builder.irCall(symbols.forCaller).apply { arguments[0] = builder.irGetObject(symbols.logRegistry) },
         )
-        declarations += field
         return field
+    }
+
+    private fun IrDeclarationContainer.prependLoggerField() {
+        fields.remove(this)?.let { declarations.add(0, it) }
     }
 
     private companion object {
         val FIELD_NAME: Name = Name.identifier("\$\$log")
         val LOG_NAME: FqName = FqName("dev.ashenarx.akki.LogName")
+
+        fun IrPluginContext.fieldVisibility(): DescriptorVisibility =
+            if (platform.isJvm()) JavaDescriptorVisibilities.PACKAGE_VISIBILITY else DescriptorVisibilities.PRIVATE
     }
 }
