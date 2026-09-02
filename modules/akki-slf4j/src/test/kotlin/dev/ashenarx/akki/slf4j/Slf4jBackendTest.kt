@@ -17,6 +17,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.slf4j.LoggerFactory
@@ -93,12 +94,18 @@ class Slf4jBackendTest {
     }
 
     @Test
-    fun resolvesToNullWhenLevelIsDisabled() {
+    fun reflectsEnabledLevelsInResolveAndFastPath() {
         val context = LoggerFactory.getILoggerFactory() as LoggerContext
-        context.getLogger("quiet").level = LogbackLevel.WARN
+        val logger = context.getLogger("quiet")
+        logger.level = LogbackLevel.WARN
 
+        assertFalse(Slf4jBackend.isEnabled("quiet", Level.INFO))
+        assertTrue(Slf4jBackend.isEnabled("quiet", Level.WARN))
         assertNull(Slf4jBackend.resolve("quiet", Level.INFO))
         assertTrue(Slf4jBackend.resolve("quiet", Level.WARN) != null)
+
+        logger.level = LogbackLevel.DEBUG
+        assertTrue(Slf4jBackend.isEnabled("quiet", Level.INFO))
     }
 }
 

@@ -35,7 +35,12 @@ public final class dev/ashenarx/akki/Log$Installation : java/lang/AutoCloseable 
 }
 
 public abstract interface class dev/ashenarx/akki/LogBackend {
+	public fun isEnabled (Ljava/lang/String;Ldev/ashenarx/akki/Level;)Z
 	public abstract fun resolve (Ljava/lang/String;Ldev/ashenarx/akki/Level;)Ldev/ashenarx/akki/Sink;
+}
+
+public final class dev/ashenarx/akki/LogBackend$DefaultImpls {
+	public static fun isEnabled (Ldev/ashenarx/akki/LogBackend;Ljava/lang/String;Ldev/ashenarx/akki/Level;)Z
 }
 
 public abstract interface annotation class dev/ashenarx/akki/LogName : java/lang/annotation/Annotation {

@@ -119,6 +119,43 @@ class LogTest {
     }
 
     @Test
+    fun backendCanAnswerIsEnabledWithoutResolvingSink(): Unit {
+        var resolutions = 0
+        val backend = object : LogBackend {
+            override fun resolve(name: String, level: Level): Sink? {
+                resolutions++
+                return null
+            }
+
+            override fun isEnabled(name: String, level: Level): Boolean = level >= Level.WARN
+        }
+        val logger = Log.named("fast-enabled")
+
+        withBackend(backend) {
+            assertFalse(logger.isEnabled(Level.INFO))
+            assertTrue(logger.isEnabled(Level.ERROR))
+        }
+
+        assertEquals(0, resolutions)
+    }
+
+    @Test
+    fun isEnabledFallsBackToSinkResolution(): Unit {
+        val backend = RecordingBackend(setOf(Level.ERROR))
+        val logger = Log.named("fallback-enabled")
+
+        withBackend(backend) {
+            assertFalse(logger.isEnabled(Level.INFO))
+            assertTrue(logger.isEnabled(Level.ERROR))
+        }
+
+        assertEquals(
+            listOf("fallback-enabled" to Level.INFO, "fallback-enabled" to Level.ERROR),
+            backend.resolutions,
+        )
+    }
+
+    @Test
     fun uninstallRestoresPreviousBackend(): Unit {
         val logger = Log.named("replaceable")
         val first = RecordingBackend()

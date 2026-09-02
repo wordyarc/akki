@@ -10,6 +10,8 @@ internal object DefaultBackend : LogBackend {
 
     internal var noticed: Boolean = false
 
+    override fun isEnabled(name: String, level: Level): Boolean = level >= Level.INFO
+
     override fun resolve(name: String, level: Level): Sink? {
         if (level < Level.INFO) return null
         return Sink { message, cause, fields ->

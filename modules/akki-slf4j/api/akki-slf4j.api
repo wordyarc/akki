@@ -1,5 +1,6 @@
 public final class dev/ashenarx/akki/slf4j/Slf4jBackend : dev/ashenarx/akki/LogBackend {
 	public static final field INSTANCE Ldev/ashenarx/akki/slf4j/Slf4jBackend;
+	public fun isEnabled (Ljava/lang/String;Ldev/ashenarx/akki/Level;)Z
 	public fun resolve (Ljava/lang/String;Ldev/ashenarx/akki/Level;)Ldev/ashenarx/akki/Sink;
 }
 

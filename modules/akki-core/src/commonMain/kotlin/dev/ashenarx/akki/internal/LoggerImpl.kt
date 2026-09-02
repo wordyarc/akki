@@ -8,7 +8,7 @@ import dev.ashenarx.akki.Sink
 @OptIn(InternalAkkiApi::class)
 internal class LoggerImpl(override val name: String) : Logger {
     override fun isEnabled(level: Level): Boolean =
-        platformBackend().resolve(name, level) != null
+        platformBackend().isEnabled(name, level)
 
     override fun sink(level: Level): Sink? = platformBackend().resolve(name, level)
 

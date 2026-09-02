@@ -7,6 +7,9 @@ import org.slf4j.LoggerFactory
 import org.slf4j.event.Level as Slf4jLevel
 
 public object Slf4jBackend : LogBackend {
+    override fun isEnabled(name: String, level: Level): Boolean =
+        LoggerFactory.getLogger(name).isEnabledForLevel(level.toSlf4j())
+
     override fun resolve(name: String, level: Level): Sink? {
         val logger = LoggerFactory.getLogger(name)
         val slf4jLevel = level.toSlf4j()
