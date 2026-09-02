@@ -8,7 +8,7 @@ internal class AkkiIrGenerationExtension : IrGenerationExtension {
     override fun generate(moduleFragment: IrModuleFragment, pluginContext: IrPluginContext) {
         val symbols = AkkiSymbols.of(pluginContext) ?: return
         moduleFragment.transform(LoggerFieldLowering(pluginContext, symbols), null)
+        moduleFragment.transform(LoggerAliasLowering(), null)
         moduleFragment.transform(LoggerCallLowering(pluginContext, symbols), null)
     }
 }
-
