@@ -12,17 +12,19 @@ class ContextualLoggerCheckerTest {
     fun warnsOnEveryContextualEntryPointInsideAnInlineFunction(@TempDir directory: Path) {
         val output = FixtureCompiler.compile(directory, INLINE_FIXTURE).output
 
-        assertContains(output, "'log' inside the inline function 'viaIntrinsic'")
-        assertContains(output, "'logger' inside the inline function 'viaAnchor'")
-        assertContains(output, "'forCaller' inside the inline function 'viaFactory'")
-        assertContains(output, "'log' inside the inline function 'withLambdaParameter'")
+        assertContains(output, "'log' inside the inline declaration 'viaIntrinsic'")
+        assertContains(output, "'logger' inside the inline declaration 'viaAnchor'")
+        assertContains(output, "'forCaller' inside the inline declaration 'viaFactory'")
+        assertContains(output, "'log' inside the inline declaration 'withLambdaParameter'")
+        assertContains(output, "'log' inside the inline declaration 'viaInlineProperty'")
+        assertContains(output, "'log' inside the inline declaration 'viaInlineGetter'")
     }
 
     @Test
     fun staysSilentWhereTheLoggerIsResolvedAtTheDeclaration(@TempDir directory: Path) {
         val output = FixtureCompiler.compile(directory, QUIET_FIXTURE).output
 
-        assertFalse(output.contains("inside the inline function"), output)
+        assertFalse(output.contains("inside the inline declaration"), output)
     }
 
     @Test
@@ -30,8 +32,15 @@ class ContextualLoggerCheckerTest {
         val output = FixtureCompiler.compile(directory, INLINE_FIXTURE).output
 
         assertEquals(
-            listOf("viaIntrinsic", "viaAnchor", "viaFactory", "withLambdaParameter"),
-            Regex("inside the inline function '(\\w+)'").findAll(output).map { it.groupValues[1] }.toList(),
+            listOf(
+                "viaIntrinsic",
+                "viaAnchor",
+                "viaFactory",
+                "withLambdaParameter",
+                "viaInlineProperty",
+                "viaInlineGetter",
+            ),
+            Regex("inside the inline declaration '(\\w+)'").findAll(output).map { it.groupValues[1] }.toList(),
         )
     }
 
@@ -52,6 +61,10 @@ class ContextualLoggerCheckerTest {
                 body()
                 return log.name
             }
+
+            inline val viaInlineProperty: String get() = log.name
+
+            val viaInlineGetter: String inline get() = log.name
             """.trimIndent()
 
         val QUIET_FIXTURE: String =
@@ -69,6 +82,10 @@ class ContextualLoggerCheckerTest {
             }
 
             inline fun explicitLoggerIsFine(): String = Log.named("explicit").name
+
+            interface Contract {
+                fun defaultMethod(): String = log.name
+            }
             """.trimIndent()
     }
 }

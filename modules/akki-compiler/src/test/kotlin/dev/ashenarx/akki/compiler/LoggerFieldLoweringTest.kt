@@ -61,6 +61,21 @@ class LoggerFieldLoweringTest {
     }
 
     @Test
+    fun lowersInterfaceDefaultMethods(@TempDir directory: Path) {
+        val lowered = FixtureCompiler.compile(directory.resolve("lowered"), INTERFACE_FIXTURE, plugin = true)
+        val plain = FixtureCompiler.compile(directory.resolve("plain"), INTERFACE_FIXTURE, plugin = false)
+
+        assertContains(lowered.constantPool("fixture.Contract"), "\$\$log")
+        assertFalse(lowered.constantPool("fixture.Contract").any { it.contains("IntrinsicKt") })
+        assertTrue(plain.constantPool("fixture.Contract").any { it.contains("IntrinsicKt") })
+    }
+
+    @Test
+    fun hidesTheFieldFromEveryoneButTheGeneratedCode(@TempDir directory: Path) {
+        assertEquals("Contract=true,Service=true", FixtureCompiler.box(directory, INTERFACE_FIXTURE, plugin = true))
+    }
+
+    @Test
     fun leavesInlineFunctionsToTheFallback(@TempDir directory: Path) {
         val compilation = FixtureCompiler.compile(directory, INLINE_FIXTURE, plugin = true)
 
@@ -77,6 +92,25 @@ class LoggerFieldLoweringTest {
     }
 
     private companion object {
+        val INTERFACE_FIXTURE: String =
+            """
+            package fixture
+
+            import dev.ashenarx.akki.*
+
+            interface Contract {
+                fun probe(): String = log.name
+            }
+
+            class Service {
+                fun probe(): String = log.name
+            }
+
+            fun box(): String = listOf(Contract::class.java, Service::class.java).joinToString(",") {
+                it.simpleName + "=" + it.declaredFields.single().isSynthetic
+            }
+            """.trimIndent()
+
         val MATRIX_FIXTURE: String =
             """
             package fixture

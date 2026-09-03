@@ -20,14 +20,18 @@ import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
+import org.jetbrains.kotlin.ir.expressions.impl.IrAnnotationImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetFieldImpl
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
+import org.jetbrains.kotlin.ir.util.constructors
+import org.jetbrains.kotlin.ir.util.defaultType
 import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.isAnonymousObject
 import org.jetbrains.kotlin.ir.util.SYNTHETIC_OFFSET
 import org.jetbrains.kotlin.ir.util.isInterface
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 import org.jetbrains.kotlin.load.java.JavaDescriptorVisibilities
+import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.platform.jvm.isJvm
@@ -37,6 +41,11 @@ internal class LoggerFieldLowering(
     private val symbols: AkkiSymbols,
 ) : IrElementTransformerVoidWithContext() {
     private val fields: MutableMap<IrDeclarationContainer, IrField> = mutableMapOf()
+
+    private val isJvm: Boolean = context.platform.isJvm()
+
+    private val jvmSynthetic: IrClass? =
+        if (isJvm) context.finderForBuiltins().findClass(JVM_SYNTHETIC)?.owner else null
 
     override fun visitClassNew(declaration: IrClass): IrStatement =
         super.visitClassNew(declaration).also { declaration.prependLoggerField() }
@@ -58,7 +67,7 @@ internal class LoggerFieldLowering(
         while (true) {
             when {
                 current is IrFile -> return current
-                current is IrClass && current.isInterface -> return null
+                current is IrClass && current.isInterface && !isJvm -> return null
                 current is IrClass && !current.isHoisted() -> return current
                 current is IrDeclaration -> current = current.parent
                 else -> return null
@@ -77,12 +86,22 @@ internal class LoggerFieldLowering(
             endOffset = SYNTHETIC_OFFSET
             name = FIELD_NAME
             type = symbols.loggerType
-            visibility = context.fieldVisibility()
+            visibility = fieldVisibility()
             isStatic = true
             isFinal = true
             origin = LOGGER_FIELD
         }
         field.parent = this
+        jvmSynthetic?.let { annotation ->
+            field.annotations += IrAnnotationImpl(
+                startOffset = SYNTHETIC_OFFSET,
+                endOffset = SYNTHETIC_OFFSET,
+                type = annotation.defaultType,
+                symbol = annotation.constructors.first().symbol,
+                typeArgumentsCount = 0,
+                constructorTypeArgumentsCount = 0,
+            )
+        }
         val builder = DeclarationIrBuilder(context, field.symbol, SYNTHETIC_OFFSET, SYNTHETIC_OFFSET)
         field.initializer = context.irFactory.createExpressionBody(
             builder.startOffset,
@@ -96,11 +115,15 @@ internal class LoggerFieldLowering(
         fields.remove(this)?.let { declarations.add(0, it) }
     }
 
+    private fun IrDeclarationContainer.fieldVisibility(): DescriptorVisibility = when {
+        this is IrClass && isInterface -> DescriptorVisibilities.PUBLIC
+        isJvm -> JavaDescriptorVisibilities.PACKAGE_VISIBILITY
+        else -> DescriptorVisibilities.PRIVATE
+    }
+
     private companion object {
         val FIELD_NAME: Name = Name.identifier("\$\$log")
         val LOG_NAME: FqName = FqName("dev.ashenarx.akki.LogName")
-
-        fun IrPluginContext.fieldVisibility(): DescriptorVisibility =
-            if (platform.isJvm()) JavaDescriptorVisibilities.PACKAGE_VISIBILITY else DescriptorVisibilities.PRIVATE
+        val JVM_SYNTHETIC: ClassId = ClassId(FqName("kotlin.jvm"), Name.identifier("JvmSynthetic"))
     }
 }
