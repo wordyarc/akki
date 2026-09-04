@@ -1,5 +1,6 @@
 package dev.ashenarx.akki.compiler.fir
 
+import dev.ashenarx.akki.compiler.AkkiErrors
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.ExpressionCheckers
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirExpressionChecker

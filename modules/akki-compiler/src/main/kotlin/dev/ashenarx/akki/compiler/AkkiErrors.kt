@@ -1,14 +1,18 @@
-package dev.ashenarx.akki.compiler.fir
+package dev.ashenarx.akki.compiler
 
 import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactoryToRendererMap
 import org.jetbrains.kotlin.diagnostics.KtDiagnosticsContainer
+import org.jetbrains.kotlin.diagnostics.errorWithoutSource
 import org.jetbrains.kotlin.diagnostics.rendering.BaseDiagnosticRendererFactory
+import org.jetbrains.kotlin.diagnostics.rendering.BaseSourcelessDiagnosticRendererFactory.Companion.MESSAGE_PLACEHOLDER
 import org.jetbrains.kotlin.diagnostics.rendering.CommonRenderers
 import org.jetbrains.kotlin.diagnostics.warning2
 import org.jetbrains.kotlin.psi.KtElement
 
 internal object AkkiErrors : KtDiagnosticsContainer() {
     val CONTEXTUAL_LOGGER_IN_INLINE_DECLARATION by warning2<KtElement, String, String>()
+
+    val INCOMPATIBLE_AKKI_CORE by errorWithoutSource()
 
     override fun getRendererFactory(): BaseDiagnosticRendererFactory = AkkiDefaultErrorMessages
 }
@@ -24,5 +28,6 @@ internal object AkkiDefaultErrorMessages : BaseDiagnosticRendererFactory() {
             CommonRenderers.STRING,
             CommonRenderers.STRING,
         )
+        map.put(AkkiErrors.INCOMPATIBLE_AKKI_CORE, MESSAGE_PLACEHOLDER)
     }
 }

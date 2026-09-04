@@ -17,11 +17,9 @@ import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.types.classOrNull
 import org.jetbrains.kotlin.ir.types.typeOrFail
 import org.jetbrains.kotlin.ir.util.defaultType
-import org.jetbrains.kotlin.ir.util.fqNameWhenAvailable
 import org.jetbrains.kotlin.ir.util.functions
 import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.invokeFun
-import org.jetbrains.kotlin.ir.util.kotlinFqName
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
@@ -79,32 +77,46 @@ internal class AkkiSymbols private constructor(
         private val CAUSE = Name.identifier("cause")
         private val FIELDS = Name.identifier("fields")
 
+        private const val INCOMPATIBLE_CORE: String =
+            "The Akki compiler plugin cannot use the akki-core on the compile classpath: its API is not the one " +
+                "the plugin generates calls against. The plugin and akki-core must come from the same version."
+
         fun of(context: IrPluginContext): AkkiSymbols? {
             val finder = context.finderForBuiltins()
             val logger = finder.findClass(LOGGER_ID) ?: return null
-            val level = finder.findClass(LEVEL_ID) ?: missing("enum class ${LEVEL_ID.asFqNameString()}")
-            val sinkClass = finder.findClass(SINK_ID) ?: missing("interface ${SINK_ID.asFqNameString()}")
-            val logRegistry = finder.findClass(LOG_REGISTRY_ID)
-                ?: missing("object ${LOG_REGISTRY_ID.asFqNameString()}")
-
-            val sink = logger.function(SINK, arity = 1)
-            val emit = sinkClass.function(EMIT, arity = 3)
-            val forCaller = logRegistry.function(FOR_CALLER, arity = 0)
-            val emptyMap = finder.findFunctions(EMPTY_MAP_ID).singleOrNull { it.owner.regular.isEmpty() }
-                ?: missing("function ${EMPTY_MAP_ID.asSingleFqName()} without parameters")
-            val invoke = context.irBuiltIns.functionN(0).invokeFun ?: missing("function invoke of kotlin.Function0")
-
-            val emitMessage = emit.parameter(MESSAGE)
-            val emitCause = emit.parameter(CAUSE)
-            val emitFields = emit.parameter(FIELDS)
-            val fieldTypes = emitFields.type.arguments()
-            check(emitMessage.type == context.irBuiltIns.stringType) { emitMessage.mismatch("kotlin.String") }
-            check(fieldTypes.size == 2) { emitFields.mismatch("kotlin.collections.Map") }
-            check(sink.regular.single().type.classOrNull == level) {
-                sink.regular.single().mismatch(LEVEL_ID.asFqNameString())
+            val symbols = resolve(context, finder, logger)
+            if (symbols == null) {
+                context.diagnosticReporter.report(AkkiErrors.INCOMPATIBLE_AKKI_CORE, INCOMPATIBLE_CORE)
             }
-            check(sink.returnType.classOrNull == sinkClass) { sink.returns(SINK_ID.asFqNameString()) }
-            check(forCaller.returnType.classOrNull == logger) { forCaller.returns(LOGGER_ID.asFqNameString()) }
+            return symbols
+        }
+
+        private fun resolve(
+            context: IrPluginContext,
+            finder: DeclarationFinder,
+            logger: IrClassSymbol,
+        ): AkkiSymbols? {
+            val level = finder.findClass(LEVEL_ID) ?: return null
+            val sinkClass = finder.findClass(SINK_ID) ?: return null
+            val logRegistry = finder.findClass(LOG_REGISTRY_ID) ?: return null
+
+            val sink = logger.function(SINK) {
+                it.returnType.classOrNull == sinkClass && it.regular.singleOrNull()?.type?.classOrNull == level
+            } ?: return null
+            val emit = sinkClass.function(EMIT) { it.regular.size == 3 } ?: return null
+            val forCaller = logRegistry.function(FOR_CALLER) {
+                it.regular.isEmpty() && it.returnType.classOrNull == logger
+            } ?: return null
+
+            val message = emit.parameter(MESSAGE)?.takeIf { it.type == context.irBuiltIns.stringType } ?: return null
+            val cause = emit.parameter(CAUSE) ?: return null
+            val fields = emit.parameter(FIELDS) ?: return null
+            val fieldTypes = fields.type.arguments().takeIf { it.size == 2 } ?: return null
+
+            val emptyMap = finder.findFunctions(EMPTY_MAP_ID).singleOrNull { it.owner.regular.isEmpty() }
+                ?: return null
+            val invoke = context.irBuiltIns.functionN(0).invokeFun ?: return null
+            val calls = levelCalls(context, finder, logger, level) ?: return null
 
             return AkkiSymbols(
                 logger = logger,
@@ -116,13 +128,13 @@ internal class AkkiSymbols private constructor(
                 invoke = invoke.symbol,
                 emptyMap = emptyMap,
                 levelType = level.owner.defaultType,
-                causeType = emitCause.type,
-                fieldsType = emitFields.type,
+                causeType = cause.type,
+                fieldsType = fields.type,
                 fieldTypes = fieldTypes,
-                emitMessage = emitMessage.indexInParameters,
-                emitCause = emitCause.indexInParameters,
-                emitFields = emitFields.indexInParameters,
-                calls = levelCalls(context, finder, logger, level),
+                emitMessage = message.indexInParameters,
+                emitCause = cause.indexInParameters,
+                emitFields = fields.indexInParameters,
+                calls = calls,
             )
         }
 
@@ -131,62 +143,43 @@ internal class AkkiSymbols private constructor(
             finder: DeclarationFinder,
             logger: IrClassSymbol,
             level: IrClassSymbol,
-        ): Map<IrSimpleFunctionSymbol, LoggerCall> {
+        ): Map<IrSimpleFunctionSymbol, LoggerCall>? {
             val function0 = context.irBuiltIns.functionN(0).symbol
-            return level.owner.declarations.filterIsInstance<IrEnumEntry>().flatMap { entry ->
+            val calls = mutableMapOf<IrSimpleFunctionSymbol, LoggerCall>()
+            for (entry in level.owner.declarations.filterIsInstance<IrEnumEntry>()) {
                 val id = CallableId(AKKI_PACKAGE, Name.identifier(entry.name.asString().lowercase()))
                 val overloads = finder.findFunctions(id)
                     .filter { it.owner.parameters.firstOrNull()?.type?.classOrNull == logger }
-                check(overloads.size == 2) {
-                    missingMessage(
-                        "an eager and a lazy '${id.asSingleFqName()}' extension on ${LOGGER_ID.asFqNameString()}",
-                    )
+                if (overloads.size != 2) return null
+                for (overload in overloads) {
+                    calls[overload] = overload.owner.loggerCall(context, entry.symbol, function0) ?: return null
                 }
-                overloads.map { it to it.owner.loggerCall(context, entry.symbol, function0) }
-            }.toMap()
+            }
+            return calls
         }
 
         private fun IrSimpleFunction.loggerCall(
             context: IrPluginContext,
             level: IrEnumEntrySymbol,
             function0: IrClassSymbol,
-        ): LoggerCall {
-            val message = parameter(MESSAGE)
+        ): LoggerCall? {
+            val message = parameter(MESSAGE) ?: return null
             val isLazy = message.type.classOrNull == function0
-            check(isLazy || message.type == context.irBuiltIns.stringType) {
-                message.mismatch("kotlin.String or kotlin.Function0<kotlin.String>")
-            }
+            if (!isLazy && message.type != context.irBuiltIns.stringType) return null
             return LoggerCall(
                 level = level,
                 message = message.indexInParameters,
-                cause = parameter(CAUSE).indexInParameters,
-                fields = parameter(FIELDS).indexInParameters,
+                cause = (parameter(CAUSE) ?: return null).indexInParameters,
+                fields = (parameter(FIELDS) ?: return null).indexInParameters,
                 isLazy = isLazy,
             )
         }
 
-        private fun IrClassSymbol.function(name: Name, arity: Int): IrSimpleFunction =
-            owner.functions.singleOrNull { it.name == name && it.regular.size == arity }
-                ?: missing("function $name with $arity parameters in ${owner.kotlinFqName}")
+        private fun IrClassSymbol.function(name: Name, shape: (IrSimpleFunction) -> Boolean): IrSimpleFunction? =
+            owner.functions.singleOrNull { it.name == name && shape(it) }
 
-        private fun IrSimpleFunction.parameter(name: Name): IrValueParameter =
-            regular.singleOrNull { it.name == name } ?: missing("parameter '$name' of ${description()}")
-
-        private fun IrSimpleFunction.description(): String = fqNameWhenAvailable?.asString() ?: name.asString()
-
-        private fun IrSimpleFunction.returns(expected: String): String =
-            missingMessage("${description()} returning $expected")
-
-        private fun IrValueParameter.mismatch(expected: String): String {
-            val owner = (parent as? IrSimpleFunction)?.description() ?: parent.kotlinFqName.asString()
-            return missingMessage("parameter '$name' of $owner typed as $expected")
-        }
-
-        private fun missing(declaration: String): Nothing = error(missingMessage(declaration))
-
-        private fun missingMessage(declaration: String): String =
-            "The Akki compiler plugin cannot use the akki-core on the compile classpath: it provides no " +
-                "$declaration. The plugin and akki-core must come from the same version."
+        private fun IrSimpleFunction.parameter(name: Name): IrValueParameter? =
+            regular.singleOrNull { it.name == name }
     }
 }
 

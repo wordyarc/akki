@@ -5,6 +5,7 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import org.junit.jupiter.api.io.TempDir
 
 class AkkiSymbolsTest {
@@ -30,7 +31,9 @@ class AkkiSymbolsTest {
             classpath = core.classes.toString(),
         )
 
+        assertContains(failure, "error: ")
         assertContains(failure, "must come from the same version")
+        assertFalse(failure.contains("exception:"), failure)
     }
 
     private companion object {

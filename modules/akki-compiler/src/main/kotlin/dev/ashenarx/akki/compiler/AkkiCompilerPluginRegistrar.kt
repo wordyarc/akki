@@ -47,7 +47,7 @@ internal class AkkiCompilerPluginRegistrar : CompilerPluginRegistrar() {
     override val supportsK2: Boolean = true
 
     override fun ExtensionStorage.registerExtensions(configuration: CompilerConfiguration) {
-        if (configuration.get(AKKI_ENABLED) == false) return
+        if (!configuration[AKKI_ENABLED, true]) return
         FirExtensionRegistrarAdapter.registerExtension(AkkiFirExtensionRegistrar())
         IrGenerationExtension.registerExtension(AkkiIrGenerationExtension())
     }

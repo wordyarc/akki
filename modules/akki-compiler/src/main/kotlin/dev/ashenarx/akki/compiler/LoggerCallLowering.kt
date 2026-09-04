@@ -89,21 +89,22 @@ internal class LoggerCallLowering(
         call: IrCall,
         target: LoggerCall,
         message: IrExpression,
-    ): Map<Int, IrExpression> {
+    ): List<Pair<Int, IrExpression>> {
         val slots = listOf(
             target.message to symbols.emitMessage,
             target.cause to symbols.emitCause,
             target.fields to symbols.emitFields,
         ).sortedBy { (source, _) -> source }
-        val emitOrder = slots.map { (_, destination) -> destination }
-        val reordered = emitOrder != emitOrder.sorted()
-        return slots.associate { (source, destination) ->
+        val evaluatedInEmitOrder = slots.map { (_, destination) -> destination }
+            .zipWithNext()
+            .all { (previous, next) -> previous < next }
+        return slots.map { (source, destination) ->
             val value = when (source) {
                 target.message -> if (target.isLazy) invoke(message) else message
                 target.cause -> call.arguments[target.cause] ?: irNull(symbols.causeType)
                 else -> call.arguments[target.fields] ?: emptyFields()
             }
-            destination to if (reordered) irGet(irTemporary(value, "argument")) else value
+            destination to if (evaluatedInEmitOrder) value else irGet(irTemporary(value, "argument"))
         }
     }
 

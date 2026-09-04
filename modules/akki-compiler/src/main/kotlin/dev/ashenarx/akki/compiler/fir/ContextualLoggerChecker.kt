@@ -1,5 +1,6 @@
 package dev.ashenarx.akki.compiler.fir
 
+import dev.ashenarx.akki.compiler.AkkiErrors
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.reportOn
 import org.jetbrains.kotlin.fir.analysis.checkers.MppCheckerKind
