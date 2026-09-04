@@ -25,22 +25,25 @@ import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 
-internal class LoggerAliasLowering : FileLoweringPass {
+internal class LoggerAliasLowering(
+    private val generated: Map<IrFile, Set<IrField>>,
+) : FileLoweringPass {
     override fun lower(irFile: IrFile) {
-        val aliases = irFile.loggerAliases()
+        val fields = generated[irFile] ?: return
+        val aliases = irFile.loggerAliases(fields)
         if (aliases.isEmpty()) return
         irFile.transformChildren(AliasReader(aliases), null)
         aliases.keys.forEach { (it.parent as? IrDeclarationContainer)?.declarations?.remove(it) }
     }
 
-    private fun IrFile.loggerAliases(): Map<IrProperty, IrField> {
+    private fun IrFile.loggerAliases(fields: Set<IrField>): Map<IrProperty, IrField> {
         val aliases = mutableMapOf<IrProperty, IrField>()
         val referenced = mutableSetOf<IrProperty>()
         acceptChildrenVoid(object : IrVisitorVoid() {
             override fun visitElement(element: IrElement): Unit = element.acceptChildrenVoid(this)
 
             override fun visitProperty(declaration: IrProperty) {
-                declaration.aliasedLoggerField()?.let { aliases[declaration] = it }
+                declaration.aliasedLoggerField(fields)?.let { aliases[declaration] = it }
                 declaration.acceptChildrenVoid(this)
             }
 
@@ -57,13 +60,13 @@ internal class LoggerAliasLowering : FileLoweringPass {
         return aliases - referenced
     }
 
-    private fun IrProperty.aliasedLoggerField(): IrField? {
+    private fun IrProperty.aliasedLoggerField(fields: Set<IrField>): IrField? {
         val getter = getter
         if (isVar || isDelegated || isExpect || setter != null) return null
         if (!DescriptorVisibilities.isPrivate(visibility)) return null
         if (getter != null && getter.origin != IrDeclarationOrigin.DEFAULT_PROPERTY_ACCESSOR) return null
         val alias = backingField?.initializer?.expression as? IrGetField ?: return null
-        return alias.symbol.owner.takeIf { it.origin == GENERATED_LOGGER_FIELD }
+        return alias.symbol.owner.takeIf { it in fields }
     }
 
     private class AliasReader(aliases: Map<IrProperty, IrField>) : IrElementTransformerVoid() {

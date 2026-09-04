@@ -70,12 +70,11 @@ internal class LoggerCallLowering(
         val beforeGuard = hoisted.prefixReadBy(receiver)
         val builder = DeclarationIrBuilder(context, scope, call.startOffset, call.endOffset)
         return with(builder) {
-            irBlock(origin = IrStatementOrigin.SAFE_CALL, resultType = context.irBuiltIns.unitType) {
+            irBlock(origin = AKKI_RECORD, resultType = context.irBuiltIns.unitType) {
                 hoisted.take(beforeGuard).forEach { +it }
-                val logger = irTemporary(receiver, "logger")
                 val sink = irTemporary(
                     irCall(symbols.sink).apply {
-                        arguments[0] = irGet(logger)
+                        arguments[0] = receiver
                         arguments[1] = IrGetEnumValueImpl(startOffset, endOffset, symbols.levelType, target.level)
                     },
                     "sink",
@@ -104,9 +103,9 @@ internal class LoggerCallLowering(
             target.cause to symbols.emitCause,
             target.fields to symbols.emitFields,
         ).sortedBy { (source, _) -> source.indexInParameters }
-        val materialisedThrough = slots.map { (_, destination) -> destination.indexInParameters }
+        val reordered = slots.map { (_, destination) -> destination.indexInParameters }
             .zipWithNext()
-            .indexOfLast { (previous, next) -> previous > next }
+            .any { (previous, next) -> previous > next }
         return slots.mapIndexed { position, (source, destination) ->
             val written = call.arguments[source]
             val value = when (source) {
@@ -114,7 +113,8 @@ internal class LoggerCallLowering(
                 target.cause -> written ?: irNull(symbols.causeType)
                 else -> written ?: emptyFields()
             }
-            val materialised = position <= materialisedThrough && written != null && !value.isUnchanging()
+            val materialised =
+                reordered && position < slots.lastIndex && written != null && !value.isUnchanging()
             destination to if (materialised) irGet(irTemporary(value, "argument")) else value
         }
     }

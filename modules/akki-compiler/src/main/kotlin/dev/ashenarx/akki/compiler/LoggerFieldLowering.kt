@@ -37,11 +37,18 @@ internal class LoggerFieldLowering(
         var field: IrField? = null
     }
 
+    val generated: MutableMap<IrFile, MutableSet<IrField>> = mutableMapOf()
+
     private val isJvm: Boolean = context.platform.isJvm()
 
     private var inlined: Boolean = false
 
-    override fun lower(irFile: IrFile): Unit = irFile.lowerInto(Owner(irFile))
+    private lateinit var file: IrFile
+
+    override fun lower(irFile: IrFile) {
+        file = irFile
+        irFile.lowerInto(Owner(irFile))
+    }
 
     override fun visitClass(declaration: IrClass, data: Owner?): IrStatement {
         when {
@@ -109,6 +116,7 @@ internal class LoggerFieldLowering(
             builder.endOffset,
             builder.irCall(symbols.forCaller).apply { arguments[0] = builder.irGetObject(symbols.logRegistry) },
         )
+        generated.getOrPut(file) { mutableSetOf() } += field
         return field
     }
 
