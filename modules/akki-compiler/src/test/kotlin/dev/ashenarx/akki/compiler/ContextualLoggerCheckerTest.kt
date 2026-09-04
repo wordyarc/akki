@@ -1,16 +1,14 @@
 package dev.ashenarx.akki.compiler
 
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import org.junit.jupiter.api.io.TempDir
 
-class ContextualLoggerCheckerTest {
+internal class ContextualLoggerCheckerTest : FixtureTest() {
     @Test
-    fun warnsOnEveryContextualEntryPointInsideAnInlineFunction(@TempDir directory: Path) {
-        val output = FixtureCompiler.compile(directory, INLINE_FIXTURE).output
+    fun warnsOnEveryContextualEntryPointInsideAnInlineFunction() {
+        val output = compile("inlineDeclarations").output
 
         assertContains(output, "'log' inside the inline declaration 'viaIntrinsic'")
         assertContains(output, "'logger' inside the inline declaration 'viaAnchor'")
@@ -21,15 +19,15 @@ class ContextualLoggerCheckerTest {
     }
 
     @Test
-    fun staysSilentWhereTheLoggerIsResolvedAtTheDeclaration(@TempDir directory: Path) {
-        val output = FixtureCompiler.compile(directory, QUIET_FIXTURE).output
+    fun staysSilentWhereTheLoggerIsResolvedAtTheDeclaration() {
+        val output = compile("resolvedAtDeclaration").output
 
         assertFalse(output.contains("inside the inline declaration"), output)
     }
 
     @Test
-    fun warnsExactlyWhereTheFieldLoweringBailsOut(@TempDir directory: Path) {
-        val output = FixtureCompiler.compile(directory, INLINE_FIXTURE).output
+    fun warnsExactlyWhereTheFieldLoweringBailsOut() {
+        val output = compile("inlineDeclarations").output
 
         assertEquals(
             listOf(
@@ -42,50 +40,5 @@ class ContextualLoggerCheckerTest {
             ),
             Regex("inside the inline declaration '(\\w+)'").findAll(output).map { it.groupValues[1] }.toList(),
         )
-    }
-
-    private companion object {
-        val INLINE_FIXTURE: String =
-            """
-            package fixture
-
-            import dev.ashenarx.akki.*
-
-            inline fun viaIntrinsic(): String = log.name
-
-            inline fun viaAnchor(): String = logger().name
-
-            inline fun viaFactory(): String = Log.forCaller().name
-
-            inline fun withLambdaParameter(body: () -> Unit): String {
-                body()
-                return log.name
-            }
-
-            inline val viaInlineProperty: String get() = log.name
-
-            val viaInlineGetter: String inline get() = log.name
-            """.trimIndent()
-
-        val QUIET_FIXTURE: String =
-            """
-            package fixture
-
-            import dev.ashenarx.akki.*
-
-            fun topLevel(): String = log.name
-
-            class Service {
-                fun member(): String = log.name
-
-                fun lambdaPassedToAnInlineFunction(): String = listOf(0).map { log.name }.single()
-            }
-
-            inline fun explicitLoggerIsFine(): String = Log.named("explicit").name
-
-            interface Contract {
-                fun defaultMethod(): String = log.name
-            }
-            """.trimIndent()
     }
 }

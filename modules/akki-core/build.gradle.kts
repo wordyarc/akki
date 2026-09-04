@@ -1,9 +1,7 @@
 import org.gradle.api.tasks.testing.Test
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 
 plugins {
     id("akki.kotlin-multiplatform")
-    alias(libs.plugins.kotlin.power.assert)
 }
 
 kotlin {
@@ -23,7 +21,7 @@ kotlin {
         }
 
         commonTest.dependencies {
-            implementation(libs.kotlin.test)
+            implementation(project(":akki-test"))
         }
 
         jvmTest.dependencies {
@@ -44,19 +42,8 @@ val jvmClassTest = tasks.register<Test>("jvmClassTest") {
     classpath = jvmTest.get().classpath
     systemProperty("dev.ashenarx.akki.loggerNameStyle", "jvm-class")
     shouldRunAfter(jvmTest)
-    useJUnitPlatform()
 }
 
 tasks.named("check") {
     dependsOn(jvmClassTest)
-}
-
-@OptIn(ExperimentalKotlinGradlePluginApi::class)
-powerAssert {
-    functions = listOf(
-        "kotlin.assert",
-        "kotlin.test.assertEquals",
-        "kotlin.test.assertSame",
-        "kotlin.test.assertTrue",
-    )
 }

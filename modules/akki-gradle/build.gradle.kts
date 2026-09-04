@@ -19,9 +19,6 @@ dependencies {
     akkiCompilerJar(project(":akki-compiler"))
     akkiCoreJar(project(":akki-core"))
     testImplementation(gradleTestKit())
-    testImplementation(libs.kotlin.test.junit5)
-    testImplementation(libs.junit.jupiter)
-    testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 kotlin {
@@ -35,6 +32,10 @@ val writeAkkiGradleProperties = tasks.register<WriteProperties>("writeAkkiGradle
 
 tasks.processResources {
     from(writeAkkiGradleProperties)
+}
+
+sourceSets.test {
+    resources.srcDir("src/test/data")
 }
 
 tasks.test {

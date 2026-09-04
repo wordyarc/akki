@@ -4,4 +4,5 @@ plugins {
 
 dependencies {
     implementation(libs.kotlin.gradle.plugin)
+    implementation(libs.kotlin.power.assert.gradle.plugin)
 }

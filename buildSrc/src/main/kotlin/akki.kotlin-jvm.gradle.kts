@@ -1,11 +1,13 @@
 import akki.buildlogic.jvmTargetVersion
 import akki.buildlogic.jvmToolchainVersion
+import akki.buildlogic.library
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 
 plugins {
     id("akki.base")
     id("org.jetbrains.kotlin.jvm")
+    id("akki.testing")
 }
 
 java {
@@ -23,6 +25,8 @@ kotlin {
     }
 }
 
-tasks.withType<Test>().configureEach {
-    useJUnitPlatform()
+dependencies {
+    testImplementation(library("kotlin-test-junit5"))
+    testImplementation(library("junit-jupiter"))
+    testRuntimeOnly(library("junit-platform-launcher"))
 }

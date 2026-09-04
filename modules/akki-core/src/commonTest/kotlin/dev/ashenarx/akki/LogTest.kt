@@ -1,5 +1,12 @@
 package dev.ashenarx.akki
 
+import dev.ashenarx.akki.test.LogRecord
+import dev.ashenarx.akki.test.RecordingBackend
+import dev.ashenarx.akki.test.RecordingLogger
+import dev.ashenarx.akki.test.Resolution
+import dev.ashenarx.akki.test.levels
+import dev.ashenarx.akki.test.messages
+import dev.ashenarx.akki.test.withBackend
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -25,7 +32,7 @@ class LogTest {
 
     @Test
     fun loggerCanBeImplementedByConsumers(): Unit {
-        val logger = RecordingLogger()
+        val logger = RecordingLogger("custom")
         val fields = mapOf("source" to "test")
 
         logger.info("implemented", fields = fields)
@@ -33,10 +40,10 @@ class LogTest {
 
         assertEquals(
             listOf(
-                Event("custom", Level.INFO, "implemented", fields),
-                Event("custom", Level.INFO, "implemented lazily", fields),
+                LogRecord("custom", Level.INFO, "implemented", fields = fields),
+                LogRecord("custom", Level.INFO, "implemented lazily", fields = fields),
             ),
-            logger.events,
+            logger.records,
         )
     }
 
@@ -53,10 +60,10 @@ class LogTest {
             logger.error("error", fields = fields)
         }
 
-        assertEquals(Level.entries, backend.events.map(Event::level))
-        assertTrue(backend.events.all { it.name == "checkout" })
-        assertEquals(listOf("trace", "debug", "info", "warn", "error"), backend.events.map(Event::message))
-        assertTrue(backend.events.all { it.fields == fields })
+        assertEquals(Level.entries, backend.records.levels)
+        assertTrue(backend.records.all { it.name == "checkout" })
+        assertEquals(listOf("trace", "debug", "info", "warn", "error"), backend.records.messages)
+        assertTrue(backend.records.all { it.fields == fields })
     }
 
     @Test
@@ -73,10 +80,10 @@ class LogTest {
             logger.error(cause, fields) { "error" }
         }
 
-        assertEquals(Level.entries, backend.events.map(Event::level))
-        assertEquals(listOf("trace", "debug", "info", "warn", "error"), backend.events.map(Event::message))
-        assertTrue(backend.events.all { it.fields == fields })
-        assertSame(cause, backend.events.last().cause)
+        assertEquals(Level.entries, backend.records.levels)
+        assertEquals(listOf("trace", "debug", "info", "warn", "error"), backend.records.messages)
+        assertTrue(backend.records.all { it.fields == fields })
+        assertSame(cause, backend.records.last().cause)
     }
 
     @Test
@@ -96,9 +103,9 @@ class LogTest {
         }
 
         assertEquals(listOf(Level.ERROR), evaluatedLevels)
-        assertEquals(listOf("recorded"), backend.events.map(Event::message))
+        assertEquals(listOf("recorded"), backend.records.messages)
         assertEquals(
-            listOf("lazy-filtered" to Level.INFO, "lazy-filtered" to Level.ERROR),
+            listOf(Resolution("lazy-filtered", Level.INFO), Resolution("lazy-filtered", Level.ERROR)),
             backend.resolutions,
         )
     }
@@ -115,7 +122,7 @@ class LogTest {
             logger.error("recorded")
         }
 
-        assertEquals(listOf("recorded"), backend.events.map(Event::message))
+        assertEquals(listOf("recorded"), backend.records.messages)
     }
 
     @Test
@@ -150,7 +157,7 @@ class LogTest {
         }
 
         assertEquals(
-            listOf("fallback-enabled" to Level.INFO, "fallback-enabled" to Level.ERROR),
+            listOf(Resolution("fallback-enabled", Level.INFO), Resolution("fallback-enabled", Level.ERROR)),
             backend.resolutions,
         )
     }
@@ -160,23 +167,15 @@ class LogTest {
         val logger = Log.named("replaceable")
         val first = RecordingBackend()
         val second = RecordingBackend()
-        val firstInstallation = Log.install(first)
 
-        try {
+        withBackend(first) {
             logger.info("first")
-            val secondInstallation = Log.install(second)
-            try {
-                logger.info("second")
-            } finally {
-                secondInstallation.uninstall()
-            }
+            withBackend(second) { logger.info("second") }
             logger.info("restored")
-        } finally {
-            firstInstallation.uninstall()
         }
 
-        assertEquals(listOf("first", "restored"), first.events.map(Event::message))
-        assertEquals(listOf("second"), second.events.map(Event::message))
+        assertEquals(listOf("first", "restored"), first.records.messages)
+        assertEquals(listOf("second"), second.records.messages)
     }
 
     @Test
@@ -195,8 +194,8 @@ class LogTest {
             firstInstallation.uninstall()
         }
 
-        assertTrue(first.events.isEmpty())
-        assertEquals(listOf("current"), second.events.map(Event::message))
+        assertTrue(first.records.isEmpty())
+        assertEquals(listOf("current"), second.records.messages)
     }
 
     @Test
@@ -232,8 +231,8 @@ class LogTest {
             logger.info("outside")
         }
 
-        assertEquals(listOf("inside"), inner.events.map(Event::message))
-        assertEquals(listOf("outside"), outer.events.map(Event::message))
+        assertEquals(listOf("inside"), inner.records.messages)
+        assertEquals(listOf("outside"), outer.records.messages)
     }
 
     @Test
@@ -244,57 +243,8 @@ class LogTest {
             Log.named("failure").error("operation failed", cause)
         }
 
-        assertSame(cause, backend.events.single().cause)
+        assertSame(cause, backend.records.single().cause)
     }
 
     private class Sample
-}
-
-@OptIn(DelicateAkkiApi::class)
-private inline fun <T> withBackend(backend: LogBackend, block: () -> T): T {
-    val installation = Log.install(backend)
-    return try {
-        block()
-    } finally {
-        installation.uninstall()
-    }
-}
-
-private data class Event(
-    val name: String,
-    val level: Level,
-    val message: String,
-    val fields: Map<String, Any?>,
-    val cause: Throwable? = null,
-)
-
-private class RecordingBackend(
-    private val enabledLevels: Set<Level> = Level.entries.toSet(),
-) : LogBackend {
-    val events: MutableList<Event> = mutableListOf()
-    val resolutions: MutableList<Pair<String, Level>> = mutableListOf()
-
-    override fun resolve(name: String, level: Level): Sink? {
-        resolutions += name to level
-        if (level !in enabledLevels) return null
-        return Sink { message, cause, fields ->
-            events += Event(name, level, message, fields, cause)
-        }
-    }
-}
-
-private class RecordingLogger : Logger {
-    override val name: String = "custom"
-    val events: MutableList<Event> = mutableListOf()
-
-    override fun isEnabled(level: Level): Boolean = true
-
-    override fun emit(
-        level: Level,
-        message: String,
-        cause: Throwable?,
-        fields: Map<String, Any?>,
-    ): Unit {
-        events += Event(name, level, message, fields, cause)
-    }
 }

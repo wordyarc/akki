@@ -1,5 +1,6 @@
 import akki.buildlogic.jvmTargetVersion
 import akki.buildlogic.jvmToolchainVersion
+import akki.buildlogic.library
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
@@ -7,6 +8,7 @@ import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 plugins {
     id("akki.base")
     id("org.jetbrains.kotlin.multiplatform")
+    id("akki.testing")
 }
 
 kotlin {
@@ -17,11 +19,11 @@ kotlin {
 
     targets.withType<KotlinJvmTarget>().configureEach {
         compilerOptions.jvmTarget = JvmTarget.fromTarget(jvmTargetVersion.toString())
+    }
 
-        testRuns.configureEach {
-            executionTask.configure {
-                useJUnitPlatform()
-            }
+    sourceSets {
+        commonTest.dependencies {
+            implementation(library("kotlin-test"))
         }
     }
 }

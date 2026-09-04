@@ -6,8 +6,6 @@ import java.net.URLClassLoader
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.writeText
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
 import org.jetbrains.kotlin.cli.common.ExitCode
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.common.messages.MessageRenderer
@@ -21,42 +19,13 @@ import org.jetbrains.org.objectweb.asm.tree.InvokeDynamicInsnNode
 import org.jetbrains.org.objectweb.asm.tree.MethodInsnNode
 import org.jetbrains.org.objectweb.asm.tree.TypeInsnNode
 
-internal class Compilation(val classes: Path, val output: String)
-
-internal object FixtureCompiler {
-    private const val PLUGIN_ID = "dev.ashenarx.akki"
-
-    fun compile(
-        directory: Path,
-        fixture: String,
-        plugin: Boolean = true,
-        enabled: Boolean = true,
-        classpath: String = property("akki.fixture.classpath"),
-    ): Compilation {
-        val (compilation, exitCode) = run(directory, fixture, plugin, enabled, classpath)
-        assertEquals(ExitCode.OK, exitCode, compilation.output)
-        return compilation
-    }
-
-    fun compileExpectingFailure(
-        directory: Path,
-        fixture: String,
-        classpath: String = property("akki.fixture.classpath"),
-    ): String {
-        val (compilation, exitCode) = run(directory, fixture, plugin = true, enabled = true, classpath = classpath)
-        assertNotEquals(ExitCode.OK, exitCode, compilation.output)
-        return compilation.output
-    }
-
-    fun box(directory: Path, fixture: String, plugin: Boolean = true, enabled: Boolean = true): String =
-        compile(directory, fixture, plugin, enabled).invoke("fixture.FixtureKt", "box")
-
-    fun Compilation.invoke(className: String, method: String): String =
+internal class Compilation(val classes: Path, val output: String, val exitCode: ExitCode) {
+    fun invoke(className: String = BOX_CLASS, method: String = BOX_METHOD): String =
         URLClassLoader(arrayOf(classes.toUri().toURL()), javaClass.classLoader).use { classLoader ->
             classLoader.loadClass(className).getMethod(method).invoke(null) as String
         }
 
-    fun Compilation.references(className: String): List<String> {
+    fun references(className: String): List<String> {
         val node = ClassNode()
         val bytes = classes.resolve("${className.replace('.', '/')}.class").toFile().readBytes()
         ClassReader(bytes).accept(node, ClassReader.SKIP_FRAMES)
@@ -81,22 +50,20 @@ internal object FixtureCompiler {
         }
     }
 
-    private fun run(
-        directory: Path,
-        fixture: String,
-        plugin: Boolean,
-        enabled: Boolean,
-        classpath: String,
-    ): Pair<Compilation, ExitCode> {
-        val source = directory.createDirectories().resolve("Fixture.kt")
-        val classes = directory.resolve("classes").createDirectories()
-        source.writeText(fixture)
+    private companion object {
+        const val BOX_CLASS: String = "fixture.FixtureKt"
+        const val BOX_METHOD: String = "box"
+    }
+}
 
-        val pluginArguments = if (!plugin) {
-            emptyList()
-        } else {
-            listOf("-Xplugin=${property("akki.compiler.plugin.jar")}", "-P", "plugin:$PLUGIN_ID:enabled=$enabled")
-        }
+internal object FixtureCompiler {
+    val defaultClasspath: String = property("akki.fixture.classpath")
+
+    fun compile(directory: Path, source: String, plugin: Plugin, classpath: String): Compilation {
+        val file = directory.createDirectories().resolve("Fixture.kt")
+        val classes = directory.resolve("classes").createDirectories()
+        file.writeText(source)
+
         val arguments = K2JVMCompilerArguments()
         val compiler = K2JVMCompiler()
         compiler.parseArguments(
@@ -105,7 +72,7 @@ internal object FixtureCompiler {
                     "-d", classes.toString(),
                     "-classpath", classpath,
                     "-jvm-target", property("akki.jvm.target"),
-                ) + pluginArguments + source.toString()
+                ) + plugin.arguments() + file.toString()
                 ).toTypedArray(),
             arguments,
         )
@@ -115,8 +82,25 @@ internal object FixtureCompiler {
             Services.EMPTY,
             arguments,
         )
-        return Compilation(classes, output.toString()) to exitCode
+        return Compilation(classes, output.toString(), exitCode)
+    }
+
+    private fun Plugin.arguments(): List<String> = when (this) {
+        Plugin.Absent -> emptyList()
+        else -> listOf(
+            "-Xplugin=${property("akki.compiler.plugin.jar")}",
+            "-P", "plugin:${AkkiNames.PLUGIN_ID}:enabled=${this == Plugin.Enabled}",
+        )
     }
 
     private fun property(name: String): String = requireNotNull(System.getProperty(name)) { "missing -D$name" }
+}
+
+internal enum class Plugin {
+    Enabled,
+    Disabled,
+    Absent,
+    ;
+
+    val directory: String get() = name.lowercase()
 }

@@ -1,6 +1,7 @@
 package dev.ashenarx.akki
 
 import dev.ashenarx.akki.internal.DefaultBackend
+import dev.ashenarx.akki.test.withBackend
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 import kotlin.test.Test
@@ -8,7 +9,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 
-@OptIn(DelicateAkkiApi::class)
 class JvmDefaultBackendTest {
     @Test
     fun defaultBackendWritesToStandardError(): Unit {
@@ -55,7 +55,7 @@ class JvmDefaultBackendTest {
         val original = System.err
         System.setErr(PrintStream(buffer, true))
         try {
-            Log.install(DefaultBackend()).use { block() }
+            withBackend(DefaultBackend(), block)
         } finally {
             System.setErr(original)
         }

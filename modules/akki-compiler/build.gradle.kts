@@ -13,14 +13,17 @@ dependencies {
     compileOnly(libs.kotlin.compiler)
     fixtureRuntime(project(":akki-core"))
     fixtureRuntime(project(":akki-slf4j"))
+    fixtureRuntime(project(":akki-test"))
     fixtureRuntime(libs.logback.classic)
     testImplementation(project(":akki-core"))
     testImplementation(project(":akki-slf4j"))
+    testImplementation(project(":akki-test"))
     testImplementation(libs.logback.classic)
     testImplementation(libs.kotlin.compiler)
-    testImplementation(libs.kotlin.test.junit5)
-    testImplementation(libs.junit.jupiter)
-    testRuntimeOnly(libs.junit.platform.launcher)
+}
+
+sourceSets.test {
+    resources.srcDir("src/test/data")
 }
 
 tasks.test {

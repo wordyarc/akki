@@ -11,9 +11,5 @@ kotlin {
         commonMain.dependencies {
             api(project(":akki-core"))
         }
-
-        commonTest.dependencies {
-            implementation(libs.kotlin.test)
-        }
     }
 }

@@ -28,6 +28,4 @@ logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "lo
 
 # -- Build logic --------------------------------------------------------------
 kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
-
-[plugins]
-kotlin-power-assert = { id = "org.jetbrains.kotlin.plugin.power-assert", version.ref = "kotlin" }
+kotlin-power-assert-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-power-assert", version.ref = "kotlin" }

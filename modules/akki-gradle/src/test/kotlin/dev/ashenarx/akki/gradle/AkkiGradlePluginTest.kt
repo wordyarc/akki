@@ -27,7 +27,7 @@ class AkkiGradlePluginTest {
         projectDirectory.resolve("settings.gradle.kts").writeText(settings(repository))
         projectDirectory.resolve("build.gradle.kts").writeText(buildScript(repository, enabled))
         projectDirectory.resolve("src/main/kotlin/consumer").createDirectories()
-        projectDirectory.resolve("src/main/kotlin/consumer/Main.kt").writeText(SOURCE)
+        projectDirectory.resolve("src/main/kotlin/consumer/Main.kt").writeText(fixture("consumer/Main.kt"))
 
         return GradleRunner.create()
             .withProjectDir(projectDirectory.toFile())
@@ -140,33 +140,10 @@ class AkkiGradlePluginTest {
 
     private fun property(name: String): String = requireNotNull(System.getProperty(name)) { "missing -D$name" }
 
+    private fun fixture(name: String): String =
+        requireNotNull(javaClass.getResource("/$name")) { "no fixture /$name" }.readText()
+
     private companion object {
         val VERSION: String = requireNotNull(System.getProperty("akki.version"))
-
-        val SOURCE: String =
-            """
-            package consumer
-
-            import dev.ashenarx.akki.*
-
-            class OrderService {
-                fun handle(): String = log.name
-
-                fun suppressed(counter: () -> Int): Unit = log.debug("value=${'$'}{counter()}")
-            }
-
-            @OptIn(DelicateAkkiApi::class)
-            fun main() {
-                var evaluated = 0
-                val backend = LogBackend { _, level ->
-                    if (level == Level.DEBUG) null else Sink { _, _, _ -> }
-                }
-                val service = OrderService()
-                Log.install(backend).use {
-                    service.suppressed { ++evaluated }
-                }
-                println("AKKI name=${'$'}{service.handle()} evaluated=${'$'}evaluated")
-            }
-            """.trimIndent()
     }
 }

@@ -48,13 +48,7 @@ class JvmLoggerNameProbeTest {
         probes.forEach { probe ->
             assertEquals(probe.stackClass, probe.slf4jName, probe.site)
         }
-        val expectedConfiguredNames = when (System.getProperty("dev.ashenarx.akki.loggerNameStyle")) {
-            null, "source" -> expectedSourceNames
-            "jvm-class" -> expectedJvmClassNames
-            else -> error("Unexpected test configuration")
-        }
-
-        assertEquals(expectedConfiguredNames, probes.map { it.site to it.akkiName })
+        assertEquals(byStyle(expectedSourceNames, expectedJvmClassNames), probes.map { it.site to it.akkiName })
         assertEquals(
             expectedSourceNames,
             probes.map { probe ->

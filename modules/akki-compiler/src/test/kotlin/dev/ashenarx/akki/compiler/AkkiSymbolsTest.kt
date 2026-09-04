@@ -1,63 +1,24 @@
 package dev.ashenarx.akki.compiler
 
-import dev.ashenarx.akki.compiler.FixtureCompiler.invoke
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import org.junit.jupiter.api.io.TempDir
 
-class AkkiSymbolsTest {
+internal class AkkiSymbolsTest : FixtureTest() {
     @Test
-    fun leavesModulesWithoutAkkiCoreAlone(@TempDir directory: Path) {
-        val compilation = FixtureCompiler.compile(directory, WITHOUT_CORE_FIXTURE, classpath = "")
-
-        assertEquals("plain", compilation.invoke("fixture.FixtureKt", "box"))
+    fun leavesModulesWithoutAkkiCoreAlone() {
+        assertEquals("plain", compile("withoutCore", classpath = "").invoke())
     }
 
     @Test
-    fun rejectsAnAkkiCoreItCannotUse(@TempDir directory: Path) {
-        val core = FixtureCompiler.compile(
-            directory.resolve("core"),
-            INCOMPLETE_CORE_FIXTURE,
-            plugin = false,
-            classpath = "",
-        )
+    fun rejectsAnAkkiCoreItCannotUse() {
+        val core = compile("incompleteCore", Plugin.Absent, classpath = "")
 
-        val failure = FixtureCompiler.compileExpectingFailure(
-            directory.resolve("user"),
-            USER_FIXTURE,
-            classpath = core.classes.toString(),
-        )
+        val failure = compileExpectingFailure("incompleteCoreUser", classpath = core.classes.toString())
 
         assertContains(failure, "error: ")
         assertContains(failure, "must come from the same version")
         assertFalse(failure.contains("exception:"), failure)
-    }
-
-    private companion object {
-        val WITHOUT_CORE_FIXTURE: String =
-            """
-            package fixture
-
-            fun box(): String = "plain"
-            """.trimIndent()
-
-        val INCOMPLETE_CORE_FIXTURE: String =
-            """
-            package dev.ashenarx.akki
-
-            interface Logger
-            """.trimIndent()
-
-        val USER_FIXTURE: String =
-            """
-            package fixture
-
-            import dev.ashenarx.akki.Logger
-
-            fun box(logger: Logger): String = "unreachable"
-            """.trimIndent()
     }
 }

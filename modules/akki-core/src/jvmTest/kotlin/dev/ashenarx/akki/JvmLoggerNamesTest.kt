@@ -16,13 +16,9 @@ class JvmLoggerNamesTest {
 
     @Test
     fun logNameIsNotInherited(): Unit {
-        val logger = PlainProcessor().log
-        val expected = when (configuredStyle()) {
-            JvmLoggerNameStyle.SOURCE -> PlainProcessor::class.qualifiedName
-            JvmLoggerNameStyle.JVM_CLASS -> PlainProcessor::class.java.name
-        }
+        val expected = byStyle(PlainProcessor::class.qualifiedName, PlainProcessor::class.java.name)
 
-        assertEquals(expected, logger.name)
+        assertEquals(expected, PlainProcessor().log.name)
     }
 
     @Test
@@ -53,12 +49,7 @@ class JvmLoggerNamesTest {
     fun sourceStyleUsesKotlinNamesForMappedTypes(): Unit {
         assertEquals("kotlin.String", platformTypeName(String::class.java, JvmLoggerNameStyle.SOURCE))
         assertEquals("java.lang.String", platformTypeName(String::class.java, JvmLoggerNameStyle.JVM_CLASS))
-        val expected = when (configuredStyle()) {
-            JvmLoggerNameStyle.SOURCE -> "kotlin.String"
-            JvmLoggerNameStyle.JVM_CLASS -> "java.lang.String"
-        }
-
-        assertEquals(expected, Log.of<String>().name)
+        assertEquals(byStyle("kotlin.String", "java.lang.String"), Log.of<String>().name)
         assertSame(Log.of<String>(), Log.of(String::class.java))
     }
 
@@ -66,20 +57,12 @@ class JvmLoggerNamesTest {
     fun topLevelGeneratedTypeFactoriesUseFacadeOwner(): Unit {
         val customJvmName = customJvmNameLocalLoggers()
         val multifile = multifileLocalLoggers()
-        val expectedCustomJvmName: String
-        val expectedMultifile: String
-        when (configuredStyle()) {
-            JvmLoggerNameStyle.SOURCE -> {
-                expectedCustomJvmName = "dev.ashenarx.akki.CustomProbeFacade"
-                expectedMultifile = "dev.ashenarx.akki.MultifileProbeSite"
-            }
-            JvmLoggerNameStyle.JVM_CLASS -> {
-                expectedCustomJvmName = "dev.ashenarx.akki.CustomProbeFacade"
-                expectedMultifile = "dev.ashenarx.akki.SharedProbeFacade__MultifileProbeSiteKt"
-            }
-        }
+        val expectedMultifile = byStyle(
+            "dev.ashenarx.akki.MultifileProbeSite",
+            "dev.ashenarx.akki.SharedProbeFacade__MultifileProbeSiteKt",
+        )
 
-        assertEquals(expectedCustomJvmName, customJvmName.first.name)
+        assertEquals("dev.ashenarx.akki.CustomProbeFacade", customJvmName.first.name)
         assertSame(customJvmName.first, customJvmName.second)
         assertEquals(expectedMultifile, multifile.first.name)
         assertSame(multifile.first, multifile.second)
@@ -87,20 +70,17 @@ class JvmLoggerNamesTest {
 
     @Test
     fun similarlyNamedStaticFieldDoesNotMakeNestedClassACompanion(): Unit {
-        val expected = when (configuredStyle()) {
-            JvmLoggerNameStyle.SOURCE -> SimilarFieldOwner.Nested::class.qualifiedName
-            JvmLoggerNameStyle.JVM_CLASS -> SimilarFieldOwner.Nested::class.java.name
-        }
+        val expected = byStyle(
+            SimilarFieldOwner.Nested::class.qualifiedName,
+            SimilarFieldOwner.Nested::class.java.name,
+        )
 
         assertEquals(expected, Log.of<SimilarFieldOwner.Nested>().name)
     }
 
     @Test
     fun configuredJvmLoggerNameStyleIsApplied(): Unit {
-        val expected = when (configuredStyle()) {
-            JvmLoggerNameStyle.SOURCE -> StyleOwner.Nested::class.qualifiedName
-            JvmLoggerNameStyle.JVM_CLASS -> StyleOwner.Nested::class.java.name
-        }
+        val expected = byStyle(StyleOwner.Nested::class.qualifiedName, StyleOwner.Nested::class.java.name)
 
         assertEquals(expected, Log.of<StyleOwner.Nested>().name)
     }
@@ -135,6 +115,3 @@ class JvmLoggerNamesTest {
         }
     }
 }
-
-private fun configuredStyle(): JvmLoggerNameStyle =
-    parseJvmLoggerNameStyle(System.getProperty("dev.ashenarx.akki.loggerNameStyle"))
