@@ -1,6 +1,6 @@
 package dev.ashenarx.akki.compiler
 
-import dev.ashenarx.akki.compiler.FixtureCompiler.constantPool
+import dev.ashenarx.akki.compiler.FixtureCompiler.references
 import java.nio.file.Path
 import kotlin.io.path.exists
 import kotlin.test.Test
@@ -46,17 +46,17 @@ class LoggerFieldLoweringTest {
         val lowered = FixtureCompiler.compile(directory.resolve("lowered"), INTRINSIC_FIXTURE, plugin = true)
         val plain = FixtureCompiler.compile(directory.resolve("plain"), INTRINSIC_FIXTURE, plugin = false)
 
-        assertContains(lowered.constantPool("fixture.Service"), "\$\$log")
-        assertFalse(lowered.constantPool("fixture.Service").any { it.contains("IntrinsicKt") })
-        assertTrue(plain.constantPool("fixture.Service").any { it.contains("IntrinsicKt") })
+        assertContains(lowered.references("fixture.Service"), "\$\$log")
+        assertFalse(lowered.references("fixture.Service").any { it.contains("IntrinsicKt") })
+        assertTrue(plain.references("fixture.Service").any { it.contains("IntrinsicKt") })
     }
 
     @Test
     fun createsOneFieldPerClassAndNotPerFile(@TempDir directory: Path) {
         val compilation = FixtureCompiler.compile(directory, TWO_CLASSES_FIXTURE, plugin = true)
 
-        assertContains(compilation.constantPool("fixture.First"), "\$\$log")
-        assertContains(compilation.constantPool("fixture.Second"), "\$\$log")
+        assertContains(compilation.references("fixture.First"), "\$\$log")
+        assertContains(compilation.references("fixture.Second"), "\$\$log")
         assertFalse(compilation.classes.resolve("fixture/FixtureKt.class").exists())
     }
 
@@ -65,9 +65,9 @@ class LoggerFieldLoweringTest {
         val lowered = FixtureCompiler.compile(directory.resolve("lowered"), INTERFACE_FIXTURE, plugin = true)
         val plain = FixtureCompiler.compile(directory.resolve("plain"), INTERFACE_FIXTURE, plugin = false)
 
-        assertContains(lowered.constantPool("fixture.Contract"), "\$\$log")
-        assertFalse(lowered.constantPool("fixture.Contract").any { it.contains("IntrinsicKt") })
-        assertTrue(plain.constantPool("fixture.Contract").any { it.contains("IntrinsicKt") })
+        assertContains(lowered.references("fixture.Contract"), "\$\$log")
+        assertFalse(lowered.references("fixture.Contract").any { it.contains("IntrinsicKt") })
+        assertTrue(plain.references("fixture.Contract").any { it.contains("IntrinsicKt") })
     }
 
     @Test
@@ -79,7 +79,7 @@ class LoggerFieldLoweringTest {
     fun leavesInlineFunctionsToTheFallback(@TempDir directory: Path) {
         val compilation = FixtureCompiler.compile(directory, INLINE_FIXTURE, plugin = true)
 
-        assertTrue(compilation.constantPool("fixture.FixtureKt").any { it.contains("IntrinsicKt") })
+        assertTrue(compilation.references("fixture.FixtureKt").any { it.contains("IntrinsicKt") })
     }
 
     @Test

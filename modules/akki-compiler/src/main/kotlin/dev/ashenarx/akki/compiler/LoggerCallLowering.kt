@@ -20,6 +20,7 @@ import org.jetbrains.kotlin.ir.builders.irNotEquals
 import org.jetbrains.kotlin.ir.builders.irNull
 import org.jetbrains.kotlin.ir.builders.irTemporary
 import org.jetbrains.kotlin.ir.builders.parent
+import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.expressions.IrBlock
 import org.jetbrains.kotlin.ir.expressions.IrCall
@@ -27,6 +28,7 @@ import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrGetValue
 import org.jetbrains.kotlin.ir.expressions.IrStatementOrigin
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetEnumValueImpl
+import org.jetbrains.kotlin.ir.expressions.isUnchanging
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
@@ -55,7 +57,7 @@ internal class LoggerCallLowering(
     private fun IrCall.target(): LoggerCall? = symbols.callFor(symbol.owner)
 
     private fun lower(call: IrCall, target: LoggerCall, hoisted: List<IrVariable>): IrExpression? {
-        val receiver = call.arguments[0] ?: return null
+        val receiver = call.arguments[target.receiver] ?: return null
         val message = call.arguments[target.message] ?: return null
         val scope = currentScope?.scope?.scopeOwnerSymbol ?: return null
         val outer = hoisted.reachableFrom(receiver)
@@ -77,7 +79,7 @@ internal class LoggerCallLowering(
                         hoisted.forEach { if (it !in outer) +it }
                         +irCall(symbols.emit).apply {
                             arguments[0] = irGet(sink)
-                            emitArguments(call, target, message).forEach { (index, value) -> arguments[index] = value }
+                            emitArguments(call, target, message).forEach { (slot, value) -> arguments[slot] = value }
                         }
                     },
                 )
@@ -89,22 +91,24 @@ internal class LoggerCallLowering(
         call: IrCall,
         target: LoggerCall,
         message: IrExpression,
-    ): List<Pair<Int, IrExpression>> {
+    ): List<Pair<IrValueParameter, IrExpression>> {
         val slots = listOf(
             target.message to symbols.emitMessage,
             target.cause to symbols.emitCause,
             target.fields to symbols.emitFields,
-        ).sortedBy { (source, _) -> source }
-        val evaluatedInEmitOrder = slots.map { (_, destination) -> destination }
+        ).sortedBy { (source, _) -> source.indexInParameters }
+        val reordered = slots.map { (_, destination) -> destination.indexInParameters }
             .zipWithNext()
-            .all { (previous, next) -> previous < next }
-        return slots.map { (source, destination) ->
+            .indexOfLast { (previous, next) -> previous > next }
+        return slots.mapIndexed { position, (source, destination) ->
+            val written = call.arguments[source]
             val value = when (source) {
                 target.message -> if (target.isLazy) invoke(message) else message
-                target.cause -> call.arguments[target.cause] ?: irNull(symbols.causeType)
-                else -> call.arguments[target.fields] ?: emptyFields()
+                target.cause -> written ?: irNull(symbols.causeType)
+                else -> written ?: emptyFields()
             }
-            destination to if (evaluatedInEmitOrder) value else irGet(irTemporary(value, "argument"))
+            val materialised = position <= reordered && written != null && !value.isUnchanging()
+            destination to if (materialised) irGet(irTemporary(value, "argument")) else value
         }
     }
 

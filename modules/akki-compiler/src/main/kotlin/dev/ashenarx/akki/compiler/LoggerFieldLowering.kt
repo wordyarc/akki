@@ -14,7 +14,6 @@ import org.jetbrains.kotlin.ir.builders.irGetObject
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationContainer
-import org.jetbrains.kotlin.ir.declarations.IrDeclarationParent
 import org.jetbrains.kotlin.ir.declarations.IrField
 import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrFunction
@@ -27,8 +26,6 @@ import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.isAnonymousObject
 import org.jetbrains.kotlin.ir.util.isInterface
 import org.jetbrains.kotlin.load.java.JavaDescriptorVisibilities
-import org.jetbrains.kotlin.name.FqName
-import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.platform.jvm.isJvm
 
 internal class LoggerFieldLowering(
@@ -55,28 +52,24 @@ internal class LoggerFieldLowering(
 
     private fun owner(): IrDeclarationContainer? {
         if (allScopes.any { (it.irElement as? IrFunction)?.isInline == true }) return null
-        var current: IrDeclarationParent = currentDeclarationParent ?: return null
-        while (true) {
-            when {
-                current is IrFile -> return current
-                current is IrClass && current.isInterface && !isJvm -> return null
-                current is IrClass && !current.isHoisted() -> return current
-                current is IrDeclaration -> current = current.parent
-                else -> return null
-            }
+        val owner = generateSequence(currentDeclarationParent) { (it as? IrDeclaration)?.parent }
+            .firstOrNull { it is IrFile || it is IrClass && !it.isHoisted() }
+        return when {
+            owner is IrClass && owner.isInterface && !isJvm -> null
+            else -> owner as? IrDeclarationContainer
         }
     }
 
     private fun IrClass.isHoisted(): Boolean =
         isAnonymousObject ||
             visibility == DescriptorVisibilities.LOCAL ||
-            (isCompanion && !hasAnnotation(LOG_NAME))
+            (isCompanion && !hasAnnotation(AkkiNames.LOG_NAME_ID))
 
     private fun IrDeclarationContainer.createLoggerField(): IrField {
         val field = context.irFactory.buildField {
             startOffset = SYNTHETIC_OFFSET
             endOffset = SYNTHETIC_OFFSET
-            name = FIELD_NAME
+            name = AkkiNames.LOGGER_FIELD
             type = symbols.loggerType
             visibility = fieldVisibility()
             isStatic = true
@@ -101,10 +94,5 @@ internal class LoggerFieldLowering(
         this is IrClass && isInterface -> DescriptorVisibilities.PUBLIC
         isJvm -> JavaDescriptorVisibilities.PACKAGE_VISIBILITY
         else -> DescriptorVisibilities.PRIVATE
-    }
-
-    private companion object {
-        val FIELD_NAME: Name = Name.identifier("\$\$log")
-        val LOG_NAME: FqName = FqName("dev.ashenarx.akki.LogName")
     }
 }

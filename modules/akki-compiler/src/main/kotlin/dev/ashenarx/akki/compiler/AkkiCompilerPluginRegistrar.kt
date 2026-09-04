@@ -9,16 +9,15 @@ import org.jetbrains.kotlin.compiler.plugin.CliOption
 import org.jetbrains.kotlin.compiler.plugin.CommandLineProcessor
 import org.jetbrains.kotlin.compiler.plugin.CompilerPluginRegistrar
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
+import org.jetbrains.kotlin.compiler.plugin.registerExtension
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.config.CompilerConfigurationKey
-import org.jetbrains.kotlin.fir.extensions.FirExtensionRegistrarAdapter
-
-internal const val AKKI_PLUGIN_ID: String = "dev.ashenarx.akki"
+import org.jetbrains.kotlin.fir.extensions.FirExtensionRegistrar
 
 internal val AKKI_ENABLED: CompilerConfigurationKey<Boolean> = CompilerConfigurationKey.create("akki.enabled")
 
 internal class AkkiCommandLineProcessor : CommandLineProcessor {
-    override val pluginId: String = AKKI_PLUGIN_ID
+    override val pluginId: String = AkkiNames.PLUGIN_ID
 
     override val pluginOptions: Collection<CliOption> = listOf(ENABLED_OPTION)
 
@@ -42,13 +41,13 @@ internal class AkkiCommandLineProcessor : CommandLineProcessor {
 }
 
 internal class AkkiCompilerPluginRegistrar : CompilerPluginRegistrar() {
-    override val pluginId: String = AKKI_PLUGIN_ID
+    override val pluginId: String = AkkiNames.PLUGIN_ID
 
     override val supportsK2: Boolean = true
 
     override fun ExtensionStorage.registerExtensions(configuration: CompilerConfiguration) {
         if (!configuration[AKKI_ENABLED, true]) return
-        FirExtensionRegistrarAdapter.registerExtension(AkkiFirExtensionRegistrar())
+        FirExtensionRegistrar.registerExtension(AkkiFirExtensionRegistrar())
         IrGenerationExtension.registerExtension(AkkiIrGenerationExtension())
     }
 }

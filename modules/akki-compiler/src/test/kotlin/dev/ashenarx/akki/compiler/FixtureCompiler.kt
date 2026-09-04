@@ -14,6 +14,12 @@ import org.jetbrains.kotlin.cli.common.messages.MessageRenderer
 import org.jetbrains.kotlin.cli.common.messages.PrintingMessageCollector
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.config.Services
+import org.jetbrains.org.objectweb.asm.ClassReader
+import org.jetbrains.org.objectweb.asm.tree.ClassNode
+import org.jetbrains.org.objectweb.asm.tree.FieldInsnNode
+import org.jetbrains.org.objectweb.asm.tree.InvokeDynamicInsnNode
+import org.jetbrains.org.objectweb.asm.tree.MethodInsnNode
+import org.jetbrains.org.objectweb.asm.tree.TypeInsnNode
 
 internal class Compilation(val classes: Path, val output: String)
 
@@ -50,9 +56,29 @@ internal object FixtureCompiler {
             classLoader.loadClass(className).getMethod(method).invoke(null) as String
         }
 
-    fun Compilation.constantPool(className: String): List<String> {
+    fun Compilation.references(className: String): List<String> {
+        val node = ClassNode()
         val bytes = classes.resolve("${className.replace('.', '/')}.class").toFile().readBytes()
-        return Regex("[\\w$/.-]{4,}").findAll(String(bytes, Charsets.ISO_8859_1)).map { it.value }.toList()
+        ClassReader(bytes).accept(node, ClassReader.SKIP_FRAMES)
+        return buildList {
+            node.fields.forEach { add(it.name) }
+            node.methods.forEach { method ->
+                add(method.name)
+                add(method.desc)
+                method.instructions.forEach { instruction ->
+                    when (instruction) {
+                        is FieldInsnNode -> add("${instruction.owner}.${instruction.name}")
+                        is MethodInsnNode -> add("${instruction.owner}.${instruction.name}")
+                        is TypeInsnNode -> add(instruction.desc)
+                        is InvokeDynamicInsnNode -> {
+                            add(instruction.desc)
+                            instruction.bsmArgs.forEach { add(it.toString()) }
+                        }
+                        else -> Unit
+                    }
+                }
+            }
+        }
     }
 
     private fun run(

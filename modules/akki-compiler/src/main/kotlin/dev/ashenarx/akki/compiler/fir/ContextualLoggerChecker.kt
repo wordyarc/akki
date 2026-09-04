@@ -1,6 +1,7 @@
 package dev.ashenarx.akki.compiler.fir
 
 import dev.ashenarx.akki.compiler.AkkiErrors
+import dev.ashenarx.akki.compiler.AkkiNames
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.reportOn
 import org.jetbrains.kotlin.fir.analysis.checkers.MppCheckerKind
@@ -12,21 +13,16 @@ import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccessExpression
 import org.jetbrains.kotlin.fir.references.toResolvedCallableSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirPropertyAccessorSymbol
-import org.jetbrains.kotlin.name.ClassId
-import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 
 internal object ContextualLoggerChecker :
     FirExpressionChecker<FirQualifiedAccessExpression>(MppCheckerKind.Common) {
-    private val CALL_SITE = ClassId(FqName("dev.ashenarx.akki.internal"), Name.identifier("CallSite"))
-
     context(context: CheckerContext, reporter: DiagnosticReporter)
     override fun check(expression: FirQualifiedAccessExpression) {
         val callee = expression.calleeReference.toResolvedCallableSymbol() ?: return
-        if (!callee.hasAnnotation(CALL_SITE, context.session)) return
+        if (!callee.hasAnnotation(AkkiNames.CALL_SITE_ID, context.session)) return
         val inlined = context.containingDeclarations
-            .filterIsInstance<FirCallableSymbol<*>>()
-            .lastOrNull { it.isInline }
+            .lastOrNull { it is FirCallableSymbol<*> && it.isInline } as FirCallableSymbol<*>?
             ?: return
         reporter.reportOn(
             expression.source,

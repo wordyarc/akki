@@ -1,8 +1,8 @@
 package dev.ashenarx.akki.compiler
 
 import java.nio.file.Path
-import dev.ashenarx.akki.compiler.FixtureCompiler.constantPool
 import dev.ashenarx.akki.compiler.FixtureCompiler.invoke
+import dev.ashenarx.akki.compiler.FixtureCompiler.references
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -55,9 +55,9 @@ class LoggerCallLoweringTest {
 
     @Test
     fun inlinesLazyMessagesInsteadOfAllocatingOrCallingThem(@TempDir directory: Path) {
-        val constants = FixtureCompiler.compile(directory, LAMBDA_FIXTURE).constantPool("fixture.FixtureKt")
-        assertFalse(constants.any { it.contains("Function0") }, constants.toString())
-        assertFalse(constants.any { it.contains("box\$lambda") }, constants.toString())
+        val references = FixtureCompiler.compile(directory, LAMBDA_FIXTURE).references("fixture.FixtureKt")
+        assertFalse(references.any { it.contains("Function0") }, references.toString())
+        assertFalse(references.any { it.contains("box\$lambda") }, references.toString())
     }
 
     @Test
