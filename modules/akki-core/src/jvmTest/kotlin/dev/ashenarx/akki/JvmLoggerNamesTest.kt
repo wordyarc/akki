@@ -10,19 +10,19 @@ import kotlin.test.assertSame
 
 class JvmLoggerNamesTest {
     @Test
-    fun runtimeTypeFactoryUsesLogName(): Unit {
+    fun `runtime type factory uses LogName`(): Unit {
         assertSame(Log.named("audit-processor"), AuditProcessor().log)
     }
 
     @Test
-    fun logNameIsNotInherited(): Unit {
+    fun `LogName is not inherited`(): Unit {
         val expected = byStyle(PlainProcessor::class.qualifiedName, PlainProcessor::class.java.name)
 
         assertEquals(expected, PlainProcessor().log.name)
     }
 
     @Test
-    fun typeFactoriesNormalizeGeneratedOwners(): Unit {
+    fun `type factories normalize generated owners`(): Unit {
         class Local
 
         val anonymous = object {}
@@ -36,7 +36,7 @@ class JvmLoggerNamesTest {
     }
 
     @Test
-    fun parsesJvmLoggerNameStyles(): Unit {
+    fun `parses JVM logger name styles`(): Unit {
         assertEquals(JvmLoggerNameStyle.SOURCE, parseJvmLoggerNameStyle(null))
         assertEquals(JvmLoggerNameStyle.SOURCE, parseJvmLoggerNameStyle("source"))
         assertEquals(JvmLoggerNameStyle.JVM_CLASS, parseJvmLoggerNameStyle("jvm-class"))
@@ -46,7 +46,7 @@ class JvmLoggerNamesTest {
     }
 
     @Test
-    fun sourceStyleUsesKotlinNamesForMappedTypes(): Unit {
+    fun `SOURCE style uses Kotlin names for mapped types`(): Unit {
         assertEquals("kotlin.String", platformTypeName(String::class.java, JvmLoggerNameStyle.SOURCE))
         assertEquals("java.lang.String", platformTypeName(String::class.java, JvmLoggerNameStyle.JVM_CLASS))
         assertEquals(byStyle("kotlin.String", "java.lang.String"), Log.of<String>().name)
@@ -54,7 +54,7 @@ class JvmLoggerNamesTest {
     }
 
     @Test
-    fun topLevelGeneratedTypeFactoriesUseFacadeOwner(): Unit {
+    fun `top-level generated type factories use the facade owner`(): Unit {
         val customJvmName = customJvmNameLocalLoggers()
         val multifile = multifileLocalLoggers()
         val expectedMultifile = byStyle(
@@ -69,7 +69,7 @@ class JvmLoggerNamesTest {
     }
 
     @Test
-    fun similarlyNamedStaticFieldDoesNotMakeNestedClassACompanion(): Unit {
+    fun `similarly named static field does not make a nested class a companion`(): Unit {
         val expected = byStyle(
             SimilarFieldOwner.Nested::class.qualifiedName,
             SimilarFieldOwner.Nested::class.java.name,
@@ -79,7 +79,7 @@ class JvmLoggerNamesTest {
     }
 
     @Test
-    fun configuredJvmLoggerNameStyleIsApplied(): Unit {
+    fun `configured JVM logger name style is applied`(): Unit {
         val expected = byStyle(StyleOwner.Nested::class.qualifiedName, StyleOwner.Nested::class.java.name)
 
         assertEquals(expected, Log.of<StyleOwner.Nested>().name)

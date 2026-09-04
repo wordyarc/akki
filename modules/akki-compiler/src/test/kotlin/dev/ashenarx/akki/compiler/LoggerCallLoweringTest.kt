@@ -7,7 +7,7 @@ import kotlin.test.assertFalse
 
 internal class LoggerCallLoweringTest : FixtureTest() {
     @Test
-    fun resolvesSinkOncePerRecord() {
+    fun `resolves the sink once per record`() {
         val lowered = effects(box("effects"))
 
         assertEquals("DEBUG,TRACE,INFO,WARN,ERROR,ERROR", lowered.resolutions)
@@ -15,7 +15,7 @@ internal class LoggerCallLoweringTest : FixtureTest() {
     }
 
     @Test
-    fun suppressesArgumentsOfDisabledLevels() {
+    fun `suppresses arguments of disabled levels`() {
         val (lowered, plain) = effectsBothWays("effects")
 
         assertEquals(
@@ -32,7 +32,7 @@ internal class LoggerCallLoweringTest : FixtureTest() {
     }
 
     @Test
-    fun keepsArgumentEvaluationOrder() {
+    fun `keeps argument evaluation order`() {
         val (lowered, plain) = effectsBothWays("order")
 
         assertEquals("cause,fields,message", plain.effects)
@@ -41,7 +41,7 @@ internal class LoggerCallLoweringTest : FixtureTest() {
     }
 
     @Test
-    fun defersOutOfOrderNamedArguments() {
+    fun `defers out of order named arguments`() {
         val (lowered, plain) = effectsBothWays("namedArguments")
 
         assertEquals("", lowered.effects)
@@ -50,7 +50,7 @@ internal class LoggerCallLoweringTest : FixtureTest() {
     }
 
     @Test
-    fun inlinesLazyMessagesInsteadOfAllocatingOrCallingThem() {
+    fun `inlines lazy messages instead of allocating or calling them`() {
         val references = compile("lambda").references("fixture.FixtureKt")
 
         assertFalse(references.any { it.contains("Function0") }, references.toString())
@@ -58,12 +58,12 @@ internal class LoggerCallLoweringTest : FixtureTest() {
     }
 
     @Test
-    fun lowersMessagesTypedByATypeParameter() {
+    fun `lowers messages typed by a type parameter`() {
         assertLoweringIsTransparent("via-type-parameter", "typeParameterMessage")
     }
 
     @Test
-    fun reportsExactCallerLocation() {
+    fun `reports the exact caller location`() {
         val line = Fixtures.source("callerLocation")
             .lines()
             .indexOfFirst { it.contains(""".info("located")""") } + 1
@@ -72,14 +72,14 @@ internal class LoggerCallLoweringTest : FixtureTest() {
     }
 
     @Test
-    fun rejectsOverridingLevelMethods() {
+    fun `rejects overriding level methods`() {
         val failure = compileExpectingFailure("overriddenLevel")
 
         assertContains(failure, "'info' overrides nothing")
     }
 
     @Test
-    fun lowersNothingWhenDisabled() {
+    fun `lowers nothing when disabled`() {
         val disabled = effects(box("effects", Plugin.Disabled))
         val plain = effects(box("effects", Plugin.Absent))
 

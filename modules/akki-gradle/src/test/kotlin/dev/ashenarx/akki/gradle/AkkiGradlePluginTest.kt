@@ -11,13 +11,13 @@ import org.junit.jupiter.api.io.TempDir
 
 class AkkiGradlePluginTest {
     @Test
-    fun lowersLoggerCallsInConsumerProject(@TempDir projectDirectory: Path) {
+    fun `lowers logger calls in a consumer project`(@TempDir projectDirectory: Path) {
         val output = build(projectDirectory, enabled = null)
         assertTrue(output.contains("AKKI name=consumer.OrderService evaluated=0"), output)
     }
 
     @Test
-    fun leavesConsumerUntouchedWhenDisabled(@TempDir projectDirectory: Path) {
+    fun `leaves the consumer untouched when disabled`(@TempDir projectDirectory: Path) {
         val output = build(projectDirectory, enabled = false)
         assertTrue(output.contains("AKKI name=consumer.OrderService evaluated=1"), output)
     }

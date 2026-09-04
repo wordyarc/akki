@@ -11,7 +11,7 @@ import kotlin.test.assertFalse
 
 class JvmDefaultBackendTest {
     @Test
-    fun defaultBackendWritesToStandardError(): Unit {
+    fun `default backend writes to standard error`(): Unit {
         val output = captureError {
             Log.named("acme.Checkout").info("started", fields = mapOf("orderId" to 42))
         }
@@ -20,7 +20,7 @@ class JvmDefaultBackendTest {
     }
 
     @Test
-    fun defaultBackendAnnouncesItselfOnce(): Unit {
+    fun `default backend announces itself once`(): Unit {
         val output = captureError {
             Log.named("acme.Notice").error("first")
             Log.named("acme.Notice").error("second")
@@ -30,7 +30,7 @@ class JvmDefaultBackendTest {
     }
 
     @Test
-    fun defaultBackendSuppressesLevelsBelowInfo(): Unit {
+    fun `default backend suppresses levels below INFO`(): Unit {
         val output = captureError {
             Log.named("acme.Quiet").trace("trace")
             Log.named("acme.Quiet").debug("debug")
@@ -40,7 +40,7 @@ class JvmDefaultBackendTest {
     }
 
     @Test
-    fun defaultBackendKeepsCauseAttachedToItsMessage(): Unit {
+    fun `default backend keeps the cause attached to its message`(): Unit {
         val output = captureError {
             Log.named("acme.Failing").error("failed", IllegalStateException("broken"))
         }

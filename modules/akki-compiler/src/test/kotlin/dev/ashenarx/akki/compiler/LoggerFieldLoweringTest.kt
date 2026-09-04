@@ -9,7 +9,7 @@ import kotlin.test.assertTrue
 
 internal class LoggerFieldLoweringTest : FixtureTest() {
     @Test
-    fun derivesTheSpecifiedNamesAndAgreesWithTheFallback() {
+    fun `derives the specified names and agrees with the fallback`() {
         assertLoweringIsTransparent(
             listOf(
                 "topLevel=fixture.Fixture",
@@ -32,7 +32,7 @@ internal class LoggerFieldLoweringTest : FixtureTest() {
     }
 
     @Test
-    fun replacesTheStackWalkWithAStaticFieldRead() {
+    fun `replaces the stack walk with a static field read`() {
         val lowered = compile("intrinsic").references("fixture.Service")
         val plain = compile("intrinsic", Plugin.Absent).references("fixture.Service")
 
@@ -42,7 +42,7 @@ internal class LoggerFieldLoweringTest : FixtureTest() {
     }
 
     @Test
-    fun createsOneFieldPerClassAndNotPerFile() {
+    fun `creates one field per class and not per file`() {
         val compilation = compile("twoClasses")
 
         assertContains(compilation.references("fixture.First"), "\$\$log")
@@ -51,7 +51,7 @@ internal class LoggerFieldLoweringTest : FixtureTest() {
     }
 
     @Test
-    fun lowersInterfaceDefaultMethods() {
+    fun `lowers interface default methods`() {
         val lowered = compile("interfaceDefault").references("fixture.Contract")
         val plain = compile("interfaceDefault", Plugin.Absent).references("fixture.Contract")
 
@@ -61,19 +61,19 @@ internal class LoggerFieldLoweringTest : FixtureTest() {
     }
 
     @Test
-    fun hidesTheFieldFromEveryoneButTheGeneratedCode() {
+    fun `hides the field from everyone but the generated code`() {
         assertEquals("Contract=true,Service=true", box("interfaceDefault"))
     }
 
     @Test
-    fun leavesInlineFunctionsToTheFallback() {
+    fun `leaves inline functions to the fallback`() {
         val references = compile("inlineFunction").references("fixture.FixtureKt")
 
         assertTrue(references.any { it.contains("IntrinsicKt") })
     }
 
     @Test
-    fun resolvesTheLoggerBeforeTheStaticInitializersThatUseIt() {
+    fun `resolves the logger before the static initializers that use it`() {
         assertLoweringIsTransparent("fixture.Fixture,fixture.Holder", "staticInitializer")
     }
 }

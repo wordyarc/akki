@@ -7,12 +7,12 @@ import kotlin.test.assertFalse
 
 internal class AkkiSymbolsTest : FixtureTest() {
     @Test
-    fun leavesModulesWithoutAkkiCoreAlone() {
+    fun `leaves modules without akki-core alone`() {
         assertEquals("plain", compile("withoutCore", classpath = "").invoke())
     }
 
     @Test
-    fun rejectsAnAkkiCoreItCannotUse() {
+    fun `rejects an akki-core it cannot use`() {
         val core = compile("incompleteCore", Plugin.Absent, classpath = "")
 
         val failure = compileExpectingFailure("incompleteCoreUser", classpath = core.classes.toString())

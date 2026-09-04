@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
 
 class RecordingTest {
     @Test
-    fun recordsEverythingTheBackendEmits() {
+    fun `records everything the backend emits`() {
         val cause = IllegalStateException("boom")
         val records = recordLogs {
             Log.named("orders").info("placed", fields = mapOf("id" to 1))
@@ -27,7 +27,7 @@ class RecordingTest {
     }
 
     @Test
-    fun disabledLevelsAreResolvedButNotRecorded() {
+    fun `disabled levels are resolved but not recorded`() {
         val backend = RecordingBackend(setOf(Level.ERROR))
 
         withBackend(backend) {
@@ -43,7 +43,7 @@ class RecordingTest {
     }
 
     @Test
-    fun withBackendRestoresThePreviousBackend() {
+    fun `withBackend restores the previous backend`() {
         val outer = RecordingBackend()
         val inner = RecordingBackend()
 
@@ -57,12 +57,12 @@ class RecordingTest {
     }
 
     @Test
-    fun withBackendReturnsTheBlockResult() {
+    fun `withBackend returns the block result`() {
         assertEquals(42, withBackend(RecordingBackend()) { 42 })
     }
 
     @Test
-    fun recordingLoggerNeedsNoInstallation() {
+    fun `recording logger needs no installation`() {
         val logger = RecordingLogger("checkout", enabled = setOf(Level.ERROR))
 
         logger.info("ignored")
@@ -74,7 +74,7 @@ class RecordingTest {
     }
 
     @Test
-    fun recordingLoggerReportsItsName() {
+    fun `recording logger reports its name`() {
         val logger = RecordingLogger()
 
         assertEquals("recording", logger.name)

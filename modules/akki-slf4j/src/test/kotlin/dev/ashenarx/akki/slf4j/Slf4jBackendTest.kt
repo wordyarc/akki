@@ -45,16 +45,16 @@ class Slf4jBackendTest {
     }
 
     @Test
-    fun reportsCallerLocationOfUserCode() {
+    fun `reports the caller location of user code`() {
         Log.named("caller").info("located")
 
         val caller = appender.list.single().callerData.first()
         assertEquals(Slf4jBackendTest::class.java.name, caller.className)
-        assertEquals("reportsCallerLocationOfUserCode", caller.methodName)
+        assertEquals("reports the caller location of user code", caller.methodName)
     }
 
     @Test
-    fun mapsLevelsOneToOne() {
+    fun `maps levels one to one`() {
         val logger = Log.named("levels")
         logger.trace("t")
         logger.debug("d")
@@ -69,7 +69,7 @@ class Slf4jBackendTest {
     }
 
     @Test
-    fun passesFieldsAsKeyValuePairs() {
+    fun `passes fields as key value pairs`() {
         Log.named("fields").info("with fields", fields = mapOf("user" to 42, "tenant" to null))
 
         val event = appender.list.single()
@@ -78,7 +78,7 @@ class Slf4jBackendTest {
     }
 
     @Test
-    fun passesCauseAsThrowable() {
+    fun `passes the cause as a throwable`() {
         Log.named("cause").error("failed", IllegalStateException("boom"))
 
         val proxy = appender.list.single().throwableProxy
@@ -87,14 +87,14 @@ class Slf4jBackendTest {
     }
 
     @Test
-    fun omitsKeyValuePairsWhenThereAreNoFields() {
+    fun `omits key value pairs when there are no fields`() {
         Log.named("plain").info("no fields")
 
         assertNull(appender.list.single().keyValuePairs)
     }
 
     @Test
-    fun reflectsEnabledLevelsInResolveAndFastPath() {
+    fun `reflects enabled levels in resolve and the fast path`() {
         val context = LoggerFactory.getILoggerFactory() as LoggerContext
         val logger = context.getLogger("quiet")
         logger.level = LogbackLevel.WARN

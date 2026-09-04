@@ -17,13 +17,13 @@ import kotlin.test.assertTrue
 @OptIn(DelicateAkkiApi::class)
 class LogTest {
     @Test
-    fun factoriesResolveTheSameInstance(): Unit {
+    fun `factories resolve the same instance`(): Unit {
         assertSame(Log.of<Sample>(), Log.of(Sample::class))
         assertSame(Log.named("sample"), Log.named("sample"))
     }
 
     @Test
-    fun namedLogExposesItsName(): Unit {
+    fun `named log exposes its name`(): Unit {
         val logger = Log.named("audit")
 
         assertEquals("audit", logger.name)
@@ -31,7 +31,7 @@ class LogTest {
     }
 
     @Test
-    fun loggerCanBeImplementedByConsumers(): Unit {
+    fun `Logger can be implemented by consumers`(): Unit {
         val logger = RecordingLogger("custom")
         val fields = mapOf("source" to "test")
 
@@ -48,7 +48,7 @@ class LogTest {
     }
 
     @Test
-    fun levelMethodsEmitThroughTheInstalledBackend(): Unit {
+    fun `level methods emit through the installed backend`(): Unit {
         val backend = RecordingBackend()
         val logger = Log.named("checkout")
         val fields = mapOf("orderId" to 42)
@@ -67,7 +67,7 @@ class LogTest {
     }
 
     @Test
-    fun lazyLevelMethodsEmitThroughTheInstalledBackend(): Unit {
+    fun `lazy level methods emit through the installed backend`(): Unit {
         val backend = RecordingBackend()
         val logger = Log.named("lazy-checkout")
         val fields = mapOf("orderId" to 42)
@@ -87,7 +87,7 @@ class LogTest {
     }
 
     @Test
-    fun lazyMessageIsEvaluatedOnlyForEnabledLevel(): Unit {
+    fun `lazy message is evaluated only for an enabled level`(): Unit {
         val backend = RecordingBackend(setOf(Level.ERROR))
         val logger = Log.named("lazy-filtered")
         val evaluatedLevels: MutableList<Level> = mutableListOf()
@@ -111,7 +111,7 @@ class LogTest {
     }
 
     @Test
-    fun backendControlsLevelFiltering(): Unit {
+    fun `backend controls level filtering`(): Unit {
         val backend = RecordingBackend(setOf(Level.ERROR))
         val logger = Log.named("filtered")
         withBackend(backend) {
@@ -126,7 +126,7 @@ class LogTest {
     }
 
     @Test
-    fun backendCanAnswerIsEnabledWithoutResolvingSink(): Unit {
+    fun `backend can answer isEnabled without resolving a sink`(): Unit {
         var resolutions = 0
         val backend = object : LogBackend {
             override fun resolve(name: String, level: Level): Sink? {
@@ -147,7 +147,7 @@ class LogTest {
     }
 
     @Test
-    fun isEnabledFallsBackToSinkResolution(): Unit {
+    fun `isEnabled falls back to sink resolution`(): Unit {
         val backend = RecordingBackend(setOf(Level.ERROR))
         val logger = Log.named("fallback-enabled")
 
@@ -163,7 +163,7 @@ class LogTest {
     }
 
     @Test
-    fun uninstallRestoresPreviousBackend(): Unit {
+    fun `uninstall restores the previous backend`(): Unit {
         val logger = Log.named("replaceable")
         val first = RecordingBackend()
         val second = RecordingBackend()
@@ -179,7 +179,7 @@ class LogTest {
     }
 
     @Test
-    fun staleInstallationCannotReplaceNewerBackend(): Unit {
+    fun `stale installation cannot replace a newer backend`(): Unit {
         val logger = Log.named("ordered")
         val first = RecordingBackend()
         val second = RecordingBackend()
@@ -199,7 +199,7 @@ class LogTest {
     }
 
     @Test
-    fun installationCanBeUninstalledMoreThanOnce(): Unit {
+    fun `installation can be uninstalled more than once`(): Unit {
         val installation = Log.install(RecordingBackend())
 
         installation.uninstall()
@@ -207,7 +207,7 @@ class LogTest {
     }
 
     @Test
-    fun repeatedInstallationOfSameBackendHasIndependentLifecycle(): Unit {
+    fun `repeated installation of the same backend has an independent lifecycle`(): Unit {
         val backend = RecordingBackend()
         val first = Log.install(backend)
         val second = Log.install(backend)
@@ -221,7 +221,7 @@ class LogTest {
     }
 
     @Test
-    fun installationIsUninstalledOnClose(): Unit {
+    fun `installation is uninstalled on close`(): Unit {
         val outer = RecordingBackend()
         val inner = RecordingBackend()
         val logger = Log.named("closeable")
@@ -236,7 +236,7 @@ class LogTest {
     }
 
     @Test
-    fun causeIsForwardedToSink(): Unit {
+    fun `cause is forwarded to the sink`(): Unit {
         val backend = RecordingBackend()
         val cause = IllegalStateException("failed")
         withBackend(backend) {

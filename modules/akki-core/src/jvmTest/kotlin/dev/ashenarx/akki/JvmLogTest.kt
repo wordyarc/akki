@@ -6,13 +6,13 @@ import kotlin.test.assertSame
 
 class JvmLogTest {
     @Test
-    fun javaClassFactoryMatchesKClassFactory(): Unit {
+    fun `javaClass factory matches KClass factory`(): Unit {
         assertSame(Log.of<JvmLogTest>(), Log.of(javaClass))
         assertEquals(JvmLogTest::class.java.name, Log.of(javaClass).name)
     }
 
     @Test
-    fun intrinsicResolvesCallingClassWithoutCompilerPlugin(): Unit {
+    fun `intrinsic resolves the calling class without the compiler plugin`(): Unit {
         val caller = Caller()
         val expected = Log.of<Caller>()
 
@@ -22,7 +22,7 @@ class JvmLogTest {
     }
 
     @Test
-    fun intrinsicUsesClassLogName(): Unit {
+    fun `intrinsic uses the class LogName`(): Unit {
         val caller = NamedCaller()
         val expected = Log.named("audit")
 
@@ -32,7 +32,7 @@ class JvmLogTest {
     }
 
     @Test
-    fun intrinsicUsesFileLogName(): Unit {
+    fun `intrinsic uses the file LogName`(): Unit {
         val expected = Log.named("file-audit")
 
         assertSame(expected, fileLogger())
@@ -41,7 +41,7 @@ class JvmLogTest {
     }
 
     @Test
-    fun factoriesUseClassLogName(): Unit {
+    fun `factories use the class LogName`(): Unit {
         val expected = Log.named("audit")
 
         assertSame(expected, Log.of<NamedCaller>())

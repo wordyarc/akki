@@ -9,7 +9,7 @@ import kotlin.test.assertTrue
 
 class JvmLoggerNameRobustnessTest {
     @Test
-    fun derivesNamesForEveryStandardLibraryClass(): Unit {
+    fun `derives names for every standard library class`(): Unit {
         val types = classesOf(Unit::class.java)
         assertTrue(types.size > 500, "expected the standard library to contribute classes, got ${types.size}")
 

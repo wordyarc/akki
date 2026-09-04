@@ -7,7 +7,7 @@ import kotlin.test.assertFalse
 
 internal class ContextualLoggerCheckerTest : FixtureTest() {
     @Test
-    fun warnsOnEveryContextualEntryPointInsideAnInlineFunction() {
+    fun `warns on every contextual entry point inside an inline function`() {
         val output = compile("inlineDeclarations").output
 
         assertContains(output, "'log' inside the inline declaration 'viaIntrinsic'")
@@ -19,14 +19,14 @@ internal class ContextualLoggerCheckerTest : FixtureTest() {
     }
 
     @Test
-    fun staysSilentWhereTheLoggerIsResolvedAtTheDeclaration() {
+    fun `stays silent where the logger is resolved at the declaration`() {
         val output = compile("resolvedAtDeclaration").output
 
         assertFalse(output.contains("inside the inline declaration"), output)
     }
 
     @Test
-    fun warnsExactlyWhereTheFieldLoweringBailsOut() {
+    fun `warns exactly where the field lowering bails out`() {
         val output = compile("inlineDeclarations").output
 
         assertEquals(

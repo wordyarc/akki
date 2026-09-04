@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory
 
 class JvmLoggerNameProbeTest {
     @Test
-    fun printsCurrentLoggerNamesForJvmDeclarations(): Unit {
+    fun `prints current logger names for JVM declarations`(): Unit {
         val probes = listOf(
             TopLevelClassProbe().probe(),
             NestedProbe().probe(),
@@ -64,7 +64,7 @@ class JvmLoggerNameProbeTest {
     }
 
     @Test
-    fun slf4jUsesTheProvidedClassRatherThanTheCallingClass(): Unit {
+    fun `SLF4J uses the provided class rather than the calling class`(): Unit {
         val providedClass = StandaloneProbe::class.java
         val callingClass = this::class.java
         val slf4jName = LoggerFactory.getLogger(providedClass).name

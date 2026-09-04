@@ -5,7 +5,7 @@ import kotlin.test.assertEquals
 
 internal class LoggerAliasLoweringTest : FixtureTest() {
     @Test
-    fun keepsTheLoggerNamesOfTheRemovedAliases() {
+    fun `keeps the logger names of the removed aliases`() {
         val (lowered, plain) = boxBothWays("alias")
 
         assertEquals(
@@ -16,7 +16,7 @@ internal class LoggerAliasLoweringTest : FixtureTest() {
     }
 
     @Test
-    fun replacesThePrivateAliasWithTheStaticField() {
+    fun `replaces the private alias with the static field`() {
         val (lowered, plain) = boxBothWays("alias")
 
         assertEquals("journal,INSTANCE+journal", plain.substringAfter('|'))
@@ -24,17 +24,17 @@ internal class LoggerAliasLoweringTest : FixtureTest() {
     }
 
     @Test
-    fun keepsTheEffectsOfAReceiverItNoLongerNeeds() {
+    fun `keeps the effects of a receiver it no longer needs`() {
         assertLoweringIsTransparent("receiver,receiver|fixture.Service,fixture.Service", "aliasReceiver")
     }
 
     @Test
-    fun keepsAliasesThatAreVisibleOutsideTheirDeclaration() {
+    fun `keeps aliases that are visible outside their declaration`() {
         assertLoweringIsTransparent("journal+shared|fixture.Base,fixture.Service", "visibleAlias")
     }
 
     @Test
-    fun keepsAliasesThatAreReferencedOrReassigned() {
+    fun `keeps aliases that are referenced or reassigned`() {
         assertLoweringIsTransparent("reassigned+referenced|fixture.Service,fixture.Service", "irremovableAlias")
     }
 }
