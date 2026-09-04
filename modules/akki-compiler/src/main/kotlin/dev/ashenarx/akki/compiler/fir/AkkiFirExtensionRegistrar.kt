@@ -2,6 +2,8 @@ package dev.ashenarx.akki.compiler.fir
 
 import dev.ashenarx.akki.compiler.AkkiErrors
 import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.analysis.checkers.declaration.DeclarationCheckers
+import org.jetbrains.kotlin.fir.analysis.checkers.declaration.FirPropertyChecker
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.ExpressionCheckers
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirExpressionChecker
 import org.jetbrains.kotlin.fir.analysis.extensions.FirAdditionalCheckersExtension
@@ -12,6 +14,10 @@ internal class AkkiFirCheckers(session: FirSession) : FirAdditionalCheckersExten
     override val expressionCheckers: ExpressionCheckers = object : ExpressionCheckers() {
         override val qualifiedAccessExpressionCheckers:
             Set<FirExpressionChecker<FirQualifiedAccessExpression>> = setOf(ContextualLoggerChecker)
+    }
+
+    override val declarationCheckers: DeclarationCheckers = object : DeclarationCheckers() {
+        override val propertyCheckers: Set<FirPropertyChecker> = setOf(RedundantLoggerPropertyChecker)
     }
 }
 

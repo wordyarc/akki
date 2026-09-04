@@ -74,6 +74,15 @@ internal class LoggerFieldLoweringTest : FixtureTest() {
     }
 
     @Test
+    fun `leaves an explicit logger property alone and names it the same`() {
+        assertLoweringIsTransparent(
+            "fixture.Service,fixture.Service,fixture.Service,fixture.Holder,fixture.Fixture" +
+                "|journal,INSTANCE+journal",
+            "explicitLogger",
+        )
+    }
+
+    @Test
     fun `resolves the logger before the static initializers that use it`() {
         assertLoweringIsTransparent("fixture.Fixture,fixture.Holder", "staticInitializer")
     }

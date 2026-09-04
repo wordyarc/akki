@@ -22,8 +22,11 @@ object Holder {
 
 private val topLevel = logger()
 
-private fun fields(type: Class<*>): String =
-    type.declaredFields.map { it.name }.sorted().joinToString("+")
+private fun declared(type: Class<*>): String = type.declaredFields
+    .map { it.name }
+    .filter { !it.startsWith("$") }
+    .sorted()
+    .joinToString("+")
 
 fun box(): String = listOf(
     listOf(
@@ -33,5 +36,5 @@ fun box(): String = listOf(
         Holder.probe(),
         topLevel.name,
     ).joinToString(","),
-    listOf(fields(Service::class.java), fields(Holder::class.java)).joinToString(","),
+    listOf(declared(Service::class.java), declared(Holder::class.java)).joinToString(","),
 ).joinToString("|")
