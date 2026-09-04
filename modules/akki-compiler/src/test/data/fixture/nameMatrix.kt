@@ -23,6 +23,8 @@ class Service {
 
     fun lambda(): String = listOf(0).map { log.name }.single()
 
+    inline fun noinlineDefault(noinline probe: () -> String = { log.name }): String = probe()
+
     fun localClass(): String {
         class Local {
             fun probe(): String = log.name
@@ -80,6 +82,7 @@ fun box(): String = listOf(
     "standaloneObject=" + Standalone.probe(),
     "nestedObject=" + Service.NestedObject.probe(),
     "lambda=" + Service().lambda(),
+    "noinlineDefault=" + Service().noinlineDefault(),
     "localClass=" + Service().localClass(),
     "objectExpression=" + Service().objectExpression(),
     "enumEntry=" + Colour.RED.probe(),

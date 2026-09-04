@@ -6,6 +6,7 @@ import dev.ashenarx.akki.compiler.fir.AkkiFirExtensionRegistrar
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.compiler.plugin.AbstractCliOption
 import org.jetbrains.kotlin.compiler.plugin.CliOption
+import org.jetbrains.kotlin.compiler.plugin.CliOptionProcessingException
 import org.jetbrains.kotlin.compiler.plugin.CommandLineProcessor
 import org.jetbrains.kotlin.compiler.plugin.CompilerPluginRegistrar
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
@@ -24,7 +25,7 @@ internal class AkkiCommandLineProcessor : CommandLineProcessor {
     override fun processOption(option: AbstractCliOption, value: String, configuration: CompilerConfiguration) {
         when (option) {
             ENABLED_OPTION -> configuration.put(AKKI_ENABLED, value.toBoolean())
-            else -> error("Unknown option: ${option.optionName}")
+            else -> throw CliOptionProcessingException("Unknown option: ${option.optionName}")
         }
     }
 

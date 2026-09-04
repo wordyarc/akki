@@ -17,6 +17,7 @@ import org.jetbrains.kotlin.ir.declarations.IrDeclarationContainer
 import org.jetbrains.kotlin.ir.declarations.IrField
 import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrFunction
+import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetFieldImpl
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
@@ -51,20 +52,33 @@ internal class LoggerFieldLowering(
         return declaration
     }
 
-    override fun visitFunction(declaration: IrFunction, data: Owner?): IrStatement {
-        if (!declaration.isInline) return super.visitFunction(declaration, data)
-        val enclosing = inlined
-        inlined = true
-        val result = super.visitFunction(declaration, data)
-        inlined = enclosing
-        return result
-    }
+    override fun visitFunction(declaration: IrFunction, data: Owner?): IrStatement =
+        if (declaration.isInline) {
+            inlining(true) { super.visitFunction(declaration, data) }
+        } else {
+            super.visitFunction(declaration, data)
+        }
+
+    override fun visitValueParameter(declaration: IrValueParameter, data: Owner?): IrStatement =
+        if (declaration.isNoinline) {
+            inlining(false) { super.visitValueParameter(declaration, data) }
+        } else {
+            super.visitValueParameter(declaration, data)
+        }
 
     override fun visitCall(expression: IrCall, data: Owner?): IrElement {
         expression.transformChildren(this, data)
         if (inlined || data == null || !symbols.isCallSite(expression.symbol.owner)) return expression
         val field = data.field ?: data.container.createLoggerField().also { data.field = it }
         return IrGetFieldImpl(expression.startOffset, expression.endOffset, field.symbol, field.type)
+    }
+
+    private inline fun inlining(value: Boolean, transform: () -> IrStatement): IrStatement {
+        val enclosing = inlined
+        inlined = value
+        val result = transform()
+        inlined = enclosing
+        return result
     }
 
     private fun IrDeclarationContainer.lowerInto(owner: Owner) {

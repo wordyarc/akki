@@ -21,6 +21,7 @@ internal class LoggerFieldLoweringTest : FixtureTest() {
                 "standaloneObject=fixture.Standalone",
                 "nestedObject=fixture.Service.NestedObject",
                 "lambda=fixture.Service",
+                "noinlineDefault=fixture.Service",
                 "localClass=fixture.Service",
                 "objectExpression=fixture.Service",
                 "enumEntry=fixture.Colour",
