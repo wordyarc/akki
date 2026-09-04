@@ -2,6 +2,7 @@
 
 package dev.ashenarx.akki.compiler
 
+import org.jetbrains.kotlin.backend.common.FileLoweringPass
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationContainer
@@ -24,13 +25,12 @@ import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 
-internal class LoggerAliasLowering : IrElementTransformerVoid() {
-    override fun visitFile(declaration: IrFile): IrFile {
-        val aliases = declaration.loggerAliases()
-        if (aliases.isEmpty()) return declaration
-        declaration.transformChildren(AliasReader(aliases), null)
+internal class LoggerAliasLowering : FileLoweringPass {
+    override fun lower(irFile: IrFile) {
+        val aliases = irFile.loggerAliases()
+        if (aliases.isEmpty()) return
+        irFile.transformChildren(AliasReader(aliases), null)
         aliases.keys.forEach { (it.parent as? IrDeclarationContainer)?.declarations?.remove(it) }
-        return declaration
     }
 
     private fun IrFile.loggerAliases(): Map<IrProperty, IrField> {
@@ -63,7 +63,7 @@ internal class LoggerAliasLowering : IrElementTransformerVoid() {
         if (!DescriptorVisibilities.isPrivate(visibility)) return null
         if (getter != null && getter.origin != IrDeclarationOrigin.DEFAULT_PROPERTY_ACCESSOR) return null
         val alias = backingField?.initializer?.expression as? IrGetField ?: return null
-        return alias.symbol.owner.takeIf { it.origin == LOGGER_FIELD }
+        return alias.symbol.owner.takeIf { it.origin == GENERATED_LOGGER_FIELD }
     }
 
     private class AliasReader(aliases: Map<IrProperty, IrField>) : IrElementTransformerVoid() {

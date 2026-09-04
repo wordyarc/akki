@@ -2,6 +2,7 @@
 
 package dev.ashenarx.akki.compiler
 
+import org.jetbrains.kotlin.backend.common.FileLoweringPass
 import org.jetbrains.kotlin.backend.common.IrElementTransformerVoidWithContext
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.ir.IrInlinableLambda
@@ -20,6 +21,7 @@ import org.jetbrains.kotlin.ir.builders.irNotEquals
 import org.jetbrains.kotlin.ir.builders.irNull
 import org.jetbrains.kotlin.ir.builders.irTemporary
 import org.jetbrains.kotlin.ir.builders.parent
+import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.expressions.IrBlock
@@ -29,6 +31,7 @@ import org.jetbrains.kotlin.ir.expressions.IrGetValue
 import org.jetbrains.kotlin.ir.expressions.IrStatementOrigin
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetEnumValueImpl
 import org.jetbrains.kotlin.ir.expressions.isUnchanging
+import org.jetbrains.kotlin.ir.symbols.IrValueSymbol
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
@@ -38,7 +41,11 @@ import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 internal class LoggerCallLowering(
     private val context: IrPluginContext,
     private val symbols: AkkiSymbols,
-) : IrElementTransformerVoidWithContext() {
+) : FileLoweringPass, IrElementTransformerVoidWithContext() {
+    override fun lower(irFile: IrFile) {
+        irFile.transform(this, null)
+    }
+
     override fun visitBlock(expression: IrBlock): IrExpression {
         if (expression.origin != IrStatementOrigin.ARGUMENTS_REORDERING_FOR_CALL) return super.visitBlock(expression)
         val call = expression.statements.lastOrNull() as? IrCall ?: return super.visitBlock(expression)
@@ -60,11 +67,11 @@ internal class LoggerCallLowering(
         val receiver = call.arguments[target.receiver] ?: return null
         val message = call.arguments[target.message] ?: return null
         val scope = currentScope?.scope?.scopeOwnerSymbol ?: return null
-        val outer = hoisted.reachableFrom(receiver)
+        val beforeGuard = hoisted.prefixReadBy(receiver)
         val builder = DeclarationIrBuilder(context, scope, call.startOffset, call.endOffset)
         return with(builder) {
-            irBlock(origin = SINK_GUARD, resultType = context.irBuiltIns.unitType) {
-                hoisted.forEach { if (it in outer) +it }
+            irBlock(origin = IrStatementOrigin.SAFE_CALL, resultType = context.irBuiltIns.unitType) {
+                hoisted.take(beforeGuard).forEach { +it }
                 val logger = irTemporary(receiver, "logger")
                 val sink = irTemporary(
                     irCall(symbols.sink).apply {
@@ -76,7 +83,7 @@ internal class LoggerCallLowering(
                 +irIfThen(
                     irNotEquals(irGet(sink), irNull()),
                     irBlock {
-                        hoisted.forEach { if (it !in outer) +it }
+                        hoisted.drop(beforeGuard).forEach { +it }
                         +irCall(symbols.emit).apply {
                             arguments[0] = irGet(sink)
                             emitArguments(call, target, message).forEach { (slot, value) -> arguments[slot] = value }
@@ -97,7 +104,7 @@ internal class LoggerCallLowering(
             target.cause to symbols.emitCause,
             target.fields to symbols.emitFields,
         ).sortedBy { (source, _) -> source.indexInParameters }
-        val reordered = slots.map { (_, destination) -> destination.indexInParameters }
+        val materialisedThrough = slots.map { (_, destination) -> destination.indexInParameters }
             .zipWithNext()
             .indexOfLast { (previous, next) -> previous > next }
         return slots.mapIndexed { position, (source, destination) ->
@@ -107,7 +114,7 @@ internal class LoggerCallLowering(
                 target.cause -> written ?: irNull(symbols.causeType)
                 else -> written ?: emptyFields()
             }
-            val materialised = position <= reordered && written != null && !value.isUnchanging()
+            val materialised = position <= materialisedThrough && written != null && !value.isUnchanging()
             destination to if (materialised) irGet(irTemporary(value, "argument")) else value
         }
     }
@@ -125,19 +132,16 @@ internal class LoggerCallLowering(
             symbols.fieldTypes.forEachIndexed { index, argument -> typeArguments[index] = argument }
         }
 
-    private fun List<IrVariable>.reachableFrom(expression: IrExpression): Set<IrVariable> {
-        if (isEmpty()) return emptySet()
-        val declared = associateBy { it.symbol }
-        val reached = linkedSetOf<IrVariable>()
-        val visitor = object : IrVisitorVoid() {
+    private fun List<IrVariable>.prefixReadBy(expression: IrExpression): Int {
+        if (isEmpty()) return 0
+        val read = mutableSetOf<IrValueSymbol>()
+        expression.acceptVoid(object : IrVisitorVoid() {
             override fun visitElement(element: IrElement): Unit = element.acceptChildrenVoid(this)
 
             override fun visitGetValue(expression: IrGetValue) {
-                val variable = declared[expression.symbol] ?: return
-                if (reached.add(variable)) variable.initializer?.acceptVoid(this)
+                read += expression.symbol
             }
-        }
-        expression.acceptVoid(visitor)
-        return reached
+        })
+        return indexOfLast { it.symbol in read } + 1
     }
 }
