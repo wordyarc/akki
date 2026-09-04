@@ -70,7 +70,7 @@ internal class LoggerCallLowering(
         val beforeGuard = hoisted.prefixReadBy(receiver)
         val builder = DeclarationIrBuilder(context, scope, call.startOffset, call.endOffset)
         return with(builder) {
-            irBlock(origin = AKKI_RECORD, resultType = context.irBuiltIns.unitType) {
+            irBlock(resultType = context.irBuiltIns.unitType) {
                 hoisted.take(beforeGuard).forEach { +it }
                 val sink = irTemporary(
                     irCall(symbols.sink).apply {

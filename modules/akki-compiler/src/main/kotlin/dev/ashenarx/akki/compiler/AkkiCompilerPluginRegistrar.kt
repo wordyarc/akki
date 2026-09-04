@@ -33,8 +33,8 @@ internal class AkkiCommandLineProcessor : CommandLineProcessor {
         val ENABLED_OPTION = CliOption(
             optionName = "enabled",
             valueDescription = "true/false",
-            description = "Rewrite Logger level calls into a single sink resolution. " +
-                "Disable to fall back to the plain runtime implementation.",
+            description = "Resolve loggers into static fields, rewrite Logger level calls into a single sink " +
+                "resolution and report Akki diagnostics. Disable to fall back to the plain runtime implementation.",
             required = false,
             allowMultipleOccurrences = false,
         )

@@ -72,6 +72,8 @@ internal object FixtureCompiler {
                     "-d", classes.toString(),
                     "-classpath", classpath,
                     "-jvm-target", property("akki.jvm.target"),
+                    "-Xverify-ir=error",
+                    "-Xverify-ir-visibility",
                 ) + plugin.arguments() + file.toString()
                 ).toTypedArray(),
             arguments,

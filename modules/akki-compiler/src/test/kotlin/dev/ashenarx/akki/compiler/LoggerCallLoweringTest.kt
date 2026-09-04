@@ -50,11 +50,13 @@ internal class LoggerCallLoweringTest : FixtureTest() {
     }
 
     @Test
-    fun `inlines lazy messages instead of allocating or calling them`() {
-        val references = compile("lambda").references("fixture.FixtureKt")
+    fun `keeps lazy messages free of a lambda allocation`() {
+        val lowered = compile("lambda").references("fixture.FixtureKt")
+        val plain = compile("lambda", Plugin.Absent).references("fixture.FixtureKt")
 
-        assertFalse(references.any { it.contains("Function0") }, references.toString())
-        assertFalse(references.any { it.contains("box\$lambda") }, references.toString())
+        assertFalse(plain.any { it.contains("Function0") }, plain.toString())
+        assertFalse(lowered.any { it.contains("Function0") }, lowered.toString())
+        assertFalse(lowered.any { it.contains("box\$lambda") }, lowered.toString())
     }
 
     @Test
