@@ -10,6 +10,7 @@ import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.descriptors.DescriptorVisibility
 import org.jetbrains.kotlin.ir.builders.declarations.buildField
 import org.jetbrains.kotlin.ir.builders.irCall
+import org.jetbrains.kotlin.ir.builders.irExprBody
 import org.jetbrains.kotlin.ir.builders.irGetObject
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationContainer
@@ -78,12 +79,9 @@ internal class LoggerFieldLowering(
             origin = GENERATED_LOGGER_FIELD
         }
         field.parent = this
-        val builder = DeclarationIrBuilder(context, field.symbol, SYNTHETIC_OFFSET, SYNTHETIC_OFFSET)
-        field.initializer = context.irFactory.createExpressionBody(
-            builder.startOffset,
-            builder.endOffset,
-            builder.irCall(symbols.forCaller).apply { arguments[0] = builder.irGetObject(symbols.logRegistry) },
-        )
+        field.initializer = DeclarationIrBuilder(context, field.symbol, SYNTHETIC_OFFSET, SYNTHETIC_OFFSET).run {
+            irExprBody(irCall(symbols.forCaller).apply { arguments[0] = irGetObject(symbols.logRegistry) })
+        }
         return field
     }
 

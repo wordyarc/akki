@@ -33,6 +33,7 @@ import org.jetbrains.kotlin.ir.expressions.impl.IrGetEnumValueImpl
 import org.jetbrains.kotlin.ir.expressions.isUnchanging
 import org.jetbrains.kotlin.ir.symbols.IrValueSymbol
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
+import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
@@ -97,26 +98,15 @@ internal class LoggerCallLowering(
         call: IrCall,
         target: LoggerCall,
         message: IrExpression,
-    ): List<Pair<IrValueParameter, IrExpression>> {
-        val slots = listOf(
-            target.message to symbols.emitMessage,
-            target.cause to symbols.emitCause,
-            target.fields to symbols.emitFields,
-        ).sortedBy { (source, _) -> source.indexInParameters }
-        val reordered = slots.map { (_, destination) -> destination.indexInParameters }
-            .zipWithNext()
-            .any { (previous, next) -> previous > next }
-        return slots.mapIndexed { position, (source, destination) ->
-            val written = call.arguments[source]
-            val value = when (source) {
-                target.message -> if (target.isLazy) invoke(message) else message
-                target.cause -> written ?: irNull(symbols.causeType)
-                else -> written ?: emptyFields()
-            }
-            val materialised =
-                reordered && position < slots.lastIndex && written != null && !value.isUnchanging()
-            destination to if (materialised) irGet(irTemporary(value, "argument")) else value
+    ): List<Pair<IrValueParameter, IrExpression>> = target.arguments.map { argument ->
+        val written = call.arguments[argument.source]
+        val value = when (argument.slot) {
+            EmitSlot.MESSAGE -> if (target.isLazy) invoke(message) else message
+            EmitSlot.CAUSE -> written ?: irNull(argument.destination.type)
+            EmitSlot.FIELDS -> written ?: emptyFields(argument.destination.type)
         }
+        val frozen = argument.mustFreeze && written != null && !value.isUnchanging()
+        argument.destination to if (frozen) irGet(irTemporary(value, argument.source.name.asString())) else value
     }
 
     private fun IrBlockBuilder.invoke(message: IrExpression): IrExpression =
@@ -127,9 +117,10 @@ internal class LoggerCallLowering(
             }
         }
 
-    private fun IrBuilderWithScope.emptyFields(): IrExpression =
-        irCall(symbols.emptyMap, symbols.fieldsType).apply {
-            symbols.fieldTypes.forEachIndexed { index, argument -> typeArguments[index] = argument }
+    private fun IrBuilderWithScope.emptyFields(type: IrType): IrExpression =
+        irCall(symbols.emptyMap, type).apply {
+            typeArguments[0] = context.irBuiltIns.stringType
+            typeArguments[1] = context.irBuiltIns.anyNType
         }
 
     private fun List<IrVariable>.prefixReadBy(expression: IrExpression): Int {

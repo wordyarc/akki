@@ -11,10 +11,8 @@ import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.symbols.IrEnumEntrySymbol
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
-import org.jetbrains.kotlin.ir.types.IrSimpleType
 import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.types.classOrNull
-import org.jetbrains.kotlin.ir.types.typeOrFail
 import org.jetbrains.kotlin.ir.util.defaultType
 import org.jetbrains.kotlin.ir.util.functions
 import org.jetbrains.kotlin.ir.util.hasAnnotation
@@ -24,13 +22,25 @@ import org.jetbrains.kotlin.ir.util.nonDispatchParameters
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.Name
 
+internal enum class EmitSlot {
+    MESSAGE,
+    CAUSE,
+    FIELDS,
+}
+
+internal class EmitArgument(
+    val slot: EmitSlot,
+    val source: IrValueParameter,
+    val destination: IrValueParameter,
+    val mustFreeze: Boolean,
+)
+
 internal class LoggerCall(
     val level: IrEnumEntrySymbol,
     val receiver: IrValueParameter,
     val message: IrValueParameter,
-    val cause: IrValueParameter,
-    val fields: IrValueParameter,
     val isLazy: Boolean,
+    val arguments: List<EmitArgument>,
 )
 
 internal class AkkiSymbols private constructor(context: IrPluginContext, finder: DeclarationFinder) {
@@ -43,29 +53,16 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
 
     val levelType: IrType = level.owner.defaultType
 
-    val sink: IrSimpleFunctionSymbol = logger.functionOrFail(AkkiNames.SINK, SINK_SIGNATURE) {
-        it.hasShape(dispatchReceiver = true, regularParameters = 1) &&
-            it.returnType.classOrNull == sinkClass &&
-            it.nonDispatchParameters.single().type.classOrNull == level
-    }.symbol
+    val sink: IrSimpleFunctionSymbol =
+        logger.functionOrFail(AkkiNames.SINK, SINK_SIGNATURE, parameters = 1).symbol
 
-    val forCaller: IrSimpleFunctionSymbol = logRegistry.functionOrFail(AkkiNames.FOR_CALLER, FOR_CALLER_SIGNATURE) {
-        it.hasShape(dispatchReceiver = true) && it.returnType.classOrNull == logger
-    }.symbol
+    val forCaller: IrSimpleFunctionSymbol =
+        logRegistry.functionOrFail(AkkiNames.FOR_CALLER, FOR_CALLER_SIGNATURE, parameters = 0).symbol
 
-    private val emitFunction: IrSimpleFunction = sinkClass.functionOrFail(AkkiNames.EMIT, EMIT_SIGNATURE) {
-        it.hasShape(dispatchReceiver = true, regularParameters = 3)
-    }
+    private val emitFunction: IrSimpleFunction =
+        sinkClass.functionOrFail(AkkiNames.EMIT, EMIT_SIGNATURE, parameters = 3)
 
     val emit: IrSimpleFunctionSymbol = emitFunction.symbol
-    val emitMessage: IrValueParameter =
-        emitFunction.parameterOrFail(AkkiNames.MESSAGE, EMIT_SIGNATURE, context.irBuiltIns.stringType)
-    val emitCause: IrValueParameter = emitFunction.parameterOrFail(AkkiNames.CAUSE, EMIT_SIGNATURE)
-    val emitFields: IrValueParameter = emitFunction.parameterOrFail(AkkiNames.FIELDS, EMIT_SIGNATURE)
-
-    val causeType: IrType = emitCause.type
-    val fieldsType: IrType = emitFields.type
-    val fieldTypes: List<IrType> = fieldsType.arguments().takeIf { it.size == 2 } ?: incompatible(EMIT_SIGNATURE)
 
     val emptyMap: IrSimpleFunctionSymbol = finder.findFunctions(AkkiNames.EMPTY_MAP_ID)
         .singleOrNull { it.owner.hasShape() }
@@ -108,10 +105,32 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
             level = level,
             receiver = receiver,
             message = message,
-            cause = parameter(AkkiNames.CAUSE) ?: return null,
-            fields = parameter(AkkiNames.FIELDS) ?: return null,
             isLazy = isLazy,
+            arguments = emitArguments(
+                message = message,
+                cause = parameter(AkkiNames.CAUSE) ?: return null,
+                fields = parameter(AkkiNames.FIELDS) ?: return null,
+            ),
         )
+    }
+
+    private fun emitArguments(
+        message: IrValueParameter,
+        cause: IrValueParameter,
+        fields: IrValueParameter,
+    ): List<EmitArgument> {
+        val (toMessage, toCause, toFields) = emitFunction.nonDispatchParameters
+        val ordered = listOf(
+            Triple(EmitSlot.MESSAGE, message, toMessage),
+            Triple(EmitSlot.CAUSE, cause, toCause),
+            Triple(EmitSlot.FIELDS, fields, toFields),
+        ).sortedBy { (_, source, _) -> source.indexInParameters }
+        val reordered = ordered.map { (_, _, destination) -> destination.indexInParameters }
+            .zipWithNext()
+            .any { (previous, next) -> previous > next }
+        return ordered.mapIndexed { position, (slot, source, destination) ->
+            EmitArgument(slot, source, destination, mustFreeze = reordered && position < ordered.lastIndex)
+        }
     }
 
     companion object {
@@ -144,18 +163,10 @@ private fun incompatible(signature: String): Nothing = throw IncompatibleCore(si
 private fun DeclarationFinder.classOrFail(id: ClassId): IrClassSymbol =
     findClass(id) ?: incompatible(id.asFqNameString())
 
-private fun IrClassSymbol.functionOrFail(
-    name: Name,
-    signature: String,
-    shape: (IrSimpleFunction) -> Boolean,
-): IrSimpleFunction = owner.functions.singleOrNull { it.name == name && shape(it) } ?: incompatible(signature)
+private fun IrClassSymbol.functionOrFail(name: Name, signature: String, parameters: Int): IrSimpleFunction =
+    owner.functions.singleOrNull {
+        it.name == name && it.hasShape(dispatchReceiver = true, regularParameters = parameters)
+    } ?: incompatible(signature)
 
 private fun IrSimpleFunction.parameter(name: Name): IrValueParameter? =
     nonDispatchParameters.singleOrNull { it.name == name }
-
-private fun IrSimpleFunction.parameterOrFail(name: Name, signature: String, type: IrType? = null): IrValueParameter =
-    nonDispatchParameters.singleOrNull { it.name == name && (type == null || it.type == type) }
-        ?: incompatible(signature)
-
-private fun IrType.arguments(): List<IrType> =
-    (this as? IrSimpleType)?.arguments.orEmpty().map { it.typeOrFail }

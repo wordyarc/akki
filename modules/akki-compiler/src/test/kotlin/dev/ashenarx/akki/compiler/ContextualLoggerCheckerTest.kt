@@ -26,7 +26,7 @@ internal class ContextualLoggerCheckerTest : FixtureTest() {
     }
 
     @Test
-    fun `warns exactly where the field lowering bails out`() {
+    fun `warns once per entry point and nowhere else`() {
         val output = compile("inlineDeclarations").output
 
         assertEquals(
