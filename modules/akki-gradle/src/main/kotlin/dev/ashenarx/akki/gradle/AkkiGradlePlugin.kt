@@ -31,6 +31,9 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
     override fun applyToCompilation(kotlinCompilation: KotlinCompilation<*>): Provider<List<SubpluginOption>> {
         val project = kotlinCompilation.target.project
         val extension = project.extensions.getByType(AkkiExtension::class.java)
+        kotlinCompilation.defaultSourceSet.dependencies {
+            implementation("$PLUGIN_GROUP:$CORE_ARTIFACT:$pluginVersion")
+        }
         return extension.enabled.map { listOf(SubpluginOption("enabled", it.toString())) }
     }
 
@@ -39,6 +42,7 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
         const val PLUGIN_ID: String = "dev.ashenarx.akki"
         const val PLUGIN_GROUP: String = "dev.ashenarx"
         const val COMPILER_ARTIFACT: String = "akki-compiler"
+        const val CORE_ARTIFACT: String = "akki-core"
 
         val pluginVersion: String by lazy {
             val properties = Properties()

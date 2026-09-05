@@ -34,6 +34,13 @@ class AkkiGradlePluginTest {
         assertTrue(output.contains("AKKI evaluated=0"), output)
     }
 
+    @Test
+    fun `brings its own runtime to a consumer that declares none`(@TempDir projectDirectory: Path) {
+        val output = build(projectDirectory, enabled = null, consumer = Consumer.Bare)
+
+        assertTrue(output.contains("INFO  consumer.OrderService - received A-1"), output)
+    }
+
     private fun build(projectDirectory: Path, enabled: Boolean?, consumer: Consumer = Consumer.Core): String {
         val repository = publishRepository(projectDirectory.resolve("repository"))
         projectDirectory.resolve("settings.gradle.kts").writeText(settings(repository))
@@ -164,6 +171,7 @@ class AkkiGradlePluginTest {
         """.trimIndent()
 
     private fun dependencies(consumer: Consumer): String = when (consumer) {
+        Consumer.Bare -> emptyList()
         Consumer.Core -> listOf("""implementation("dev.ashenarx:akki-core:$VERSION")""")
         Consumer.Slf4j -> listOf(
             """implementation("dev.ashenarx:akki-slf4j:$VERSION")""",
@@ -182,6 +190,7 @@ class AkkiGradlePluginTest {
         requireNotNull(javaClass.getResource("/$name")) { "no fixture /$name" }.readText()
 
     private enum class Consumer(val source: String, val mainClass: String, val resource: String?) {
+        Bare("BareMain.kt", "consumer.BareMainKt", null),
         Core("Main.kt", "consumer.MainKt", null),
         Slf4j("Slf4jMain.kt", "consumer.Slf4jMainKt", "logback.xml"),
     }
