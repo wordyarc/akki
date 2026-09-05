@@ -57,6 +57,7 @@ internal class LoggerCallLoweringTest : FixtureTest() {
         assertFalse(plain.any { it.contains("Function0") }, plain.toString())
         assertFalse(lowered.any { it.contains("Function0") }, lowered.toString())
         assertFalse(lowered.any { it.contains("box\$lambda") }, lowered.toString())
+        assertLoweringIsTransparent("value=1|counter=1", "lambda")
     }
 
     @Test
@@ -74,10 +75,31 @@ internal class LoggerCallLoweringTest : FixtureTest() {
     }
 
     @Test
+    fun `needs no import beyond the intrinsic`() {
+        assertLoweringIsTransparent("fixture.OrderService", "minimalImport")
+    }
+
+    @Test
     fun `rejects overriding level methods`() {
         val failure = compileExpectingFailure("overriddenLevel")
 
-        assertContains(failure, "'info' overrides nothing")
+        assertContains(failure, "'info' in 'Logger' is final and cannot be overridden")
+    }
+
+    @Test
+    fun `routes through the sink a custom logger declares`() {
+        assertLoweringIsTransparent(
+            "sink:INFO,own:INFO:kept,sink:DEBUG,sink:WARN,own:WARN:lazy,emit:ERROR:[delegate] decorated",
+            "customLogger",
+        )
+    }
+
+    @Test
+    fun `keeps the calling declaration without the plugin`() {
+        val (className, methodName) = box("callerLocation", Plugin.Absent).split("|")
+
+        assertEquals("fixture.FixtureKt", className)
+        assertEquals("box", methodName)
     }
 
     @Test

@@ -7,11 +7,6 @@ import ch.qos.logback.core.read.ListAppender
 import dev.ashenarx.akki.DelicateAkkiApi
 import dev.ashenarx.akki.Level
 import dev.ashenarx.akki.Log
-import dev.ashenarx.akki.debug
-import dev.ashenarx.akki.error
-import dev.ashenarx.akki.info
-import dev.ashenarx.akki.trace
-import dev.ashenarx.akki.warn
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test

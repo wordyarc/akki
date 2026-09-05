@@ -2,8 +2,6 @@ package dev.ashenarx.akki.test
 
 import dev.ashenarx.akki.Level
 import dev.ashenarx.akki.Log
-import dev.ashenarx.akki.error
-import dev.ashenarx.akki.info
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

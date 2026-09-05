@@ -6,7 +6,7 @@ import dev.ashenarx.akki.Logger
 public class RecordingLogger(
     override val name: String = "recording",
     private val enabled: Set<Level> = Level.entries.toSet(),
-) : Logger {
+) : Logger() {
     public val records: List<LogRecord>
         field: MutableList<LogRecord> = mutableListOf()
 

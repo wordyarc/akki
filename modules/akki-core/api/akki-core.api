@@ -51,38 +51,31 @@ public final class dev/ashenarx/akki/Log_jvmKt {
 	public static final fun of (Ldev/ashenarx/akki/Log;Ljava/lang/Class;)Ldev/ashenarx/akki/Logger;
 }
 
-public abstract interface class dev/ashenarx/akki/Logger {
-	public abstract fun emit (Ldev/ashenarx/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
-	public static synthetic fun emit$default (Ldev/ashenarx/akki/Logger;Ldev/ashenarx/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V
-	public abstract fun getName ()Ljava/lang/String;
-	public abstract fun isEnabled (Ldev/ashenarx/akki/Level;)Z
-	public fun sink (Ldev/ashenarx/akki/Level;)Ldev/ashenarx/akki/Sink;
-}
-
-public final class dev/ashenarx/akki/Logger$DefaultImpls {
-	public static synthetic fun emit$default (Ldev/ashenarx/akki/Logger;Ldev/ashenarx/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V
-	public static fun sink (Ldev/ashenarx/akki/Logger;Ldev/ashenarx/akki/Level;)Ldev/ashenarx/akki/Sink;
-}
-
-public final class dev/ashenarx/akki/LoggerKt {
-	public static final fun debug (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
-	public static final fun debug (Ldev/ashenarx/akki/Logger;Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;)V
+public abstract class dev/ashenarx/akki/Logger {
+	public fun <init> ()V
+	public final fun debug (Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
+	public final fun debug (Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;)V
 	public static synthetic fun debug$default (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V
 	public static synthetic fun debug$default (Ldev/ashenarx/akki/Logger;Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
-	public static final fun error (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
-	public static final fun error (Ldev/ashenarx/akki/Logger;Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;)V
+	public abstract fun emit (Ldev/ashenarx/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
+	public static synthetic fun emit$default (Ldev/ashenarx/akki/Logger;Ldev/ashenarx/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V
+	public final fun error (Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
+	public final fun error (Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;)V
 	public static synthetic fun error$default (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V
 	public static synthetic fun error$default (Ldev/ashenarx/akki/Logger;Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
-	public static final fun info (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
-	public static final fun info (Ldev/ashenarx/akki/Logger;Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;)V
+	public abstract fun getName ()Ljava/lang/String;
+	public final fun info (Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
+	public final fun info (Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;)V
 	public static synthetic fun info$default (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V
 	public static synthetic fun info$default (Ldev/ashenarx/akki/Logger;Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
-	public static final fun trace (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
-	public static final fun trace (Ldev/ashenarx/akki/Logger;Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;)V
+	public abstract fun isEnabled (Ldev/ashenarx/akki/Level;)Z
+	public fun sink (Ldev/ashenarx/akki/Level;)Ldev/ashenarx/akki/Sink;
+	public final fun trace (Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
+	public final fun trace (Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;)V
 	public static synthetic fun trace$default (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V
 	public static synthetic fun trace$default (Ldev/ashenarx/akki/Logger;Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
-	public static final fun warn (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
-	public static final fun warn (Ldev/ashenarx/akki/Logger;Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;)V
+	public final fun warn (Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
+	public final fun warn (Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;)V
 	public static synthetic fun warn$default (Ldev/ashenarx/akki/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V
 	public static synthetic fun warn$default (Ldev/ashenarx/akki/Logger;Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
 }

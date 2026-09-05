@@ -47,7 +47,6 @@ public final class dev/ashenarx/akki/test/RecordingLogger : dev/ashenarx/akki/Lo
 	public fun getName ()Ljava/lang/String;
 	public final fun getRecords ()Ljava/util/List;
 	public fun isEnabled (Ldev/ashenarx/akki/Level;)Z
-	public fun sink (Ldev/ashenarx/akki/Level;)Ldev/ashenarx/akki/Sink;
 	public fun toString ()Ljava/lang/String;
 }
 

@@ -6,7 +6,7 @@ import dev.ashenarx.akki.Logger
 import dev.ashenarx.akki.Sink
 
 @OptIn(InternalAkkiApi::class)
-internal class LoggerImpl(override val name: String) : Logger {
+internal class LoggerImpl(override val name: String) : Logger() {
     override fun isEnabled(level: Level): Boolean =
         platformBackend().isEnabled(name, level)
 

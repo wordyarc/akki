@@ -2,7 +2,7 @@ package fixture
 
 import dev.ashenarx.akki.*
 
-class Custom : Logger {
+class Custom : Logger() {
     override val name: String = "custom"
 
     override fun isEnabled(level: Level): Boolean = true

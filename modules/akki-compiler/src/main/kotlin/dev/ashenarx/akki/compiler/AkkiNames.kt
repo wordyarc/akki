@@ -32,7 +32,7 @@ internal object AkkiNames {
 
     val LOGGER_FIELD: Name = Name.identifier("\$\$log")
 
-    fun levelId(entry: Name): CallableId = CallableId(PACKAGE, Name.identifier(entry.asString().lowercase()))
+    fun levelName(entry: Name): Name = Name.identifier(entry.asString().lowercase())
 
     private fun FqName.classId(name: String): ClassId = ClassId(this, Name.identifier(name))
 }

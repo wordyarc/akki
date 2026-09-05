@@ -73,10 +73,11 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
 
     private val calls: Map<IrSimpleFunctionSymbol, LoggerCall> = buildMap {
         val function0 = context.irBuiltIns.functionN(0).symbol
+        val overloads = logger.owner.functions.groupBy(IrSimpleFunction::name)
         for (entry in level.owner.declarations.filterIsInstance<IrEnumEntry>()) {
-            for (overload in finder.findFunctions(AkkiNames.levelId(entry.name))) {
-                val call = overload.owner.loggerCall(context, entry.symbol, function0) ?: continue
-                put(overload, call)
+            for (overload in overloads[AkkiNames.levelName(entry.name)].orEmpty()) {
+                val call = overload.loggerCall(context, entry.symbol, function0) ?: continue
+                put(overload.symbol, call)
             }
         }
     }
@@ -96,7 +97,7 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
         level: IrEnumEntrySymbol,
         function0: IrClassSymbol,
     ): LoggerCall? {
-        if (!hasShape(extensionReceiver = true, regularParameters = 3)) return null
+        if (!hasShape(dispatchReceiver = true, regularParameters = 3)) return null
         val receiver = parameters.first().takeIf { it.type.classOrNull == logger } ?: return null
         val message = parameter(AkkiNames.MESSAGE) ?: return null
         val isLazy = message.type.classOrNull == function0
