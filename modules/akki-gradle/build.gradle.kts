@@ -13,11 +13,13 @@ fun artifactConfiguration(name: String): Configuration = configurations.create(n
 
 val akkiCompilerJar: Configuration = artifactConfiguration("akkiCompilerJar")
 val akkiCoreJar: Configuration = artifactConfiguration("akkiCoreJar")
+val akkiSlf4jJar: Configuration = artifactConfiguration("akkiSlf4jJar")
 
 dependencies {
     implementation(libs.kotlin.gradle.plugin.api)
     akkiCompilerJar(project(":akki-compiler"))
     akkiCoreJar(project(":akki-core"))
+    akkiSlf4jJar(project(":akki-slf4j"))
     testImplementation(gradleTestKit())
 }
 
@@ -41,9 +43,12 @@ sourceSets.test {
 tasks.test {
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.compiler.plugin.jar", akkiCompilerJar))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.core.jar", akkiCoreJar))
+    jvmArgumentProviders.add(ClasspathSystemProperty("akki.slf4j.jar", akkiSlf4jJar))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.gradle.plugin.jar", files(tasks.jar)))
     systemProperty("akki.version", project.version.toString())
     systemProperty("akki.kotlin.version", libs.versions.kotlin.get())
+    systemProperty("akki.slf4j.version", libs.versions.slf4j.get())
+    systemProperty("akki.logback.version", libs.versions.logback.get())
 }
 
 gradlePlugin {

@@ -27,6 +27,7 @@ public final class dev/ashenarx/akki/test/RecordingBackend : dev/ashenarx/akki/L
 	public fun <init> ()V
 	public fun <init> (Ljava/util/Set;)V
 	public synthetic fun <init> (Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun bind (Ljava/lang/String;)Ldev/ashenarx/akki/SinkResolver;
 	public final fun getRecords ()Ljava/util/List;
 	public final fun getResolutions ()Ljava/util/List;
 	public fun isEnabled (Ljava/lang/String;Ldev/ashenarx/akki/Level;)Z

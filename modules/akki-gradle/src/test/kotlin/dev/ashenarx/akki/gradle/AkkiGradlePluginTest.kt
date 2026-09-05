@@ -22,12 +22,29 @@ class AkkiGradlePluginTest {
         assertTrue(output.contains("AKKI name=consumer.OrderService evaluated=1"), output)
     }
 
-    private fun build(projectDirectory: Path, enabled: Boolean?): String {
+    @Test
+    fun `logs through the slf4j backend it finds on the classpath`(@TempDir projectDirectory: Path) {
+        val output = build(projectDirectory, enabled = null, consumer = Consumer.Slf4j)
+        val line = lineOf(Consumer.Slf4j, """log.info("received""")
+
+        assertTrue(
+            output.contains("AKKI INFO consumer.OrderService [consumer.OrderService.handle:$line] - received A-1"),
+            output,
+        )
+        assertTrue(output.contains("AKKI evaluated=0"), output)
+    }
+
+    private fun build(projectDirectory: Path, enabled: Boolean?, consumer: Consumer = Consumer.Core): String {
         val repository = publishRepository(projectDirectory.resolve("repository"))
         projectDirectory.resolve("settings.gradle.kts").writeText(settings(repository))
-        projectDirectory.resolve("build.gradle.kts").writeText(buildScript(repository, enabled))
+        projectDirectory.resolve("build.gradle.kts").writeText(buildScript(repository, enabled, consumer))
         projectDirectory.resolve("src/main/kotlin/consumer").createDirectories()
-        projectDirectory.resolve("src/main/kotlin/consumer/Main.kt").writeText(fixture("consumer/Main.kt"))
+        projectDirectory.resolve("src/main/kotlin/consumer/${consumer.source}")
+            .writeText(fixture("consumer/${consumer.source}"))
+        consumer.resource?.let {
+            projectDirectory.resolve("src/main/resources").createDirectories().resolve(it)
+                .writeText(fixture("consumer/$it"))
+        }
 
         return GradleRunner.create()
             .withProjectDir(projectDirectory.toFile())
@@ -45,6 +62,16 @@ class AkkiGradlePluginTest {
             path("akki.core.jar"),
             dependencies = listOf(
                 Triple("org.jetbrains.kotlin", "kotlin-metadata-jvm", property("akki.kotlin.version")),
+            ),
+        )
+        publish(
+            repository,
+            "dev.ashenarx",
+            "akki-slf4j",
+            path("akki.slf4j.jar"),
+            dependencies = listOf(
+                Triple("dev.ashenarx", "akki-core", VERSION),
+                Triple("org.slf4j", "slf4j-api", property("akki.slf4j.version")),
             ),
         )
         publish(
@@ -112,7 +139,7 @@ class AkkiGradlePluginTest {
         rootProject.name = "consumer"
         """.trimIndent()
 
-    private fun buildScript(repository: Path, enabled: Boolean?): String =
+    private fun buildScript(repository: Path, enabled: Boolean?, consumer: Consumer): String =
         """
         plugins {
             application
@@ -126,15 +153,26 @@ class AkkiGradlePluginTest {
         }
 
         dependencies {
-            implementation("dev.ashenarx:akki-core:$VERSION")
+        ${dependencies(consumer)}
         }
 
         ${enabled?.let { "akki { enabled = $it }" } ?: ""}
 
         application {
-            mainClass.set("consumer.MainKt")
+            mainClass.set("${consumer.mainClass}")
         }
         """.trimIndent()
+
+    private fun dependencies(consumer: Consumer): String = when (consumer) {
+        Consumer.Core -> listOf("""implementation("dev.ashenarx:akki-core:$VERSION")""")
+        Consumer.Slf4j -> listOf(
+            """implementation("dev.ashenarx:akki-slf4j:$VERSION")""",
+            """runtimeOnly("ch.qos.logback:logback-classic:${property("akki.logback.version")}")""",
+        )
+    }.joinToString("\n") { "    $it" }
+
+    private fun lineOf(consumer: Consumer, marker: String): Int =
+        fixture("consumer/${consumer.source}").lines().indexOfFirst { it.contains(marker) } + 1
 
     private fun path(name: String): Path = Path.of(property(name))
 
@@ -142,6 +180,11 @@ class AkkiGradlePluginTest {
 
     private fun fixture(name: String): String =
         requireNotNull(javaClass.getResource("/$name")) { "no fixture /$name" }.readText()
+
+    private enum class Consumer(val source: String, val mainClass: String, val resource: String?) {
+        Core("Main.kt", "consumer.MainKt", null),
+        Slf4j("Slf4jMain.kt", "consumer.Slf4jMainKt", "logback.xml"),
+    }
 
     private companion object {
         val VERSION: String = requireNotNull(System.getProperty("akki.version"))

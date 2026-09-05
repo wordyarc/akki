@@ -35,11 +35,13 @@ public final class dev/ashenarx/akki/Log$Installation : java/lang/AutoCloseable 
 }
 
 public abstract interface class dev/ashenarx/akki/LogBackend {
+	public fun bind (Ljava/lang/String;)Ldev/ashenarx/akki/SinkResolver;
 	public fun isEnabled (Ljava/lang/String;Ldev/ashenarx/akki/Level;)Z
 	public abstract fun resolve (Ljava/lang/String;Ldev/ashenarx/akki/Level;)Ldev/ashenarx/akki/Sink;
 }
 
 public final class dev/ashenarx/akki/LogBackend$DefaultImpls {
+	public static fun bind (Ldev/ashenarx/akki/LogBackend;Ljava/lang/String;)Ldev/ashenarx/akki/SinkResolver;
 	public static fun isEnabled (Ldev/ashenarx/akki/LogBackend;Ljava/lang/String;Ldev/ashenarx/akki/Level;)Z
 }
 
@@ -82,6 +84,10 @@ public abstract class dev/ashenarx/akki/Logger {
 
 public abstract interface class dev/ashenarx/akki/Sink {
 	public abstract fun emit (Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
+}
+
+public abstract interface class dev/ashenarx/akki/SinkResolver {
+	public abstract fun resolve (Ldev/ashenarx/akki/Level;)Ldev/ashenarx/akki/Sink;
 }
 
 public final class dev/ashenarx/akki/internal/LogRegistry {

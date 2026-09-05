@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory
 class Slf4jBackendTest {
     private lateinit var appender: CallerCapturingAppender
     private lateinit var installation: Log.Installation
+    private val backend = Slf4jBackend()
 
     @BeforeTest
     fun install() {
@@ -31,7 +32,7 @@ class Slf4jBackendTest {
             level = LogbackLevel.TRACE
             addAppender(appender)
         }
-        installation = Log.install(Slf4jBackend)
+        installation = Log.install(backend)
     }
 
     @AfterTest
@@ -94,13 +95,13 @@ class Slf4jBackendTest {
         val logger = context.getLogger("quiet")
         logger.level = LogbackLevel.WARN
 
-        assertFalse(Slf4jBackend.isEnabled("quiet", Level.INFO))
-        assertTrue(Slf4jBackend.isEnabled("quiet", Level.WARN))
-        assertNull(Slf4jBackend.resolve("quiet", Level.INFO))
-        assertTrue(Slf4jBackend.resolve("quiet", Level.WARN) != null)
+        assertFalse(backend.isEnabled("quiet", Level.INFO))
+        assertTrue(backend.isEnabled("quiet", Level.WARN))
+        assertNull(backend.resolve("quiet", Level.INFO))
+        assertTrue(backend.resolve("quiet", Level.WARN) != null)
 
         logger.level = LogbackLevel.DEBUG
-        assertTrue(Slf4jBackend.isEnabled("quiet", Level.INFO))
+        assertTrue(backend.isEnabled("quiet", Level.INFO))
     }
 }
 

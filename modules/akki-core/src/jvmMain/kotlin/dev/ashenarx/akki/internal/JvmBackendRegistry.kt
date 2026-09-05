@@ -2,11 +2,13 @@ package dev.ashenarx.akki.internal
 
 import dev.ashenarx.akki.Log
 import dev.ashenarx.akki.LogBackend
+import java.util.ServiceConfigurationError
+import java.util.ServiceLoader
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 private object JvmBackendRegistry {
-    private val backend: AtomicReference<BackendState> = AtomicReference(BackendState(DefaultBackend()))
+    private val backend: AtomicReference<BackendState> = AtomicReference(BackendState(discover()))
 
     fun backend(): LogBackend = backend.get().backend
 
@@ -25,6 +27,26 @@ private object JvmBackendRegistry {
     }
 
     private class BackendState(val backend: LogBackend)
+}
+
+private fun discover(): LogBackend =
+    try {
+        chooseBackend(ServiceLoader.load(LogBackend::class.java, LogBackend::class.java.classLoader).toList())
+    } catch (error: ServiceConfigurationError) {
+        printError("akki: ignoring a broken backend service declaration: ${error.message}")
+        DefaultBackend()
+    }
+
+internal fun chooseBackend(declared: List<LogBackend>): LogBackend {
+    val chosen = declared.firstOrNull() ?: return DefaultBackend()
+    if (declared.size > 1) {
+        printError(
+            declared.joinToString(
+                prefix = "akki: multiple backends on the classpath, using ${chosen::class.java.name}: ",
+            ) { it::class.java.name },
+        )
+    }
+    return chosen
 }
 
 internal actual fun platformBackend(): LogBackend = JvmBackendRegistry.backend()

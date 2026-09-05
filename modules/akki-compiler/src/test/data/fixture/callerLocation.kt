@@ -25,7 +25,7 @@ fun box(): String {
         level = LogbackLevel.TRACE
         addAppender(appender)
     }
-    withBackend(Slf4jBackend) {
+    withBackend(Slf4jBackend()) {
         Log.named("caller").info("located")
     }
     val caller = appender.callers.single()
