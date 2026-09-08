@@ -1,6 +1,6 @@
 package fixture
 
-import dev.ashenarx.akki.log
+import io.akki.log
 
 class OrderService {
     fun handle(id: Int): String {

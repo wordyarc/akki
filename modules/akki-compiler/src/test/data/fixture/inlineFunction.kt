@@ -1,5 +1,5 @@
 package fixture
 
-import dev.ashenarx.akki.*
+import io.akki.*
 
 inline fun probe(): String = log.name

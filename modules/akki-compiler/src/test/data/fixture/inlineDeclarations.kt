@@ -1,6 +1,6 @@
 package fixture
 
-import dev.ashenarx.akki.*
+import io.akki.*
 
 inline fun viaIntrinsic(): String = log.name
 

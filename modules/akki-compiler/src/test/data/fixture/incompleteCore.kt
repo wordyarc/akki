@@ -1,3 +1,3 @@
-package dev.ashenarx.akki
+package io.akki
 
 interface Logger

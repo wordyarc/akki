@@ -1,7 +1,7 @@
 package fixture
 
-import dev.ashenarx.akki.*
-import dev.ashenarx.akki.internal.*
+import io.akki.*
+import io.akki.internal.*
 
 @OptIn(InternalAkkiApi::class)
 private class Probe(override val name: String) : Logger() {

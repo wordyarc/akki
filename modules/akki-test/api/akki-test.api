@@ -1,64 +1,64 @@
-public final class dev/ashenarx/akki/test/LogRecord {
-	public fun <init> (Ljava/lang/String;Ldev/ashenarx/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
-	public synthetic fun <init> (Ljava/lang/String;Ldev/ashenarx/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+public final class io/akki/test/LogRecord {
+	public fun <init> (Ljava/lang/String;Lio/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/lang/String;Lio/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Ldev/ashenarx/akki/Level;
+	public final fun component2 ()Lio/akki/Level;
 	public final fun component3 ()Ljava/lang/String;
 	public final fun component4 ()Ljava/lang/Throwable;
 	public final fun component5 ()Ljava/util/Map;
-	public final fun copy (Ljava/lang/String;Ldev/ashenarx/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)Ldev/ashenarx/akki/test/LogRecord;
-	public static synthetic fun copy$default (Ldev/ashenarx/akki/test/LogRecord;Ljava/lang/String;Ldev/ashenarx/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)Ldev/ashenarx/akki/test/LogRecord;
+	public final fun copy (Ljava/lang/String;Lio/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)Lio/akki/test/LogRecord;
+	public static synthetic fun copy$default (Lio/akki/test/LogRecord;Ljava/lang/String;Lio/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)Lio/akki/test/LogRecord;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getCause ()Ljava/lang/Throwable;
 	public final fun getFields ()Ljava/util/Map;
-	public final fun getLevel ()Ldev/ashenarx/akki/Level;
+	public final fun getLevel ()Lio/akki/Level;
 	public final fun getMessage ()Ljava/lang/String;
 	public final fun getName ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
 
-public final class dev/ashenarx/akki/test/LogRecordKt {
+public final class io/akki/test/LogRecordKt {
 	public static final fun getLevels (Ljava/util/List;)Ljava/util/List;
 	public static final fun getMessages (Ljava/util/List;)Ljava/util/List;
 }
 
-public final class dev/ashenarx/akki/test/RecordingBackend : dev/ashenarx/akki/LogBackend {
+public final class io/akki/test/RecordingBackend : io/akki/LogBackend {
 	public fun <init> ()V
 	public fun <init> (Ljava/util/Set;)V
 	public synthetic fun <init> (Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public fun bind (Ljava/lang/String;)Ldev/ashenarx/akki/SinkResolver;
+	public fun bind (Ljava/lang/String;)Lio/akki/SinkResolver;
 	public final fun getRecords ()Ljava/util/List;
 	public final fun getResolutions ()Ljava/util/List;
-	public fun isEnabled (Ljava/lang/String;Ldev/ashenarx/akki/Level;)Z
-	public fun resolve (Ljava/lang/String;Ldev/ashenarx/akki/Level;)Ldev/ashenarx/akki/Sink;
+	public fun isEnabled (Ljava/lang/String;Lio/akki/Level;)Z
+	public fun resolve (Ljava/lang/String;Lio/akki/Level;)Lio/akki/Sink;
 }
 
-public final class dev/ashenarx/akki/test/RecordingKt {
+public final class io/akki/test/RecordingKt {
 	public static final fun recordLogs (Ljava/util/Set;Lkotlin/jvm/functions/Function0;)Ljava/util/List;
 	public static synthetic fun recordLogs$default (Ljava/util/Set;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Ljava/util/List;
-	public static final fun withBackend (Ldev/ashenarx/akki/LogBackend;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
+	public static final fun withBackend (Lio/akki/LogBackend;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 }
 
-public final class dev/ashenarx/akki/test/RecordingLogger : dev/ashenarx/akki/Logger {
+public final class io/akki/test/RecordingLogger : io/akki/Logger {
 	public fun <init> ()V
 	public fun <init> (Ljava/lang/String;Ljava/util/Set;)V
 	public synthetic fun <init> (Ljava/lang/String;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public fun emit (Ldev/ashenarx/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
+	public fun emit (Lio/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
 	public fun getName ()Ljava/lang/String;
 	public final fun getRecords ()Ljava/util/List;
-	public fun isEnabled (Ldev/ashenarx/akki/Level;)Z
+	public fun isEnabled (Lio/akki/Level;)Z
 	public fun toString ()Ljava/lang/String;
 }
 
-public final class dev/ashenarx/akki/test/Resolution {
-	public fun <init> (Ljava/lang/String;Ldev/ashenarx/akki/Level;)V
+public final class io/akki/test/Resolution {
+	public fun <init> (Ljava/lang/String;Lio/akki/Level;)V
 	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Ldev/ashenarx/akki/Level;
-	public final fun copy (Ljava/lang/String;Ldev/ashenarx/akki/Level;)Ldev/ashenarx/akki/test/Resolution;
-	public static synthetic fun copy$default (Ldev/ashenarx/akki/test/Resolution;Ljava/lang/String;Ldev/ashenarx/akki/Level;ILjava/lang/Object;)Ldev/ashenarx/akki/test/Resolution;
+	public final fun component2 ()Lio/akki/Level;
+	public final fun copy (Ljava/lang/String;Lio/akki/Level;)Lio/akki/test/Resolution;
+	public static synthetic fun copy$default (Lio/akki/test/Resolution;Ljava/lang/String;Lio/akki/Level;ILjava/lang/Object;)Lio/akki/test/Resolution;
 	public fun equals (Ljava/lang/Object;)Z
-	public final fun getLevel ()Ldev/ashenarx/akki/Level;
+	public final fun getLevel ()Lio/akki/Level;
 	public final fun getName ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;

@@ -1,5 +1,5 @@
 package fixture
 
-import dev.ashenarx.akki.Logger
+import io.akki.Logger
 
 fun box(logger: Logger): String = "unreachable"

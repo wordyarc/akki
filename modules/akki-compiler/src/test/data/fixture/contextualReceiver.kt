@@ -2,7 +2,7 @@
 
 package fixture
 
-import dev.ashenarx.akki.*
+import io.akki.*
 
 private val events = mutableListOf<String>()
 private val failure = IllegalStateException("receiver failed")

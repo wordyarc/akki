@@ -1,7 +1,7 @@
 package fixture
 
-import dev.ashenarx.akki.*
-import dev.ashenarx.akki.test.*
+import io.akki.*
+import io.akki.test.*
 
 @OptIn(DelicateAkkiApi::class)
 fun box(): String {

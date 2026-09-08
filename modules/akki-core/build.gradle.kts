@@ -10,7 +10,7 @@ kotlin {
     jvm {
         testRuns.configureEach {
             executionTask.configure {
-                systemProperty("dev.ashenarx.akki.loggerNameStyle", "source")
+                systemProperty("io.akki.loggerNameStyle", "source")
             }
         }
     }
@@ -40,7 +40,7 @@ val jvmClassTest = tasks.register<Test>("jvmClassTest") {
     description = "Runs JVM tests with JVM_CLASS logger names"
     testClassesDirs = jvmTest.get().testClassesDirs
     classpath = jvmTest.get().classpath
-    systemProperty("dev.ashenarx.akki.loggerNameStyle", "jvm-class")
+    systemProperty("io.akki.loggerNameStyle", "jvm-class")
     shouldRunAfter(jvmTest)
 }
 

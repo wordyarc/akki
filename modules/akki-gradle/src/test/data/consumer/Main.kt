@@ -1,6 +1,6 @@
 package consumer
 
-import dev.ashenarx.akki.*
+import io.akki.*
 
 class OrderService {
     fun handle(): String = log.name

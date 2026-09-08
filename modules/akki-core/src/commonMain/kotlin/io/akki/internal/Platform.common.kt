@@ -1,0 +1,18 @@
+package io.akki.internal
+
+import io.akki.Log
+import io.akki.LogBackend
+import io.akki.Logger
+import kotlin.reflect.KClass
+
+internal expect fun platformLogger(name: String): Logger
+
+internal expect fun platformBackend(): LogBackend
+
+internal expect fun installPlatformBackend(backend: LogBackend): Log.Installation
+
+internal expect fun platformCallerLogger(): Logger
+
+internal expect fun platformTypeName(type: KClass<*>): String
+
+internal expect fun printError(message: String)

@@ -4,9 +4,9 @@ import ch.qos.logback.classic.Level as LogbackLevel
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.AppenderBase
-import dev.ashenarx.akki.*
-import dev.ashenarx.akki.slf4j.Slf4jBackend
-import dev.ashenarx.akki.test.*
+import io.akki.*
+import io.akki.slf4j.Slf4jBackend
+import io.akki.test.*
 import org.slf4j.LoggerFactory
 
 private class Capturing : AppenderBase<ILoggingEvent>() {

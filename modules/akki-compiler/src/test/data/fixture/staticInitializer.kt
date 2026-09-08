@@ -1,6 +1,6 @@
 package fixture
 
-import dev.ashenarx.akki.*
+import io.akki.*
 
 private val topLevel: String = log.name
 

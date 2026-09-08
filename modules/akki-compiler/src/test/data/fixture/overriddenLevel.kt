@@ -1,6 +1,6 @@
 package fixture
 
-import dev.ashenarx.akki.*
+import io.akki.*
 
 class Custom : Logger() {
     override val name: String = "custom"
