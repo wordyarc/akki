@@ -9,6 +9,22 @@ import kotlin.test.assertTrue
 
 internal class LoggerFieldLoweringTest : FixtureTest() {
     @Test
+    fun `preserves the name of an annotated local class`() {
+        assertLoweringIsTransparent(
+            "local-audit,local-audit,local-audit,local-audit,local-audit",
+            "namedLocalClass",
+        )
+    }
+
+    @Test
+    fun `evaluates contextual receivers and propagates their exceptions`() {
+        assertLoweringIsTransparent(
+            "selected,logger=receiver-audit,throwing,caught=true",
+            "contextualReceiver",
+        )
+    }
+
+    @Test
     fun `derives the specified names and agrees with the fallback`() {
         assertLoweringIsTransparent(
             listOf(

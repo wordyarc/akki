@@ -19,6 +19,7 @@ import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
+import org.jetbrains.kotlin.ir.expressions.impl.IrBlockImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetFieldImpl
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.util.SYNTHETIC_OFFSET
@@ -48,7 +49,9 @@ internal class LoggerFieldLowering(
         if (!symbols.isCallSite(expression.symbol.owner) || isInlined()) return expression
         val owner = loggerOwner() ?: return expression
         val field = fields.getOrPut(owner) { owner.createLoggerField() }
-        return IrGetFieldImpl(expression.startOffset, expression.endOffset, field.symbol, field.type)
+        val read = IrGetFieldImpl(expression.startOffset, expression.endOffset, field.symbol, field.type)
+        val receiver = expression.arguments.firstOrNull() ?: return read
+        return IrBlockImpl(expression.startOffset, expression.endOffset, field.type, null, listOf(receiver, read))
     }
 
     private fun isInlined(): Boolean = allScopes.any { (it.irElement as? IrFunction)?.isInline == true }
@@ -63,9 +66,8 @@ internal class LoggerFieldLowering(
     }
 
     private fun IrClass.isHoisted(): Boolean =
-        isAnonymousObject ||
-            visibility == DescriptorVisibilities.LOCAL ||
-            (isCompanion && !hasAnnotation(AkkiNames.LOG_NAME_ID))
+        !hasAnnotation(AkkiNames.LOG_NAME_ID) &&
+            (isAnonymousObject || visibility == DescriptorVisibilities.LOCAL || isCompanion)
 
     private fun IrDeclarationContainer.createLoggerField(): IrField {
         val field = context.irFactory.buildField {

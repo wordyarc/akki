@@ -32,7 +32,10 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
         val project = kotlinCompilation.target.project
         val extension = project.extensions.getByType(AkkiExtension::class.java)
         kotlinCompilation.defaultSourceSet.dependencies {
-            implementation("$PLUGIN_GROUP:$CORE_ARTIFACT:$pluginVersion")
+            implementation("$PLUGIN_GROUP:$CORE_ARTIFACT:$pluginVersion") {
+                version { it.strictly(pluginVersion) }
+                because("Akki core and compiler plugin versions must match")
+            }
         }
         return extension.enabled.map { listOf(SubpluginOption("enabled", it.toString())) }
     }

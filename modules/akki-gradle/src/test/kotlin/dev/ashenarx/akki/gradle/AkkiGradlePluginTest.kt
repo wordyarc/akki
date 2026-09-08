@@ -5,6 +5,7 @@ import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.writeText
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertTrue
 import org.gradle.testkit.runner.GradleRunner
 import org.junit.jupiter.api.io.TempDir
@@ -39,6 +40,64 @@ class AkkiGradlePluginTest {
         val output = build(projectDirectory, enabled = null, consumer = Consumer.Bare)
 
         assertTrue(output.contains("INFO  consumer.OrderService - received A-1"), output)
+    }
+
+    @Test
+    fun `locks core version against a newer direct dependency`(@TempDir projectDirectory: Path) {
+        checkCoreVersionLock(projectDirectory, transitive = false)
+    }
+
+    @Test
+    fun `locks core version against a newer transitive dependency`(@TempDir projectDirectory: Path) {
+        checkCoreVersionLock(projectDirectory, transitive = true)
+    }
+
+    private fun checkCoreVersionLock(projectDirectory: Path, transitive: Boolean) {
+        val repository = publishRepository(projectDirectory.resolve("repository"))
+        val newerVersion = "999.0.0"
+        publish(repository, "dev.ashenarx", "akki-core", path("akki.core.jar"), version = newerVersion)
+        publish(
+            repository,
+            "consumer",
+            "library",
+            path("akki.slf4j.jar"),
+            dependencies = listOf(Triple("dev.ashenarx", "akki-core", newerVersion)),
+        )
+        val dependency = if (transitive) "consumer:library:$VERSION" else "dev.ashenarx:akki-core:$newerVersion"
+        projectDirectory.resolve("settings.gradle.kts").writeText(settings(repository))
+        projectDirectory.resolve("build.gradle.kts").writeText(
+            buildScript(repository, enabled = null, consumer = Consumer.Bare) + "\n" +
+                """
+                dependencies {
+                    implementation("$dependency")
+                }
+
+                tasks.register("resolveCore") {
+                    doLast {
+                        for (name in listOf("compileClasspath", "runtimeClasspath")) {
+                            val core = configurations.getByName(name).resolvedConfiguration.resolvedArtifacts
+                                .single { it.moduleVersion.id.group == "dev.ashenarx" && it.name == "akki-core" }
+                            check(core.file.isFile)
+                            println("AKKI " + name + " core=" + core.moduleVersion.id.version)
+                        }
+                    }
+                }
+                """.trimIndent()
+        )
+        val runner = GradleRunner.create()
+            .withProjectDir(projectDirectory.toFile())
+            .withArguments("resolveCore", "--console=plain")
+        val result = if (transitive) runner.build() else runner.buildAndFail()
+        val output = result.output
+        if (transitive) {
+            assertContains(output, "AKKI compileClasspath core=$VERSION\n")
+            assertContains(output, "AKKI runtimeClasspath core=$VERSION\n")
+        } else {
+            assertContains(output, "Cannot find a version of 'dev.ashenarx:akki-core'")
+            assertContains(output, "strictly $VERSION")
+            assertContains(output, "dev.ashenarx:akki-core:$newerVersion")
+            assertContains(output, "Akki core and compiler plugin versions must match")
+        }
     }
 
     private fun build(projectDirectory: Path, enabled: Boolean?, consumer: Consumer = Consumer.Core): String {
@@ -106,25 +165,26 @@ class AkkiGradlePluginTest {
         artifact: String,
         jar: Path?,
         dependencies: List<Triple<String, String, String>> = emptyList(),
+        version: String = VERSION,
     ) {
-        val module = repository.resolve("${group.replace('.', '/')}/$artifact/$VERSION").createDirectories()
-        jar?.let { Files.copy(it, module.resolve("$artifact-$VERSION.jar")) }
-        val declarations = dependencies.joinToString("\n") { (dependencyGroup, dependencyName, version) ->
+        val module = repository.resolve("${group.replace('.', '/')}/$artifact/$version").createDirectories()
+        jar?.let { Files.copy(it, module.resolve("$artifact-$version.jar")) }
+        val declarations = dependencies.joinToString("\n") { (dependencyGroup, dependencyName, dependencyVersion) ->
             """
             |    <dependency>
             |      <groupId>$dependencyGroup</groupId>
             |      <artifactId>$dependencyName</artifactId>
-            |      <version>$version</version>
+            |      <version>$dependencyVersion</version>
             |    </dependency>
             """.trimMargin()
         }
-        module.resolve("$artifact-$VERSION.pom").writeText(
+        module.resolve("$artifact-$version.pom").writeText(
             """
             <project xmlns="http://maven.apache.org/POM/4.0.0">
               <modelVersion>4.0.0</modelVersion>
               <groupId>$group</groupId>
               <artifactId>$artifact</artifactId>
-              <version>$VERSION</version>
+              <version>$version</version>
               ${if (jar == null) "<packaging>pom</packaging>" else ""}
               <dependencies>
             $declarations
