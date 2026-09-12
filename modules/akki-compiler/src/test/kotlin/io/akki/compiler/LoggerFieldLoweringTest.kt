@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
 internal class LoggerFieldLoweringTest : FixtureTest() {
     @Test
     fun `preserves the name of an annotated local class`() {
-        assertLoweringIsTransparent(
+        assertBox(
             "local-audit,local-audit,local-audit,local-audit,local-audit",
             "namedLocalClass",
         )
@@ -18,15 +18,15 @@ internal class LoggerFieldLoweringTest : FixtureTest() {
 
     @Test
     fun `evaluates contextual receivers and propagates their exceptions`() {
-        assertLoweringIsTransparent(
+        assertBox(
             "selected,logger=receiver-audit,throwing,caught=true",
             "contextualReceiver",
         )
     }
 
     @Test
-    fun `derives the specified names and agrees with the fallback`() {
-        assertLoweringIsTransparent(
+    fun `derives the specified names and agrees with the factory`() {
+        assertBox(
             listOf(
                 "topLevel=fixture.Fixture",
                 "member=fixture.Service",
@@ -37,7 +37,6 @@ internal class LoggerFieldLoweringTest : FixtureTest() {
                 "standaloneObject=fixture.Standalone",
                 "nestedObject=fixture.Service.NestedObject",
                 "lambda=fixture.Service",
-                "noinlineDefault=fixture.Service",
                 "localClass=fixture.Service",
                 "objectExpression=fixture.Service",
                 "enumEntry=fixture.Colour",
@@ -49,13 +48,22 @@ internal class LoggerFieldLoweringTest : FixtureTest() {
     }
 
     @Test
-    fun `replaces the stack walk with a static field read`() {
+    fun `reads a static field holding a compile-time name instead of walking the stack`() {
         val lowered = compile("intrinsic").references("fixture.Service")
         val plain = compile("intrinsic", Plugin.Absent).references("fixture.Service")
 
         assertContains(lowered, "\$\$log")
-        assertFalse(lowered.any { it.contains("IntrinsicKt") })
+        assertContains(lowered, "io/akki/internal/LogRegistry.forDeclaration")
+        assertFalse(lowered.any { it.contains("forCaller") })
         assertTrue(plain.any { it.contains("IntrinsicKt") })
+    }
+
+    @Test
+    fun `embeds both name styles so the runtime still picks between them`() {
+        val nested = compile("nameMatrix").references("fixture.Service\$Nested")
+
+        assertContains(nested, "fixture.Service.Nested")
+        assertContains(nested, "fixture.Service\$Nested")
     }
 
     @Test
@@ -83,15 +91,15 @@ internal class LoggerFieldLoweringTest : FixtureTest() {
     }
 
     @Test
-    fun `leaves inline functions to the fallback`() {
-        val references = compile("inlineFunction").references("fixture.FixtureKt")
+    fun `rejects the intrinsic in an inline function instead of lowering it`() {
+        val output = compileExpectingFailure("inlineFunction")
 
-        assertTrue(references.any { it.contains("IntrinsicKt") })
+        assertContains(output, "is not available inside the inline declaration")
     }
 
     @Test
     fun `leaves an explicit logger property alone and names it the same`() {
-        assertLoweringIsTransparent(
+        assertBox(
             "fixture.Service,fixture.Service,fixture.Service,fixture.Holder,fixture.Fixture" +
                 "|journal,INSTANCE+journal",
             "explicitLogger",
@@ -100,6 +108,6 @@ internal class LoggerFieldLoweringTest : FixtureTest() {
 
     @Test
     fun `resolves the logger before the static initializers that use it`() {
-        assertLoweringIsTransparent("fixture.Fixture,fixture.Holder", "staticInitializer")
+        assertBox("fixture.Fixture,fixture.Holder", "staticInitializer")
     }
 }

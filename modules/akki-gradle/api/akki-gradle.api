@@ -1,7 +1,3 @@
-public abstract interface class io/akki/gradle/AkkiExtension {
-	public abstract fun getEnabled ()Lorg/gradle/api/provider/Property;
-}
-
 public final class io/akki/gradle/AkkiGradlePlugin : org/jetbrains/kotlin/gradle/plugin/KotlinCompilerPluginSupportPlugin {
 	public fun <init> ()V
 	public synthetic fun apply (Ljava/lang/Object;)V

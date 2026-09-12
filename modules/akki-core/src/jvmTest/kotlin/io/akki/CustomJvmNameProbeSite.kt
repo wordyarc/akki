@@ -2,13 +2,10 @@
 
 package io.akki
 
-internal fun customJvmNameProbe(): JvmLoggerNameProbe = captureLoggerNames("@file:JvmName", log)
+internal fun customJvmNameProbe(): JvmLoggerNameProbe = captureLoggerNames("@file:JvmName")
 
-internal fun customJvmNameLocalLoggers(): Pair<Logger, Logger> {
-    class Local {
-        fun contextual(): Logger = log
-    }
+internal fun customJvmNameLocalLoggers(): Logger {
+    class Local
 
-    val local = Local()
-    return local.contextual() to Log.of(local.javaClass)
+    return Log.of(Local::class.java)
 }

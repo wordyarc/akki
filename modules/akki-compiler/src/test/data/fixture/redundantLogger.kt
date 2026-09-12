@@ -21,9 +21,4 @@ fun local(): String {
     return here.name
 }
 
-inline fun inlined(): String {
-    val caller = logger()
-    return caller.name
-}
-
-fun box(): String = Service().probe() + "|" + local() + "|" + inlined()
+fun box(): String = Service().probe() + "|" + local()

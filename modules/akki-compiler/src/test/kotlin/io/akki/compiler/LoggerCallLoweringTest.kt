@@ -76,7 +76,7 @@ internal class LoggerCallLoweringTest : FixtureTest() {
 
     @Test
     fun `needs no import beyond the intrinsic`() {
-        assertLoweringIsTransparent("fixture.OrderService", "minimalImport")
+        assertBox("fixture.OrderService", "minimalImport")
     }
 
     @Test
@@ -102,14 +102,6 @@ internal class LoggerCallLoweringTest : FixtureTest() {
         assertEquals("box", methodName)
     }
 
-    @Test
-    fun `lowers nothing when disabled`() {
-        val disabled = effects(box("effects", Plugin.Disabled))
-        val plain = effects(box("effects", Plugin.Absent))
-
-        assertEquals(plain.effects, disabled.effects)
-    }
-
     private class Effects(val resolutions: String, val effects: String, val messages: String)
 
     private fun effects(output: String): Effects {
@@ -117,8 +109,6 @@ internal class LoggerCallLoweringTest : FixtureTest() {
         return Effects(parts[0], parts[1], parts[2])
     }
 
-    private fun effectsBothWays(fixture: String): Pair<Effects, Effects> {
-        val outputs = boxBothWays(fixture)
-        return effects(outputs.lowered) to effects(outputs.plain)
-    }
+    private fun effectsBothWays(fixture: String): Pair<Effects, Effects> =
+        effects(box(fixture)) to effects(box(fixture, Plugin.Absent))
 }

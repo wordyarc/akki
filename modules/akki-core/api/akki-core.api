@@ -93,6 +93,7 @@ public abstract interface class io/akki/SinkResolver {
 public final class io/akki/internal/LogRegistry {
 	public static final field INSTANCE Lio/akki/internal/LogRegistry;
 	public final fun forCaller ()Lio/akki/Logger;
+	public final fun forDeclaration (Ljava/lang/String;Ljava/lang/String;)Lio/akki/Logger;
 	public final fun of (Ljava/lang/String;)Lio/akki/Logger;
 }
 

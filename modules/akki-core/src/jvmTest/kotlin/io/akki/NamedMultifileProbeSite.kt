@@ -4,4 +4,4 @@
 
 package io.akki
 
-internal fun namedMultifileProbe(): JvmLoggerNameProbe = captureLoggerNames("@LogName multifile", log)
+internal fun namedMultifileProbe(): JvmLoggerNameProbe = captureLoggerNames("@LogName multifile")

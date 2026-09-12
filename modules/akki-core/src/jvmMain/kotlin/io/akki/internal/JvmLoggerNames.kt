@@ -23,8 +23,6 @@ private val typeNames: ClassValue<String> = object : ClassValue<String>() {
     override fun computeValue(type: Class<*>): String = platformTypeName(type, configuredStyle)
 }
 
-internal fun freezeJvmLoggerNameStyle(): JvmLoggerNameStyle = configuredStyle
-
 internal actual fun platformTypeName(type: KClass<*>): String = platformTypeName(type.java)
 
 internal fun platformTypeName(type: Class<*>): String = typeNames.get(type)
@@ -122,4 +120,10 @@ private fun Metadata.readLenientOrNull(): KotlinClassMetadata? =
         KotlinClassMetadata.readLenient(this)
     } catch (_: IllegalArgumentException) {
         null
+    }
+
+internal actual fun platformDeclarationName(source: String, platformName: String): String =
+    when (configuredStyle) {
+        JvmLoggerNameStyle.SOURCE -> source
+        JvmLoggerNameStyle.JVM_CLASS -> platformName
     }

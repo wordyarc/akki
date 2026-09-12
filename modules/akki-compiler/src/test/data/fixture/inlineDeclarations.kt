@@ -16,3 +16,5 @@ inline fun withLambdaParameter(body: () -> Unit): String {
 inline val viaInlineProperty: String get() = log.name
 
 val viaInlineGetter: String inline get() = log.name
+
+inline fun withNoinlineDefault(noinline probe: () -> String = { log.name }): String = probe()

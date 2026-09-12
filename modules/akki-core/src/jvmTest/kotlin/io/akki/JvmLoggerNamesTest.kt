@@ -55,17 +55,13 @@ class JvmLoggerNamesTest {
 
     @Test
     fun `top-level generated type factories use the facade owner`(): Unit {
-        val customJvmName = customJvmNameLocalLoggers()
-        val multifile = multifileLocalLoggers()
         val expectedMultifile = byStyle(
             "io.akki.MultifileProbeSite",
             "io.akki.SharedProbeFacade__MultifileProbeSiteKt",
         )
 
-        assertEquals("io.akki.CustomProbeFacade", customJvmName.first.name)
-        assertSame(customJvmName.first, customJvmName.second)
-        assertEquals(expectedMultifile, multifile.first.name)
-        assertSame(multifile.first, multifile.second)
+        assertEquals("io.akki.CustomProbeFacade", customJvmNameLocalLoggers().name)
+        assertEquals(expectedMultifile, multifileLocalLoggers().name)
     }
 
     @Test

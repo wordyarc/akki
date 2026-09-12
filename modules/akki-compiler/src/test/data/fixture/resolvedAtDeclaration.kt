@@ -12,8 +12,6 @@ class Service {
 
 inline fun explicitLoggerIsFine(): String = Log.named("explicit").name
 
-inline fun withNoinlineDefault(noinline probe: () -> String = { log.name }): String = probe()
-
 interface Contract {
     fun defaultMethod(): String = log.name
 }

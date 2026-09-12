@@ -16,6 +16,7 @@ import org.jetbrains.org.objectweb.asm.ClassReader
 import org.jetbrains.org.objectweb.asm.tree.ClassNode
 import org.jetbrains.org.objectweb.asm.tree.FieldInsnNode
 import org.jetbrains.org.objectweb.asm.tree.InvokeDynamicInsnNode
+import org.jetbrains.org.objectweb.asm.tree.LdcInsnNode
 import org.jetbrains.org.objectweb.asm.tree.MethodInsnNode
 import org.jetbrains.org.objectweb.asm.tree.TypeInsnNode
 
@@ -39,6 +40,7 @@ internal class Compilation(val classes: Path, val output: String, val exitCode: 
                         is FieldInsnNode -> add("${instruction.owner}.${instruction.name}")
                         is MethodInsnNode -> add("${instruction.owner}.${instruction.name}")
                         is TypeInsnNode -> add(instruction.desc)
+                        is LdcInsnNode -> add(instruction.cst.toString())
                         is InvokeDynamicInsnNode -> {
                             add(instruction.desc)
                             instruction.bsmArgs.forEach { add(it.toString()) }
@@ -89,10 +91,7 @@ internal object FixtureCompiler {
 
     private fun Plugin.arguments(): List<String> = when (this) {
         Plugin.Absent -> emptyList()
-        else -> listOf(
-            "-Xplugin=${property("akki.compiler.plugin.jar")}",
-            "-P", "plugin:${AkkiNames.PLUGIN_ID}:enabled=${this == Plugin.Enabled}",
-        )
+        Plugin.Enabled -> listOf("-Xplugin=${property("akki.compiler.plugin.jar")}")
     }
 
     private fun property(name: String): String = requireNotNull(System.getProperty(name)) { "missing -D$name" }
@@ -100,7 +99,6 @@ internal object FixtureCompiler {
 
 internal enum class Plugin {
     Enabled,
-    Disabled,
     Absent,
     ;
 

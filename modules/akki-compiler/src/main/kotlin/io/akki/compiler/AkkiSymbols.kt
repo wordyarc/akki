@@ -56,8 +56,8 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
     val sink: IrSimpleFunctionSymbol =
         logger.functionOrFail(AkkiNames.SINK, SINK_SIGNATURE, parameters = 1).symbol
 
-    val forCaller: IrSimpleFunctionSymbol =
-        logRegistry.functionOrFail(AkkiNames.FOR_CALLER, FOR_CALLER_SIGNATURE, parameters = 0).symbol
+    val forDeclaration: IrSimpleFunctionSymbol =
+        logRegistry.functionOrFail(AkkiNames.FOR_DECLARATION, FOR_DECLARATION_SIGNATURE, parameters = 2).symbol
 
     private val emitFunction: IrSimpleFunction =
         sinkClass.functionOrFail(AkkiNames.EMIT, EMIT_SIGNATURE, parameters = 3)
@@ -136,7 +136,8 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
 
     companion object {
         private const val SINK_SIGNATURE: String = "Logger.sink(level: Level): Sink?"
-        private const val FOR_CALLER_SIGNATURE: String = "LogRegistry.forCaller(): Logger"
+        private const val FOR_DECLARATION_SIGNATURE: String =
+            "LogRegistry.forDeclaration(source: String, platformName: String): Logger"
         private const val EMIT_SIGNATURE: String =
             "Sink.emit(message: String, cause: Throwable?, fields: Map<String, Any?>)"
 

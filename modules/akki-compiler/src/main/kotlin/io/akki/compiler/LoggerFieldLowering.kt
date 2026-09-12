@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.ir.builders.declarations.buildField
 import org.jetbrains.kotlin.ir.builders.irCall
 import org.jetbrains.kotlin.ir.builders.irExprBody
 import org.jetbrains.kotlin.ir.builders.irGetObject
+import org.jetbrains.kotlin.ir.builders.irString
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationContainer
 import org.jetbrains.kotlin.ir.declarations.IrField
@@ -25,7 +26,9 @@ import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.util.SYNTHETIC_OFFSET
 import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.isAnonymousObject
+import org.jetbrains.kotlin.ir.util.isEnumClass
 import org.jetbrains.kotlin.ir.util.isInterface
+import org.jetbrains.kotlin.ir.util.superClass
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 import org.jetbrains.kotlin.load.java.JavaDescriptorVisibilities
 import org.jetbrains.kotlin.platform.jvm.isJvm
@@ -67,7 +70,9 @@ internal class LoggerFieldLowering(
 
     private fun IrClass.isHoisted(): Boolean =
         !hasAnnotation(AkkiNames.LOG_NAME_ID) &&
-            (isAnonymousObject || visibility == DescriptorVisibilities.LOCAL || isCompanion)
+            (isAnonymousObject || visibility == DescriptorVisibilities.LOCAL || isCompanion || isEnumEntryBody())
+
+    private fun IrClass.isEnumEntryBody(): Boolean = superClass?.isEnumClass == true
 
     private fun IrDeclarationContainer.createLoggerField(): IrField {
         val field = context.irFactory.buildField {
@@ -81,8 +86,15 @@ internal class LoggerFieldLowering(
             origin = GENERATED_LOGGER_FIELD
         }
         field.parent = this
+        val name = declarationName(isJvm)
         field.initializer = DeclarationIrBuilder(context, field.symbol, SYNTHETIC_OFFSET, SYNTHETIC_OFFSET).run {
-            irExprBody(irCall(symbols.forCaller).apply { arguments[0] = irGetObject(symbols.logRegistry) })
+            irExprBody(
+                irCall(symbols.forDeclaration).apply {
+                    arguments[0] = irGetObject(symbols.logRegistry)
+                    arguments[1] = irString(name.source)
+                    arguments[2] = irString(name.platform)
+                },
+            )
         }
         return field
     }

@@ -4,37 +4,35 @@ import io.akki.*
 
 class Service {
     class Nested {
-        fun probe(): String = log.name
+        fun probe(): Logger = log
     }
 
     inner class Inner {
-        fun probe(): String = log.name
+        fun probe(): Logger = log
     }
 
     object NestedObject {
-        fun probe(): String = log.name
+        fun probe(): Logger = log
     }
 
     companion object {
-        fun probe(): String = log.name
+        fun probe(): Logger = log
     }
 
-    fun member(): String = log.name
+    fun member(): Logger = log
 
-    fun lambda(): String = listOf(0).map { log.name }.single()
+    fun lambda(): Logger = listOf(0).map { log }.single()
 
-    inline fun noinlineDefault(noinline probe: () -> String = { log.name }): String = probe()
-
-    fun localClass(): String {
+    fun localClass(): Logger {
         class Local {
-            fun probe(): String = log.name
+            fun probe(): Logger = log
         }
         return Local().probe()
     }
 
-    fun objectExpression(): String {
+    fun objectExpression(): Logger {
         val probe = object : Any() {
-            fun probe(): String = log.name
+            fun probe(): Logger = log
         }
         return probe.probe()
     }
@@ -43,49 +41,51 @@ class Service {
 class NamedCompanionHost {
     @LogName("companion-audit")
     companion object {
-        fun probe(): String = log.name
+        fun probe(): Logger = log
     }
 }
 
 object Standalone {
-    fun probe(): String = log.name
+    fun probe(): Logger = log
 }
 
 enum class Colour {
     RED {
-        override fun probe(): String = log.name
+        override fun probe(): Logger = log
     };
 
-    abstract fun probe(): String
+    abstract fun probe(): Logger
 }
 
 @LogName("class-audit")
 class Renamed {
-    fun probe(): String = log.name
+    fun probe(): Logger = log
 }
 
 interface Contract {
-    fun probe(): String = log.name
+    fun probe(): Logger = log
 }
 
 private class ContractImpl : Contract
 
-fun topLevel(): String = log.name
+fun topLevel(): Logger = log
+
+private fun agrees(site: String, intrinsic: Logger, factory: Logger): String =
+    if (intrinsic === factory) "$site=${intrinsic.name}" else "$site=${intrinsic.name}!=${factory.name}"
 
 fun box(): String = listOf(
-    "topLevel=" + topLevel(),
-    "member=" + Service().member(),
-    "nested=" + Service.Nested().probe(),
-    "inner=" + Service().Inner().probe(),
-    "companion=" + Service.probe(),
-    "namedCompanion=" + NamedCompanionHost.probe(),
-    "standaloneObject=" + Standalone.probe(),
-    "nestedObject=" + Service.NestedObject.probe(),
-    "lambda=" + Service().lambda(),
-    "noinlineDefault=" + Service().noinlineDefault(),
-    "localClass=" + Service().localClass(),
-    "objectExpression=" + Service().objectExpression(),
-    "enumEntry=" + Colour.RED.probe(),
-    "renamedClass=" + Renamed().probe(),
-    "interfaceMethod=" + ContractImpl().probe(),
+    agrees("topLevel", topLevel(), Log.of(Class.forName("fixture.FixtureKt"))),
+    agrees("member", Service().member(), Log.of<Service>()),
+    agrees("nested", Service.Nested().probe(), Log.of<Service.Nested>()),
+    agrees("inner", Service().Inner().probe(), Log.of<Service.Inner>()),
+    agrees("companion", Service.probe(), Log.of<Service>()),
+    agrees("namedCompanion", NamedCompanionHost.probe(), Log.of(NamedCompanionHost.Companion::class.java)),
+    agrees("standaloneObject", Standalone.probe(), Log.of<Standalone>()),
+    agrees("nestedObject", Service.NestedObject.probe(), Log.of<Service.NestedObject>()),
+    agrees("lambda", Service().lambda(), Log.of<Service>()),
+    agrees("localClass", Service().localClass(), Log.of<Service>()),
+    agrees("objectExpression", Service().objectExpression(), Log.of<Service>()),
+    agrees("enumEntry", Colour.RED.probe(), Log.of<Colour>()),
+    agrees("renamedClass", Renamed().probe(), Log.of<Renamed>()),
+    agrees("interfaceMethod", ContractImpl().probe(), Log.of<Contract>()),
 ).joinToString(",")

@@ -22,7 +22,7 @@ internal object AkkiNames {
     val EMPTY_MAP_ID: CallableId =
         CallableId(StandardNames.COLLECTIONS_PACKAGE_FQ_NAME, Name.identifier("emptyMap"))
 
-    val FOR_CALLER: Name = Name.identifier("forCaller")
+    val FOR_DECLARATION: Name = Name.identifier("forDeclaration")
     val SINK: Name = Name.identifier("sink")
     val EMIT: Name = Name.identifier("emit")
 

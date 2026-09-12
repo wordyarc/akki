@@ -23,6 +23,7 @@ listOf(
     "akki-compiler",
     "akki-gradle",
     "akki-test",
+    "akki-benchmark",
 ).forEach { module ->
     include(module)
     project(":$module").projectDir = file("modules/$module")

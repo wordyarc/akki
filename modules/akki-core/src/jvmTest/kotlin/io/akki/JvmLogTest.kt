@@ -1,6 +1,8 @@
 package io.akki
 
 import kotlin.test.Test
+import kotlin.test.assertContains
+import kotlin.test.assertFailsWith
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
 
@@ -12,32 +14,23 @@ class JvmLogTest {
     }
 
     @Test
-    fun `intrinsic resolves the calling class without the compiler plugin`(): Unit {
+    fun `every contextual entry point reports the missing compiler plugin`(): Unit {
         val caller = Caller()
-        val expected = Log.of<Caller>()
+        val entryPoints = listOf<() -> Logger>(
+            caller::intrinsic,
+            caller::functionAnchor,
+            caller::factoryAnchor,
+            ::fileIntrinsic,
+            ::fileFunctionAnchor,
+            ::fileFactoryAnchor,
+        )
 
-        assertSame(expected, caller.intrinsic())
-        assertSame(expected, caller.functionAnchor())
-        assertSame(expected, caller.factoryAnchor())
-    }
+        entryPoints.forEach { entryPoint ->
+            val failure = assertFailsWith<IllegalStateException> { entryPoint() }
 
-    @Test
-    fun `intrinsic uses the class LogName`(): Unit {
-        val caller = NamedCaller()
-        val expected = Log.named("audit")
-
-        assertSame(expected, caller.intrinsic())
-        assertSame(expected, caller.functionAnchor())
-        assertSame(expected, caller.factoryAnchor())
-    }
-
-    @Test
-    fun `intrinsic uses the file LogName`(): Unit {
-        val expected = Log.named("file-audit")
-
-        assertSame(expected, fileLogger())
-        assertSame(expected, fileLoggerFromFunction())
-        assertSame(expected, fileLoggerFromFactory())
+            assertContains(failure.message.orEmpty(), "the compiler plugin is not applied")
+            assertContains(failure.message.orEmpty(), "Log.of<T>()")
+        }
     }
 
     @Test
@@ -58,11 +51,5 @@ class JvmLogTest {
     }
 
     @LogName("audit")
-    private class NamedCaller {
-        fun intrinsic(): Logger = log
-
-        fun functionAnchor(): Logger = logger()
-
-        fun factoryAnchor(): Logger = Log.forCaller()
-    }
+    private class NamedCaller
 }

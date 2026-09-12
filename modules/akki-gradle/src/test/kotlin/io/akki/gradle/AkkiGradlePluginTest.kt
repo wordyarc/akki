@@ -13,19 +13,13 @@ import org.junit.jupiter.api.io.TempDir
 class AkkiGradlePluginTest {
     @Test
     fun `lowers logger calls in a consumer project`(@TempDir projectDirectory: Path) {
-        val output = build(projectDirectory, enabled = null)
+        val output = build(projectDirectory)
         assertTrue(output.contains("AKKI name=consumer.OrderService evaluated=0"), output)
     }
 
     @Test
-    fun `leaves the consumer untouched when disabled`(@TempDir projectDirectory: Path) {
-        val output = build(projectDirectory, enabled = false)
-        assertTrue(output.contains("AKKI name=consumer.OrderService evaluated=1"), output)
-    }
-
-    @Test
     fun `logs through the slf4j backend it finds on the classpath`(@TempDir projectDirectory: Path) {
-        val output = build(projectDirectory, enabled = null, consumer = Consumer.Slf4j)
+        val output = build(projectDirectory, consumer = Consumer.Slf4j)
         val line = lineOf(Consumer.Slf4j, """log.info("received""")
 
         assertTrue(
@@ -37,7 +31,7 @@ class AkkiGradlePluginTest {
 
     @Test
     fun `brings its own runtime to a consumer that declares none`(@TempDir projectDirectory: Path) {
-        val output = build(projectDirectory, enabled = null, consumer = Consumer.Bare)
+        val output = build(projectDirectory, consumer = Consumer.Bare)
 
         assertTrue(output.contains("INFO  consumer.OrderService - received A-1"), output)
     }
@@ -66,7 +60,7 @@ class AkkiGradlePluginTest {
         val dependency = if (transitive) "consumer:library:$VERSION" else "io.akki:akki-core:$newerVersion"
         projectDirectory.resolve("settings.gradle.kts").writeText(settings(repository))
         projectDirectory.resolve("build.gradle.kts").writeText(
-            buildScript(repository, enabled = null, consumer = Consumer.Bare) + "\n" +
+            buildScript(repository, consumer = Consumer.Bare) + "\n" +
                 """
                 dependencies {
                     implementation("$dependency")
@@ -100,10 +94,10 @@ class AkkiGradlePluginTest {
         }
     }
 
-    private fun build(projectDirectory: Path, enabled: Boolean?, consumer: Consumer = Consumer.Core): String {
+    private fun build(projectDirectory: Path, consumer: Consumer = Consumer.Core): String {
         val repository = publishRepository(projectDirectory.resolve("repository"))
         projectDirectory.resolve("settings.gradle.kts").writeText(settings(repository))
-        projectDirectory.resolve("build.gradle.kts").writeText(buildScript(repository, enabled, consumer))
+        projectDirectory.resolve("build.gradle.kts").writeText(buildScript(repository, consumer))
         projectDirectory.resolve("src/main/kotlin/consumer").createDirectories()
         projectDirectory.resolve("src/main/kotlin/consumer/${consumer.source}")
             .writeText(fixture("consumer/${consumer.source}"))
@@ -206,7 +200,7 @@ class AkkiGradlePluginTest {
         rootProject.name = "consumer"
         """.trimIndent()
 
-    private fun buildScript(repository: Path, enabled: Boolean?, consumer: Consumer): String =
+    private fun buildScript(repository: Path, consumer: Consumer): String =
         """
         plugins {
             application
@@ -223,7 +217,6 @@ class AkkiGradlePluginTest {
         ${dependencies(consumer)}
         }
 
-        ${enabled?.let { "akki { enabled = $it }" } ?: ""}
 
         application {
             mainClass.set("${consumer.mainClass}")

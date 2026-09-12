@@ -48,7 +48,10 @@ class JvmLoggerNameProbeTest {
         probes.forEach { probe ->
             assertEquals(probe.stackClass, probe.slf4jName, probe.site)
         }
-        assertEquals(byStyle(expectedSourceNames, expectedJvmClassNames), probes.map { it.site to it.akkiName })
+        assertEquals(
+            byStyle(expectedSourceNames, expectedJvmClassNames),
+            probes.map { it.site to platformTypeName(it.stackType) },
+        )
         assertEquals(
             expectedSourceNames,
             probes.map { probe ->
@@ -76,35 +79,35 @@ class JvmLoggerNameProbeTest {
     }
 
     private class NestedProbe {
-        fun probe(): JvmLoggerNameProbe = captureLoggerNames("nested class", log)
+        fun probe(): JvmLoggerNameProbe = captureLoggerNames("nested class")
     }
 
     private inner class InnerProbe {
-        fun probe(): JvmLoggerNameProbe = captureLoggerNames("inner class", log)
+        fun probe(): JvmLoggerNameProbe = captureLoggerNames("inner class")
     }
 
     private companion object {
-        fun companionProbe(): JvmLoggerNameProbe = captureLoggerNames("companion", log)
+        fun companionProbe(): JvmLoggerNameProbe = captureLoggerNames("companion")
     }
 
     private object NestedObjectProbe {
-        fun probe(): JvmLoggerNameProbe = captureLoggerNames("nested object", log)
+        fun probe(): JvmLoggerNameProbe = captureLoggerNames("nested object")
     }
 
     private fun lambdaProbe(): JvmLoggerNameProbe =
-        { captureLoggerNames("lambda", log) }.invoke()
+        { captureLoggerNames("lambda") }.invoke()
 
     private fun samProbe(): JvmLoggerNameProbe =
-        ProbeSam { captureLoggerNames("SAM", log) }.probe()
+        ProbeSam { captureLoggerNames("SAM") }.probe()
 
     private fun objectExpressionProbe(): JvmLoggerNameProbe =
         object {
-            fun probe(): JvmLoggerNameProbe = captureLoggerNames("object expression", log)
+            fun probe(): JvmLoggerNameProbe = captureLoggerNames("object expression")
         }.probe()
 
     private fun localClassProbe(): JvmLoggerNameProbe {
         class LocalProbe {
-            fun probe(): JvmLoggerNameProbe = captureLoggerNames("local class", log)
+            fun probe(): JvmLoggerNameProbe = captureLoggerNames("local class")
         }
 
         return LocalProbe().probe()
@@ -113,7 +116,7 @@ class JvmLoggerNameProbeTest {
     private fun annotatedLocalClassProbe(): JvmLoggerNameProbe {
         @LogName("named-local")
         class LocalProbe {
-            fun probe(): JvmLoggerNameProbe = captureLoggerNames("@LogName local class", log)
+            fun probe(): JvmLoggerNameProbe = captureLoggerNames("@LogName local class")
         }
 
         return LocalProbe().probe()
@@ -124,7 +127,7 @@ class JvmLoggerNameProbeTest {
         var suspended: Continuation<Unit>? = null
         suspend {
             suspendCoroutine { continuation -> suspended = continuation }
-            captureLoggerNames("suspend function", log)
+            captureLoggerNames("suspend function")
         }.startCoroutine(
             object : Continuation<JvmLoggerNameProbe> {
                 override val context = EmptyCoroutineContext
@@ -140,7 +143,7 @@ class JvmLoggerNameProbeTest {
 
     private enum class EnumProbe {
         ENTRY {
-            override fun probe(): JvmLoggerNameProbe = captureLoggerNames("enum entry", log)
+            override fun probe(): JvmLoggerNameProbe = captureLoggerNames("enum entry")
         },
         ;
 
@@ -152,37 +155,37 @@ class JvmLoggerNameProbeTest {
     }
 
     private interface DefaultProbe {
-        fun probe(): JvmLoggerNameProbe = captureLoggerNames("interface default", log)
+        fun probe(): JvmLoggerNameProbe = captureLoggerNames("interface default")
     }
 
     private class DefaultProbeImpl : DefaultProbe
 }
 
 private class TopLevelClassProbe {
-    fun probe(): JvmLoggerNameProbe = captureLoggerNames("top-level class", log)
+    fun probe(): JvmLoggerNameProbe = captureLoggerNames("top-level class")
 }
 
 private object StandaloneProbe {
-    fun probe(): JvmLoggerNameProbe = captureLoggerNames("standalone object", log)
+    fun probe(): JvmLoggerNameProbe = captureLoggerNames("standalone object")
 }
 
 @LogName("named-companion-owner")
 private class NamedCompanionOwner {
     companion object Factory {
-        fun probe(): JvmLoggerNameProbe = captureLoggerNames("named companion owner", log)
+        fun probe(): JvmLoggerNameProbe = captureLoggerNames("named companion owner")
     }
 }
 
 private class AnnotatedCompanionOwner {
     @LogName("named-companion")
     companion object {
-        fun probe(): JvmLoggerNameProbe = captureLoggerNames("@LogName companion", log)
+        fun probe(): JvmLoggerNameProbe = captureLoggerNames("@LogName companion")
     }
 }
 
 @LogName("named-probe")
 private class NamedProbe {
-    fun probe(): JvmLoggerNameProbe = captureLoggerNames("@LogName class", log)
+    fun probe(): JvmLoggerNameProbe = captureLoggerNames("@LogName class")
 }
 
 private fun namedClassProbe(): JvmLoggerNameProbe = NamedProbe().probe()
@@ -191,11 +194,10 @@ internal data class JvmLoggerNameProbe(
     val site: String,
     val stackClass: String,
     val slf4jName: String,
-    val akkiName: String,
     val stackType: Class<*>,
 )
 
-internal fun captureLoggerNames(site: String, akkiLogger: Logger): JvmLoggerNameProbe {
+internal fun captureLoggerNames(site: String): JvmLoggerNameProbe {
     val stackClass = probeWalker.walk { frames ->
         frames.skip(1).map(StackWalker.StackFrame::getDeclaringClass).findFirst().orElseThrow()
     }
@@ -203,7 +205,6 @@ internal fun captureLoggerNames(site: String, akkiLogger: Logger): JvmLoggerName
         site = site,
         stackClass = stackClass.name,
         slf4jName = LoggerFactory.getLogger(stackClass).name,
-        akkiName = akkiLogger.name,
         stackType = stackClass,
     )
 }
@@ -217,7 +218,7 @@ private fun List<JvmLoggerNameProbe>.render(): String = buildString {
         append(" | ")
         append(probe.slf4jName)
         append(" | ")
-        append(probe.akkiName)
+        append(platformTypeName(probe.stackType, JvmLoggerNameStyle.SOURCE))
         append(" | ")
         appendLine(platformTypeName(probe.stackType, JvmLoggerNameStyle.JVM_CLASS))
     }
@@ -226,9 +227,9 @@ private fun List<JvmLoggerNameProbe>.render(): String = buildString {
 private val probeWalker: StackWalker = StackWalker.getInstance(RETAIN_CLASS_REFERENCE)
 
 @Suppress("NOTHING_TO_INLINE")
-private inline fun inlineProbe(): JvmLoggerNameProbe = captureLoggerNames("inline function", log)
+private inline fun inlineProbe(): JvmLoggerNameProbe = captureLoggerNames("inline function")
 
-private fun regularTopLevelProbe(): JvmLoggerNameProbe = captureLoggerNames("top-level function", log)
+private fun regularTopLevelProbe(): JvmLoggerNameProbe = captureLoggerNames("top-level function")
 
 private val expectedCurrentJvmNames: List<Pair<String, String>> = listOf(
     "top-level class" to "io.akki.TopLevelClassProbe",

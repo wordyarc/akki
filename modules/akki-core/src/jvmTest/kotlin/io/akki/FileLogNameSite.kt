@@ -2,8 +2,8 @@
 
 package io.akki
 
-internal fun fileLogger(): Logger = log
+internal fun fileIntrinsic(): Logger = log
 
-internal fun fileLoggerFromFunction(): Logger = logger()
+internal fun fileFunctionAnchor(): Logger = logger()
 
-internal fun fileLoggerFromFactory(): Logger = Log.forCaller()
+internal fun fileFactoryAnchor(): Logger = Log.forCaller()

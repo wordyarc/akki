@@ -32,13 +32,18 @@ internal abstract class FixtureTest {
     protected fun box(fixture: String, plugin: Plugin = Plugin.Enabled): String =
         compile(fixture, plugin).invoke()
 
-    protected fun boxBothWays(fixture: String): Outputs =
-        Outputs(lowered = box(fixture), plain = box(fixture, Plugin.Absent))
+    protected fun assertBox(expected: String, fixture: String) {
+        assertEquals(expected, box(fixture), fixture)
+    }
 
+    /**
+     * Only for fixtures that never touch a contextual entry point: those compile and run without the plugin,
+     * so plain Kotlin semantics stay available as a baseline.
+     */
     protected fun assertLoweringIsTransparent(expected: String, fixture: String) {
-        val outputs = boxBothWays(fixture)
-        assertEquals(expected, outputs.plain, "$fixture without the plugin")
-        assertEquals(outputs.plain, outputs.lowered, "$fixture with the plugin")
+        val plain = box(fixture, Plugin.Absent)
+        assertEquals(expected, plain, "$fixture without the plugin")
+        assertEquals(plain, box(fixture), "$fixture with the plugin")
     }
 
     private fun run(fixture: String, plugin: Plugin, classpath: String): Compilation =
@@ -48,8 +53,6 @@ internal abstract class FixtureTest {
             plugin,
             classpath,
         )
-
-    protected data class Outputs(val lowered: String, val plain: String)
 }
 
 internal object Fixtures {

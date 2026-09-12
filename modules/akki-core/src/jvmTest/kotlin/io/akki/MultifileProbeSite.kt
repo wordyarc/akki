@@ -3,13 +3,10 @@
 
 package io.akki
 
-internal fun multifileProbe(): JvmLoggerNameProbe = captureLoggerNames("multifile", log)
+internal fun multifileProbe(): JvmLoggerNameProbe = captureLoggerNames("multifile")
 
-internal fun multifileLocalLoggers(): Pair<Logger, Logger> {
-    class Local {
-        fun contextual(): Logger = log
-    }
+internal fun multifileLocalLoggers(): Logger {
+    class Local
 
-    val local = Local()
-    return local.contextual() to Log.of(local.javaClass)
+    return Log.of(Local::class.java)
 }
