@@ -53,7 +53,9 @@ internal class AkkiCommandLineProcessor : CommandLineProcessor {
             optionName = "minLevel",
             valueDescription = MinLevel.entries.joinToString("|") { it.option },
             description = "Lowest level kept at compile time. Calls below it are removed from the bytecode " +
-                "together with their arguments and message, and no runtime configuration can bring them back.",
+                "together with their arguments and message, and no runtime configuration can bring them back. " +
+                "Every removed call is reported as an info; pass " +
+                "-Xwarning-level=LOGGING_CALL_REMOVED:warning to see the reports in a build log that hides infos.",
             required = false,
         )
     }

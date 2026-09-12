@@ -98,7 +98,7 @@ internal object FixtureCompiler {
     private fun Plugin.arguments(options: List<String>): List<String> = when (this) {
         Plugin.Absent -> emptyList()
         Plugin.Enabled -> listOf("-Xplugin=${property("akki.compiler.plugin.jar")}") +
-            options.flatMap { listOf("-P", "plugin:${AkkiNames.PLUGIN_ID}:$it") }
+            options.flatMap { if (it.startsWith("-X")) listOf(it) else listOf("-P", "plugin:${AkkiNames.PLUGIN_ID}:$it") }
     }
 
     private fun property(name: String): String = requireNotNull(System.getProperty(name)) { "missing -D$name" }

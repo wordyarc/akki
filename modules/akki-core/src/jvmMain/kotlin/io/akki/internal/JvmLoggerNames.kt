@@ -1,5 +1,6 @@
 package io.akki.internal
 
+import io.akki.AkkiException
 import io.akki.LOGGER_NAME_STYLE_PROPERTY_NAME
 import io.akki.LOGGER_NAME_STYLE_VALUE_JVM_CLASS
 import io.akki.LOGGER_NAME_STYLE_VALUE_SOURCE
@@ -45,8 +46,8 @@ internal fun parseJvmLoggerNameStyle(value: String?): JvmLoggerNameStyle =
     when (value) {
         null, LOGGER_NAME_STYLE_VALUE_SOURCE -> JvmLoggerNameStyle.SOURCE
         LOGGER_NAME_STYLE_VALUE_JVM_CLASS -> JvmLoggerNameStyle.JVM_CLASS
-        else -> error(
-            "Invalid $LOGGER_NAME_STYLE_PROPERTY_NAME value '$value': " +
+        else -> throw AkkiException(
+            "akki: invalid $LOGGER_NAME_STYLE_PROPERTY_NAME value '$value': " +
                 "expected '$LOGGER_NAME_STYLE_VALUE_SOURCE' or '$LOGGER_NAME_STYLE_VALUE_JVM_CLASS'",
         )
     }

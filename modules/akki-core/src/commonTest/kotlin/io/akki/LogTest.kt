@@ -196,7 +196,7 @@ class LogTest {
         val secondInstallation = Log.install(second)
 
         try {
-            assertFailsWith<IllegalStateException> { firstInstallation.uninstall() }
+            assertFailsWith<AkkiException> { firstInstallation.uninstall() }
             logger.info("current")
         } finally {
             secondInstallation.uninstall()
@@ -222,7 +222,7 @@ class LogTest {
         val second = Log.install(backend)
 
         try {
-            assertFailsWith<IllegalStateException> { first.uninstall() }
+            assertFailsWith<AkkiException> { first.uninstall() }
         } finally {
             second.uninstall()
             first.uninstall()

@@ -26,7 +26,7 @@ class JvmLogTest {
         )
 
         entryPoints.forEach { entryPoint ->
-            val failure = assertFailsWith<IllegalStateException> { entryPoint() }
+            val failure = assertFailsWith<AkkiException> { entryPoint() }
 
             assertContains(failure.message.orEmpty(), "the compiler plugin is not applied")
             assertContains(failure.message.orEmpty(), "Log.of<T>()")

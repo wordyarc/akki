@@ -1,5 +1,6 @@
 package io.akki.internal
 
+import io.akki.AkkiException
 import io.akki.Log
 import io.akki.LogBackend
 import java.util.ServiceConfigurationError
@@ -20,7 +21,7 @@ private object JvmBackendRegistry {
             if (active.compareAndSet(true, false)) {
                 if (!this.backend.compareAndSet(installed, previous)) {
                     active.set(true)
-                    error("Backend installations must be uninstalled in reverse order")
+                    throw AkkiException("akki: backend installations must be uninstalled in reverse order")
                 }
             }
         }

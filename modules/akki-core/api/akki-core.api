@@ -1,3 +1,6 @@
+public final class io/akki/AkkiException : java/lang/IllegalStateException {
+}
+
 public abstract interface annotation class io/akki/DelicateAkkiApi : java/lang/annotation/Annotation {
 }
 

@@ -101,6 +101,23 @@ internal class LoggerCallLoweringTest : FixtureTest() {
     }
 
     @Test
+    fun `lets the build raise the removal notice but not lower the reference error`() {
+        val raised = compile(
+            "clippedLevel",
+            options = listOf("minLevel=info", "-Xwarning-level=LOGGING_CALL_REMOVED:warning"),
+        ).output
+
+        assertEquals(4, raised.lines().count { it.contains("warning: this") && it.contains("removed at") }, raised)
+
+        val refused = compileExpectingFailure(
+            "levelReference",
+            options = listOf("-Xwarning-level=LOGGING_CALL_REFERENCE:disabled"),
+        )
+
+        assertContains(refused, "\"LOGGING_CALL_REFERENCE\" is an error. Changing the severity of errors is prohibited")
+    }
+
+    @Test
     fun `rejects a callable reference to a level instead of letting it skip the lowering`() {
         val output = compileExpectingFailure("levelReference")
 

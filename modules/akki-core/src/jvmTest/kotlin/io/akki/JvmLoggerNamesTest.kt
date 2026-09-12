@@ -40,7 +40,7 @@ class JvmLoggerNamesTest {
         assertEquals(JvmLoggerNameStyle.SOURCE, parseJvmLoggerNameStyle(null))
         assertEquals(JvmLoggerNameStyle.SOURCE, parseJvmLoggerNameStyle("source"))
         assertEquals(JvmLoggerNameStyle.JVM_CLASS, parseJvmLoggerNameStyle("jvm-class"))
-        assertFailsWith<IllegalStateException> {
+        assertFailsWith<AkkiException> {
             parseJvmLoggerNameStyle("binary")
         }
     }
