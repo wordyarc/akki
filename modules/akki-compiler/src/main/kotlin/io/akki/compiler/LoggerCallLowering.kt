@@ -20,6 +20,7 @@ import org.jetbrains.kotlin.ir.builders.irGet
 import org.jetbrains.kotlin.ir.builders.irNotEquals
 import org.jetbrains.kotlin.ir.builders.irNull
 import org.jetbrains.kotlin.ir.builders.irTemporary
+import org.jetbrains.kotlin.ir.builders.irUnit
 import org.jetbrains.kotlin.ir.builders.parent
 import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
@@ -42,6 +43,7 @@ import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 internal class LoggerCallLowering(
     private val context: IrPluginContext,
     private val symbols: AkkiSymbols,
+    private val minLevel: MinLevel,
 ) : FileLoweringPass, IrElementTransformerVoidWithContext() {
     override fun lower(irFile: IrFile) {
         irFile.transform(this, null)
@@ -64,7 +66,28 @@ internal class LoggerCallLowering(
 
     private fun IrCall.target(): LoggerCall? = symbols.callFor(symbol.owner)
 
-    private fun lower(call: IrCall, target: LoggerCall, hoisted: List<IrVariable>): IrExpression? {
+    private fun lower(call: IrCall, target: LoggerCall, hoisted: List<IrVariable>): IrExpression? =
+        if (minLevel.clips(target.level.owner.name)) clip(call, target, hoisted) else record(call, target, hoisted)
+
+    private fun clip(call: IrCall, target: LoggerCall, hoisted: List<IrVariable>): IrExpression? {
+        val receiver = call.arguments[target.receiver] ?: return null
+        val scope = currentScope?.scope?.scopeOwnerSymbol ?: return null
+        context.diagnosticReporter.at(call, currentFile).report(
+            AkkiErrors.LOGGING_CALL_REMOVED,
+            target.level.owner.name.asString().lowercase(),
+            minLevel.option,
+        )
+        val builder = DeclarationIrBuilder(context, scope, call.startOffset, call.endOffset)
+        return with(builder) {
+            irBlock(resultType = context.irBuiltIns.unitType) {
+                hoisted.take(hoisted.prefixReadBy(receiver)).forEach { +it }
+                if (!receiver.isUnchanging()) +receiver
+                +irUnit()
+            }
+        }
+    }
+
+    private fun record(call: IrCall, target: LoggerCall, hoisted: List<IrVariable>): IrExpression? {
         val receiver = call.arguments[target.receiver] ?: return null
         val message = call.arguments[target.message] ?: return null
         val scope = currentScope?.scope?.scopeOwnerSymbol ?: return null

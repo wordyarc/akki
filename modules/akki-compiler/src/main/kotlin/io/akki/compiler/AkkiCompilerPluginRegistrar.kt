@@ -17,6 +17,8 @@ internal class AkkiCompilerPluginRegistrar : CompilerPluginRegistrar() {
 
     override fun ExtensionStorage.registerExtensions(configuration: CompilerConfiguration) {
         FirExtensionRegistrar.registerExtension(AkkiFirExtensionRegistrar())
-        IrGenerationExtension.registerExtension(AkkiIrGenerationExtension())
+        IrGenerationExtension.registerExtension(
+            AkkiIrGenerationExtension(configuration[MIN_LEVEL, MinLevel.DEFAULT]),
+        )
     }
 }

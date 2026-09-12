@@ -22,6 +22,13 @@ internal object AkkiErrors : KtDiagnosticsContainer() {
         this,
     )
 
+    val LOGGING_CALL_REMOVED by DiagnosticFactory2DelegateProvider<String, String>(
+        Severity.INFO,
+        SourceElementPositioningStrategies.DEFAULT,
+        KtElement::class,
+        this,
+    )
+
     val INCOMPATIBLE_AKKI_CORE by errorWithoutSource()
 
     override fun getRendererFactory(): BaseDiagnosticRendererFactory = AkkiDefaultErrorMessages
@@ -42,6 +49,14 @@ internal object AkkiDefaultErrorMessages : BaseDiagnosticRendererFactory() {
             "''{0}'' holds the logger of the enclosing declaration, which is what ''{1}'' resolves to anywhere " +
                 "in it. The Akki compiler plugin already keeps that logger in a static field, so the property " +
                 "only adds another one. Use ''Log.of(javaClass)'' if you meant the logger of the runtime type.",
+            CommonRenderers.STRING,
+            CommonRenderers.STRING,
+        )
+        map.put(
+            AkkiErrors.LOGGING_CALL_REMOVED,
+            "This ''{0}'' record is removed at compile time: the Akki compiler plugin runs with " +
+                "minLevel={1}. The call, its arguments and its message are not in the bytecode, so no logging " +
+                "configuration can bring the record back. Lower ''minLevel'' to keep it.",
             CommonRenderers.STRING,
             CommonRenderers.STRING,
         )

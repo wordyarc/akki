@@ -9,7 +9,9 @@ import org.jetbrains.kotlin.gradle.plugin.SubpluginArtifact
 import org.jetbrains.kotlin.gradle.plugin.SubpluginOption
 
 public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
-    override fun apply(target: Project): Unit = Unit
+    override fun apply(target: Project) {
+        target.extensions.create(EXTENSION, AkkiExtension::class.java).minLevel.convention(MinLevel.TRACE)
+    }
 
     override fun isApplicable(kotlinCompilation: KotlinCompilation<*>): Boolean = true
 
@@ -29,10 +31,14 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
                 because("Akki core and compiler plugin versions must match")
             }
         }
-        return project.provider { emptyList() }
+        return project.extensions.getByType(AkkiExtension::class.java).minLevel.map {
+            listOf(SubpluginOption(MIN_LEVEL_OPTION, it.name.lowercase()))
+        }
     }
 
     private companion object {
+        const val EXTENSION: String = "akki"
+        const val MIN_LEVEL_OPTION: String = "minLevel"
         const val PLUGIN_ID: String = "io.akki"
         const val PLUGIN_GROUP: String = "io.akki"
         const val COMPILER_ARTIFACT: String = "akki-compiler"

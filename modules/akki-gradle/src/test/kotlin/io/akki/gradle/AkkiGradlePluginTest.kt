@@ -30,6 +30,28 @@ class AkkiGradlePluginTest {
     }
 
     @Test
+    fun `keeps every level until a threshold is configured`(@TempDir projectDirectory: Path) {
+        val output = build(projectDirectory, consumer = Consumer.Clipped)
+
+        assertContains(output, "AKKI records=debug A-1,info A-1")
+    }
+
+    @Test
+    fun `removes records below the configured threshold`(@TempDir projectDirectory: Path) {
+        val output = build(
+            projectDirectory,
+            consumer = Consumer.Clipped,
+            extra = """
+                akki {
+                    minLevel = io.akki.gradle.MinLevel.INFO
+                }
+            """.trimIndent(),
+        )
+
+        assertContains(output, "AKKI records=info A-1")
+    }
+
+    @Test
     fun `brings its own runtime to a consumer that declares none`(@TempDir projectDirectory: Path) {
         val output = build(projectDirectory, consumer = Consumer.Bare)
 
@@ -94,10 +116,10 @@ class AkkiGradlePluginTest {
         }
     }
 
-    private fun build(projectDirectory: Path, consumer: Consumer = Consumer.Core): String {
+    private fun build(projectDirectory: Path, consumer: Consumer = Consumer.Core, extra: String = ""): String {
         val repository = publishRepository(projectDirectory.resolve("repository"))
         projectDirectory.resolve("settings.gradle.kts").writeText(settings(repository))
-        projectDirectory.resolve("build.gradle.kts").writeText(buildScript(repository, consumer))
+        projectDirectory.resolve("build.gradle.kts").writeText(buildScript(repository, consumer) + "\n" + extra)
         projectDirectory.resolve("src/main/kotlin/consumer").createDirectories()
         projectDirectory.resolve("src/main/kotlin/consumer/${consumer.source}")
             .writeText(fixture("consumer/${consumer.source}"))
@@ -225,7 +247,7 @@ class AkkiGradlePluginTest {
 
     private fun dependencies(consumer: Consumer): String = when (consumer) {
         Consumer.Bare -> emptyList()
-        Consumer.Core -> listOf("""implementation("io.akki:akki-core:$VERSION")""")
+        Consumer.Core, Consumer.Clipped -> listOf("""implementation("io.akki:akki-core:$VERSION")""")
         Consumer.Slf4j -> listOf(
             """implementation("io.akki:akki-slf4j:$VERSION")""",
             """runtimeOnly("ch.qos.logback:logback-classic:${property("akki.logback.version")}")""",
@@ -246,6 +268,7 @@ class AkkiGradlePluginTest {
         Bare("BareMain.kt", "consumer.BareMainKt", null),
         Core("Main.kt", "consumer.MainKt", null),
         Slf4j("Slf4jMain.kt", "consumer.Slf4jMainKt", "logback.xml"),
+        Clipped("ClippedMain.kt", "consumer.ClippedMainKt", null),
     }
 
     private companion object {

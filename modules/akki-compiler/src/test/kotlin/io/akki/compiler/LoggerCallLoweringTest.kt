@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 internal class LoggerCallLoweringTest : FixtureTest() {
     @Test
@@ -47,6 +48,51 @@ internal class LoggerCallLoweringTest : FixtureTest() {
         assertEquals("", lowered.effects)
         assertEquals("fields", plain.effects)
         assertEquals(plain.messages, lowered.messages)
+    }
+
+    @Test
+    fun `removes records below the threshold and keeps the rest`() {
+        assertEquals(
+            "trace-trace,debug-debug-lazy,receiver-receiver-message,debug-named,info-info,warn-warn" +
+                "|trace,debug-lazy,receiver,receiver-message,debug-fields,info,warn" +
+                "|enabled=true,sink=true",
+            box("clippedLevel"),
+        )
+        assertEquals(
+            "info-info,warn-warn|receiver,info,warn|enabled=true,sink=true",
+            box("clippedLevel", options = listOf("minLevel=info")),
+        )
+        assertEquals(
+            "|receiver|enabled=true,sink=true",
+            box("clippedLevel", options = listOf("minLevel=off")),
+        )
+    }
+
+    @Test
+    fun `leaves neither the record nor its message in the bytecode`() {
+        val clipped = compile("clippedLevel", options = listOf("minLevel=info")).references("fixture.FixtureKt")
+
+        assertFalse(clipped.any { it.contains("trace-") }, clipped.toString())
+        assertFalse(clipped.any { it.contains("debug-") }, clipped.toString())
+        assertTrue(clipped.any { it.contains("info-") }, clipped.toString())
+        assertEquals(2, clipped.count { it == "io/akki/Sink.emit" }, clipped.toString())
+    }
+
+    @Test
+    fun `reports every removed record`() {
+        val output = compile("clippedLevel", options = listOf("minLevel=info")).output
+
+        assertContains(output, "'debug' record is removed at compile time")
+        assertContains(output, "minLevel=info")
+        assertEquals(4, output.lines().count { it.contains("record is removed at compile time") }, output)
+    }
+
+    @Test
+    fun `rejects an unknown threshold`() {
+        val output = compileExpectingFailure("clippedLevel", options = listOf("minLevel=verbose"))
+
+        assertContains(output, "value 'verbose' for the Akki option 'minLevel'")
+        assertContains(output, "trace, debug, info, warn, error, off")
     }
 
     @Test

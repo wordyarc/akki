@@ -61,7 +61,13 @@ internal class Compilation(val classes: Path, val output: String, val exitCode: 
 internal object FixtureCompiler {
     val defaultClasspath: String = property("akki.fixture.classpath")
 
-    fun compile(directory: Path, source: String, plugin: Plugin, classpath: String): Compilation {
+    fun compile(
+        directory: Path,
+        source: String,
+        plugin: Plugin,
+        classpath: String,
+        options: List<String>,
+    ): Compilation {
         val file = directory.createDirectories().resolve("Fixture.kt")
         val classes = directory.resolve("classes").createDirectories()
         file.writeText(source)
@@ -76,7 +82,7 @@ internal object FixtureCompiler {
                     "-jvm-target", property("akki.jvm.target"),
                     "-Xverify-ir=error",
                     "-Xverify-ir-visibility",
-                ) + plugin.arguments() + file.toString()
+                ) + plugin.arguments(options) + file.toString()
                 ).toTypedArray(),
             arguments,
         )
@@ -89,9 +95,10 @@ internal object FixtureCompiler {
         return Compilation(classes, output.toString(), exitCode)
     }
 
-    private fun Plugin.arguments(): List<String> = when (this) {
+    private fun Plugin.arguments(options: List<String>): List<String> = when (this) {
         Plugin.Absent -> emptyList()
-        Plugin.Enabled -> listOf("-Xplugin=${property("akki.compiler.plugin.jar")}")
+        Plugin.Enabled -> listOf("-Xplugin=${property("akki.compiler.plugin.jar")}") +
+            options.flatMap { listOf("-P", "plugin:${AkkiNames.PLUGIN_ID}:$it") }
     }
 
     private fun property(name: String): String = requireNotNull(System.getProperty(name)) { "missing -D$name" }

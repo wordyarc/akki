@@ -14,8 +14,9 @@ internal abstract class FixtureTest {
         fixture: String,
         plugin: Plugin = Plugin.Enabled,
         classpath: String = FixtureCompiler.defaultClasspath,
+        options: List<String> = emptyList(),
     ): Compilation {
-        val compilation = run(fixture, plugin, classpath)
+        val compilation = run(fixture, plugin, classpath, options)
         assertEquals(ExitCode.OK, compilation.exitCode, compilation.output)
         return compilation
     }
@@ -23,14 +24,15 @@ internal abstract class FixtureTest {
     protected fun compileExpectingFailure(
         fixture: String,
         classpath: String = FixtureCompiler.defaultClasspath,
+        options: List<String> = emptyList(),
     ): String {
-        val compilation = run(fixture, Plugin.Enabled, classpath)
+        val compilation = run(fixture, Plugin.Enabled, classpath, options)
         assertNotEquals(ExitCode.OK, compilation.exitCode, compilation.output)
         return compilation.output
     }
 
-    protected fun box(fixture: String, plugin: Plugin = Plugin.Enabled): String =
-        compile(fixture, plugin).invoke()
+    protected fun box(fixture: String, plugin: Plugin = Plugin.Enabled, options: List<String> = emptyList()): String =
+        compile(fixture, plugin, options = options).invoke()
 
     protected fun assertBox(expected: String, fixture: String) {
         assertEquals(expected, box(fixture), fixture)
@@ -46,12 +48,13 @@ internal abstract class FixtureTest {
         assertEquals(plain, box(fixture), "$fixture with the plugin")
     }
 
-    private fun run(fixture: String, plugin: Plugin, classpath: String): Compilation =
+    private fun run(fixture: String, plugin: Plugin, classpath: String, options: List<String>): Compilation =
         FixtureCompiler.compile(
-            workingDirectory.resolve("$fixture-${plugin.directory}"),
+            workingDirectory.resolve(listOf(fixture, plugin.directory, *options.toTypedArray()).joinToString("-")),
             Fixtures.source(fixture),
             plugin,
             classpath,
+            options,
         )
 }
 
