@@ -17,12 +17,15 @@ internal object AkkiNames {
     val SINK_ID: ClassId = PACKAGE.classId("Sink")
     val LOG_NAME_ID: ClassId = PACKAGE.classId("LogName")
     val CALL_SITE_ID: ClassId = INTERNAL_PACKAGE.classId("CallSite")
+    val LOG_ID: ClassId = PACKAGE.classId("Log")
     val LOG_REGISTRY_ID: ClassId = INTERNAL_PACKAGE.classId("LogRegistry")
 
     val EMPTY_MAP_ID: CallableId =
         CallableId(StandardNames.COLLECTIONS_PACKAGE_FQ_NAME, Name.identifier("emptyMap"))
 
     val FOR_DECLARATION: Name = Name.identifier("forDeclaration")
+    val OF: Name = Name.identifier("of")
+    val NAMED: Name = Name.identifier("named")
     val SINK: Name = Name.identifier("sink")
     val EMIT: Name = Name.identifier("emit")
 
@@ -31,6 +34,8 @@ internal object AkkiNames {
     val FIELDS: Name = Name.identifier("fields")
 
     val LOGGER_FIELD: Name = Name.identifier("\$\$log")
+
+    fun loggerField(index: Int): Name = Name.identifier("${LOGGER_FIELD.asString()}\$$index")
 
     fun levelName(entry: Name): Name = Name.identifier(entry.asString().lowercase())
 

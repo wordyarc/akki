@@ -7,17 +7,19 @@ import org.jetbrains.kotlin.ir.declarations.IrAnnotationContainer
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationContainer
 import org.jetbrains.kotlin.ir.declarations.IrFile
+import org.jetbrains.kotlin.ir.declarations.name
 import org.jetbrains.kotlin.ir.expressions.IrConst
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.util.classId
 import org.jetbrains.kotlin.ir.util.getAnnotation
 import org.jetbrains.kotlin.ir.util.kotlinFqName
 import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.JvmStandardClassIds.MULTIFILE_PART_NAME_DELIMITER
+import org.jetbrains.kotlin.name.NameUtils
 
 internal class DeclarationName(val source: String, val platform: String)
 
 private const val FACADE_SUFFIX: String = "Kt"
-private const val MULTIFILE_PART_DELIMITER: String = "__"
 
 private val LOG_NAME_FQ_NAME: FqName = AkkiNames.LOG_NAME_ID.asSingleFqName()
 
@@ -43,12 +45,12 @@ private fun IrClass.className(): DeclarationName {
 private fun IrFile.jvmFileName(): DeclarationName {
     val fileClass = getFileClassInfo().fileClassFqName
     val stem = fileClass.shortName().asString()
-        .substringAfterLast(MULTIFILE_PART_DELIMITER)
+        .substringAfterLast(MULTIFILE_PART_NAME_DELIMITER)
         .removeSuffix(FACADE_SUFFIX)
     return DeclarationName(fileClass.parent().qualifier() + stem, fileClass.asString())
 }
 
 private fun IrFile.sourceFileName(): String =
-    packageFqName.qualifier() + fileEntry.name.substringAfterLast('/').substringBeforeLast('.')
+    packageFqName.qualifier() + NameUtils.getPackagePartClassNamePrefix(name.substringBeforeLast('.'))
 
 private fun FqName.qualifier(): String = asString().let { if (it.isEmpty()) "" else "$it." }

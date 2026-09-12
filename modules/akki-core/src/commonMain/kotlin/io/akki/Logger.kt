@@ -12,13 +12,15 @@ public abstract class Logger {
         fields: Map<String, Any?> = emptyMap(),
     ): Unit
 
-    @InternalAkkiApi
-    public open fun sink(level: Level): Sink? =
-        if (isEnabled(level)) {
+    private val sinks: Array<Sink> by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        Array(Level.entries.size) { ordinal ->
+            val level = Level.entries[ordinal]
             Sink { message, cause, fields -> emit(level, message, cause, fields) }
-        } else {
-            null
         }
+    }
+
+    @InternalAkkiApi
+    public open fun sink(level: Level): Sink? = if (isEnabled(level)) sinks[level.ordinal] else null
 
     @Suppress("NOTHING_TO_INLINE")
     @OptIn(InternalAkkiApi::class)

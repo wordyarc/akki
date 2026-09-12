@@ -48,6 +48,8 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
     val loggerType: IrType = logger.owner.defaultType
     val logRegistry: IrClassSymbol = finder.classOrFail(AkkiNames.LOG_REGISTRY_ID)
 
+    private val log: IrClassSymbol = finder.classOrFail(AkkiNames.LOG_ID)
+
     private val level: IrClassSymbol = finder.classOrFail(AkkiNames.LEVEL_ID)
     private val sinkClass: IrClassSymbol = finder.classOrFail(AkkiNames.SINK_ID)
 
@@ -58,6 +60,16 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
 
     val forDeclaration: IrSimpleFunctionSymbol =
         logRegistry.functionOrFail(AkkiNames.FOR_DECLARATION, FOR_DECLARATION_SIGNATURE, parameters = 2).symbol
+
+    val registryOf: IrSimpleFunctionSymbol =
+        logRegistry.functionOrFail(AkkiNames.OF, REGISTRY_OF_SIGNATURE, parameters = 1).symbol
+
+    val ofType: IrSimpleFunctionSymbol = log.functionOrFail(AkkiNames.OF, OF_TYPE_SIGNATURE, parameters = 1).symbol
+
+    val ofReifiedType: IrSimpleFunctionSymbol =
+        log.functionOrFail(AkkiNames.OF, OF_REIFIED_SIGNATURE, parameters = 0).symbol
+
+    val named: IrSimpleFunctionSymbol = log.functionOrFail(AkkiNames.NAMED, NAMED_SIGNATURE, parameters = 1).symbol
 
     private val emitFunction: IrSimpleFunction =
         sinkClass.functionOrFail(AkkiNames.EMIT, EMIT_SIGNATURE, parameters = 3)
@@ -138,6 +150,10 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
         private const val SINK_SIGNATURE: String = "Logger.sink(level: Level): Sink?"
         private const val FOR_DECLARATION_SIGNATURE: String =
             "LogRegistry.forDeclaration(source: String, platformName: String): Logger"
+        private const val REGISTRY_OF_SIGNATURE: String = "LogRegistry.of(name: String): Logger"
+        private const val OF_TYPE_SIGNATURE: String = "Log.of(type: KClass<*>): Logger"
+        private const val OF_REIFIED_SIGNATURE: String = "Log.of<T>(): Logger"
+        private const val NAMED_SIGNATURE: String = "Log.named(name: String): Logger"
         private const val EMIT_SIGNATURE: String =
             "Sink.emit(message: String, cause: Throwable?, fields: Map<String, Any?>)"
 

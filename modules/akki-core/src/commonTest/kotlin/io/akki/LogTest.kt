@@ -11,10 +11,11 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
-@OptIn(DelicateAkkiApi::class)
+@OptIn(DelicateAkkiApi::class, InternalAkkiApi::class)
 class LogTest {
     @Test
     fun `factories resolve the same instance`(): Unit {
@@ -28,6 +29,14 @@ class LogTest {
 
         assertEquals("audit", logger.name)
         assertEquals("Logger(audit)", logger.toString())
+    }
+
+    @Test
+    fun `a consumer Logger reuses one sink per level`(): Unit {
+        val logger = RecordingLogger("custom", enabled = setOf(Level.INFO))
+
+        assertSame(logger.sink(Level.INFO), logger.sink(Level.INFO))
+        assertNull(logger.sink(Level.DEBUG))
     }
 
     @Test

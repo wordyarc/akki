@@ -7,7 +7,6 @@ import org.jetbrains.kotlin.fir.analysis.checkers.MppCheckerKind
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirExpressionChecker
 import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccessExpression
-import org.jetbrains.kotlin.fir.declarations.utils.isInline
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirPropertyAccessorSymbol
 import org.jetbrains.kotlin.name.Name
@@ -25,11 +24,6 @@ internal object ContextualLoggerChecker :
             inlined.declarationName().asString(),
         )
     }
-
-    private fun CheckerContext.enclosingInlineFunction(): FirFunctionSymbol<*>? =
-        containingDeclarations.asReversed()
-            .filterIsInstance<FirFunctionSymbol<*>>()
-            .firstOrNull { it.isInline }
 
     private fun FirFunctionSymbol<*>.declarationName(): Name =
         (this as? FirPropertyAccessorSymbol)?.propertySymbol?.name ?: name

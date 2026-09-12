@@ -16,7 +16,7 @@ internal object RedundantLoggerPropertyChecker : FirPropertyChecker(MppCheckerKi
     override fun check(declaration: FirProperty) {
         if (declaration.isVar || declaration.delegate != null) return
         if (!declaration.isShadowable()) return
-        if (context.inlineFunctionBodyContext != null) return
+        if (context.enclosingInlineFunction() != null) return
         val callee = declaration.initializer?.callSiteName(context.session) ?: return
         reporter.reportOn(
             declaration.source,

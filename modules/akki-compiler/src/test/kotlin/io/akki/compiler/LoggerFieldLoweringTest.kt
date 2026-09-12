@@ -38,6 +38,7 @@ internal class LoggerFieldLoweringTest : FixtureTest() {
                 "nestedObject=fixture.Service.NestedObject",
                 "lambda=fixture.Service",
                 "localClass=fixture.Service",
+                "innerOfLocalClass=fixture.Service",
                 "objectExpression=fixture.Service",
                 "enumEntry=fixture.Colour",
                 "renamedClass=class-audit",
@@ -45,6 +46,33 @@ internal class LoggerFieldLoweringTest : FixtureTest() {
             ).joinToString(","),
             "nameMatrix",
         )
+    }
+
+    @Test
+    fun `folds a constant factory call into a field and keeps the runtime name`() {
+        assertBox(
+            listOf(
+                "reified=fixture.Service",
+                "literal=fixture.Service.Nested",
+                "companion=fixture.Service",
+                "renamed=class-audit",
+                "standalone=fixture.Standalone",
+                "named=audit",
+                "builtin=kotlin.String",
+            ).joinToString(","),
+            "constantFactory",
+        )
+    }
+
+    @Test
+    fun `leaves a factory call alone when the runtime would resolve another class`() {
+        val site = compile("constantFactory").references("fixture.Site")
+
+        assertContains(site, "\$\$log\$0")
+        assertContains(site, "io/akki/internal/LogRegistry.forDeclaration")
+        assertContains(site, "io/akki/internal/LogRegistry.of")
+        assertFalse(site.any { it == "io/akki/Log.named" }, site.toString())
+        assertEquals(1, site.count { it == "io/akki/Log.of" }, site.toString())
     }
 
     @Test

@@ -28,6 +28,9 @@ class ResolutionBenchmark {
     fun factoryByRuntimeClass(): Logger = Log.of(Owner.Nested::class.java)
 
     @Benchmark
+    fun factoryByType(): Logger = Log.of<Owner.Nested>()
+
+    @Benchmark
     fun factoryByName(): Logger = Log.named("io.akki.benchmark.ResolutionBenchmark.Owner.Nested")
 
     @Benchmark

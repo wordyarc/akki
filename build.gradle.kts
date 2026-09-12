@@ -7,5 +7,5 @@ version = providers.gradleProperty("akki.version").get()
 
 tasks.register("apiCheck") {
     group = "verification"
-    dependsOn(subprojects.map { "${it.path}:checkKotlinAbi" })
+    dependsOn(provider { subprojects.filter { it.tasks.findByName("checkKotlinAbi") != null }.map { "${it.path}:checkKotlinAbi" } })
 }
