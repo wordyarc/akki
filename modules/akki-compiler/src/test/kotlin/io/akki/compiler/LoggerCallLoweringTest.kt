@@ -88,6 +88,19 @@ internal class LoggerCallLoweringTest : FixtureTest() {
     }
 
     @Test
+    fun `lets a declaration suppress the removal notice without changing what is removed`() {
+        val compilation = compile("suppressedRemoval", options = listOf("minLevel=info"))
+
+        assertEquals("", compilation.invoke())
+        assertContains(compilation.output, "'debug' record is removed at compile time")
+        assertEquals(
+            1,
+            compilation.output.lines().count { it.contains("record is removed at compile time") },
+            compilation.output,
+        )
+    }
+
+    @Test
     fun `rejects a callable reference to a level instead of letting it skip the lowering`() {
         val output = compileExpectingFailure("levelReference")
 

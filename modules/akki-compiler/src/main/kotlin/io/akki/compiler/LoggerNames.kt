@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.ir.expressions.IrConst
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.util.classId
 import org.jetbrains.kotlin.ir.util.getAnnotation
+import org.jetbrains.kotlin.ir.util.irError
 import org.jetbrains.kotlin.ir.util.kotlinFqName
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.JvmStandardClassIds.MULTIFILE_PART_NAME_DELIMITER
@@ -26,7 +27,7 @@ private val LOG_NAME_FQ_NAME: FqName = AkkiNames.LOG_NAME_ID.asSingleFqName()
 internal fun IrDeclarationContainer.declarationName(isJvm: Boolean): DeclarationName = when (this) {
     is IrClass -> logName() ?: className()
     is IrFile -> logName() ?: if (isJvm) jvmFileName() else sourceFileName().let { DeclarationName(it, it) }
-    else -> error("unexpected logger field owner: ${this::class.simpleName}")
+    else -> irError("unexpected logger field owner") { withIrEntry("owner", this@declarationName) }
 }
 
 private fun IrAnnotationContainer.logName(): DeclarationName? {
