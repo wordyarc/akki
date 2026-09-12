@@ -88,6 +88,13 @@ internal class LoggerCallLoweringTest : FixtureTest() {
     }
 
     @Test
+    fun `rejects a callable reference to a level instead of letting it skip the lowering`() {
+        val output = compileExpectingFailure("levelReference")
+
+        assertContains(output, "'debug' cannot be taken as a callable reference")
+    }
+
+    @Test
     fun `rejects an unknown threshold`() {
         val output = compileExpectingFailure("clippedLevel", options = listOf("minLevel=verbose"))
 

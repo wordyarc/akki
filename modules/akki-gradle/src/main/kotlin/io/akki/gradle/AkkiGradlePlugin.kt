@@ -10,7 +10,7 @@ import org.jetbrains.kotlin.gradle.plugin.SubpluginOption
 
 public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
     override fun apply(target: Project) {
-        target.extensions.create(EXTENSION, AkkiExtension::class.java).minLevel.convention(MinLevel.TRACE)
+        target.extensions.create(EXTENSION, AkkiExtension::class.java)
     }
 
     override fun isApplicable(kotlinCompilation: KotlinCompilation<*>): Boolean = true
@@ -31,12 +31,22 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
                 because("Akki core and compiler plugin versions must match")
             }
         }
-        return project.extensions.getByType(AkkiExtension::class.java).minLevel.map {
-            listOf(SubpluginOption(MIN_LEVEL_OPTION, it.name.lowercase()))
+        val minLevel = project.extensions.getByType(AkkiExtension::class.java).minLevel
+        val notice = minLevel.map { if (it == MinLevel.TRACE) "" else notice(it) }.orElse("")
+        kotlinCompilation.compileTaskProvider.configure { task ->
+            task.doFirst { running ->
+                val message = notice.get()
+                if (message.isNotEmpty()) running.logger.lifecycle(message)
+            }
         }
+        return minLevel.map { listOf(SubpluginOption(MIN_LEVEL_OPTION, it.name.lowercase())) }.orElse(emptyList())
     }
 
     private companion object {
+        fun notice(level: MinLevel): String =
+            "akki: minLevel=${level.name.lowercase()}, records below it are removed from the bytecode and no " +
+                "logging configuration can bring them back"
+
         const val EXTENSION: String = "akki"
         const val MIN_LEVEL_OPTION: String = "minLevel"
         const val PLUGIN_ID: String = "io.akki"

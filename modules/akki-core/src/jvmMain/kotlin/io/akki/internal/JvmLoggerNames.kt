@@ -1,12 +1,14 @@
 package io.akki.internal
 
+import io.akki.LOGGER_NAME_STYLE_PROPERTY_NAME
+import io.akki.LOGGER_NAME_STYLE_VALUE_JVM_CLASS
+import io.akki.LOGGER_NAME_STYLE_VALUE_SOURCE
 import io.akki.LogName
 import kotlin.metadata.ClassKind
 import kotlin.metadata.jvm.KotlinClassMetadata
 import kotlin.metadata.kind
 import kotlin.reflect.KClass
 
-private const val LOGGER_NAME_STYLE_PROPERTY: String = "io.akki.loggerNameStyle"
 private const val FACADE_SUFFIX: String = "Kt"
 private const val MULTIFILE_PART_DELIMITER: String = "__"
 
@@ -41,16 +43,17 @@ internal fun platformTypeName(type: Class<*>, style: JvmLoggerNameStyle): String
 
 internal fun parseJvmLoggerNameStyle(value: String?): JvmLoggerNameStyle =
     when (value) {
-        null, "source" -> JvmLoggerNameStyle.SOURCE
-        "jvm-class" -> JvmLoggerNameStyle.JVM_CLASS
+        null, LOGGER_NAME_STYLE_VALUE_SOURCE -> JvmLoggerNameStyle.SOURCE
+        LOGGER_NAME_STYLE_VALUE_JVM_CLASS -> JvmLoggerNameStyle.JVM_CLASS
         else -> error(
-            "Invalid $LOGGER_NAME_STYLE_PROPERTY value '$value': expected 'source' or 'jvm-class'",
+            "Invalid $LOGGER_NAME_STYLE_PROPERTY_NAME value '$value': " +
+                "expected '$LOGGER_NAME_STYLE_VALUE_SOURCE' or '$LOGGER_NAME_STYLE_VALUE_JVM_CLASS'",
         )
     }
 
 private fun loggerNameStyleProperty(): String? =
     try {
-        System.getProperty(LOGGER_NAME_STYLE_PROPERTY)
+        System.getProperty(LOGGER_NAME_STYLE_PROPERTY_NAME)
     } catch (_: SecurityException) {
         null
     }

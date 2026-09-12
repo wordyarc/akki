@@ -31,6 +31,7 @@ import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrGetValue
 import org.jetbrains.kotlin.ir.expressions.IrStatementOrigin
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetEnumValueImpl
+import org.jetbrains.kotlin.ir.expressions.hasNoSideEffects
 import org.jetbrains.kotlin.ir.expressions.isUnchanging
 import org.jetbrains.kotlin.ir.symbols.IrValueSymbol
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
@@ -81,7 +82,7 @@ internal class LoggerCallLowering(
         return with(builder) {
             irBlock(resultType = context.irBuiltIns.unitType) {
                 hoisted.take(hoisted.prefixReadBy(receiver)).forEach { +it }
-                if (!receiver.isUnchanging()) +receiver
+                if (!receiver.hasNoSideEffects()) +receiver
                 +irUnit()
             }
         }

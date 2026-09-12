@@ -6,6 +6,7 @@ import kotlin.io.path.createDirectories
 import kotlin.io.path.writeText
 import kotlin.test.Test
 import kotlin.test.assertContains
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import org.gradle.testkit.runner.GradleRunner
 import org.junit.jupiter.api.io.TempDir
@@ -34,6 +35,7 @@ class AkkiGradlePluginTest {
         val output = build(projectDirectory, consumer = Consumer.Clipped)
 
         assertContains(output, "AKKI records=debug A-1,info A-1")
+        assertFalse(output.contains("akki: minLevel"), output)
     }
 
     @Test
@@ -49,6 +51,7 @@ class AkkiGradlePluginTest {
         )
 
         assertContains(output, "AKKI records=info A-1")
+        assertContains(output, "akki: minLevel=info, records below it are removed from the bytecode")
     }
 
     @Test

@@ -82,6 +82,12 @@ public abstract class io/akki/Logger {
 	public static synthetic fun warn$default (Lio/akki/Logger;Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
 }
 
+public final class io/akki/LoggerNameStyleKt {
+	public static final field LOGGER_NAME_STYLE_PROPERTY_NAME Ljava/lang/String;
+	public static final field LOGGER_NAME_STYLE_VALUE_JVM_CLASS Ljava/lang/String;
+	public static final field LOGGER_NAME_STYLE_VALUE_SOURCE Ljava/lang/String;
+}
+
 public abstract interface class io/akki/Sink {
 	public abstract fun emit (Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
 }

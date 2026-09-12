@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.diagnostics.errorWithoutSource
 import org.jetbrains.kotlin.diagnostics.rendering.BaseDiagnosticRendererFactory
 import org.jetbrains.kotlin.diagnostics.rendering.BaseSourcelessDiagnosticRendererFactory.Companion.MESSAGE_PLACEHOLDER
 import org.jetbrains.kotlin.diagnostics.rendering.CommonRenderers
+import org.jetbrains.kotlin.diagnostics.error1
 import org.jetbrains.kotlin.diagnostics.error2
 import org.jetbrains.kotlin.psi.KtElement
 
@@ -21,6 +22,8 @@ internal object AkkiErrors : KtDiagnosticsContainer() {
         KtElement::class,
         this,
     )
+
+    val LOGGING_CALL_REFERENCE by error1<KtElement, String>()
 
     val LOGGING_CALL_REMOVED by DiagnosticFactory2DelegateProvider<String, String>(
         Severity.INFO,
@@ -50,6 +53,13 @@ internal object AkkiDefaultErrorMessages : BaseDiagnosticRendererFactory() {
                 "in it. The Akki compiler plugin already keeps that logger in a static field, so the property " +
                 "only adds another one. Use ''Log.of(javaClass)'' if you meant the logger of the runtime type.",
             CommonRenderers.STRING,
+            CommonRenderers.STRING,
+        )
+        map.put(
+            AkkiErrors.LOGGING_CALL_REFERENCE,
+            "''{0}'' cannot be taken as a callable reference: a reference is not lowered, so the record skips the " +
+                "level check, reports Akki as the caller and survives the ''minLevel'' threshold. Wrap the call in " +
+                "a lambda instead.",
             CommonRenderers.STRING,
         )
         map.put(

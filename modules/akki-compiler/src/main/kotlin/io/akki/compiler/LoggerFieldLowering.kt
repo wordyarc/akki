@@ -18,6 +18,7 @@ import org.jetbrains.kotlin.ir.builders.irString
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationContainer
+import org.jetbrains.kotlin.ir.declarations.IrDeclarationParent
 import org.jetbrains.kotlin.ir.declarations.IrField
 import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrFunction
@@ -37,6 +38,7 @@ import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.isEnumClass
 import org.jetbrains.kotlin.ir.util.isInterface
 import org.jetbrains.kotlin.ir.util.isLocal
+import org.jetbrains.kotlin.ir.util.parents
 import org.jetbrains.kotlin.ir.util.superClass
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 import org.jetbrains.kotlin.load.java.JavaDescriptorVisibilities
@@ -110,7 +112,7 @@ internal class LoggerFieldLowering(
         classId?.let { JavaToKotlinClassMap.mapKotlinToJava(it.asSingleFqName().toUnsafe()) } != null
 
     private fun IrClass.namingDeclaration(): IrDeclarationContainer? =
-        generateSequence<IrElement>(this) { (it as? IrDeclaration)?.parent }
+        (sequenceOf<IrDeclarationParent>(this) + parents)
             .filterIsInstance<IrDeclarationContainer>()
             .firstOrNull { it !is IrClass || !it.isHoisted() }
             ?.takeIf { it !is IrClass || it.classId != null || it.hasAnnotation(AkkiNames.LOG_NAME_ID) }
