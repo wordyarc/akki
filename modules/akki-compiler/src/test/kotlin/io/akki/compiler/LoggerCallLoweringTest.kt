@@ -75,7 +75,7 @@ internal class LoggerCallLoweringTest : FixtureTest() {
         assertFalse(clipped.any { it.contains("trace-") }, clipped.toString())
         assertFalse(clipped.any { it.contains("debug-") }, clipped.toString())
         assertTrue(clipped.any { it.contains("info-") }, clipped.toString())
-        assertEquals(2, clipped.count { it == "io/akki/Sink.emit" }, clipped.toString())
+        assertEquals(2, clipped.count { it == "io/akki/backend/Sink.emit" }, clipped.toString())
     }
 
     @Test

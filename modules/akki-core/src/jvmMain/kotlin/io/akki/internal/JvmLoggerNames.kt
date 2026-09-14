@@ -18,12 +18,14 @@ internal enum class JvmLoggerNameStyle {
     JVM_CLASS,
 }
 
-private val configuredStyle: JvmLoggerNameStyle by lazy {
-    parseJvmLoggerNameStyle(loggerNameStyleProperty())
-}
+private val styleSetting: String? = loggerNameStyleProperty()
+
+private val resolvedStyle: JvmLoggerNameStyle? = jvmLoggerNameStyleOrNull(styleSetting)
+
+private fun configuredStyle(): JvmLoggerNameStyle = resolvedStyle ?: throw invalidLoggerNameStyle(styleSetting)
 
 private val typeNames: ClassValue<String> = object : ClassValue<String>() {
-    override fun computeValue(type: Class<*>): String = platformTypeName(type, configuredStyle)
+    override fun computeValue(type: Class<*>): String = platformTypeName(type, configuredStyle())
 }
 
 internal actual fun platformTypeName(type: KClass<*>): String = platformTypeName(type.java)
@@ -43,14 +45,20 @@ internal fun platformTypeName(type: Class<*>, style: JvmLoggerNameStyle): String
 }
 
 internal fun parseJvmLoggerNameStyle(value: String?): JvmLoggerNameStyle =
+    jvmLoggerNameStyleOrNull(value) ?: throw invalidLoggerNameStyle(value)
+
+private fun jvmLoggerNameStyleOrNull(value: String?): JvmLoggerNameStyle? =
     when (value) {
         null, LOGGER_NAME_STYLE_VALUE_SOURCE -> JvmLoggerNameStyle.SOURCE
         LOGGER_NAME_STYLE_VALUE_JVM_CLASS -> JvmLoggerNameStyle.JVM_CLASS
-        else -> throw AkkiException(
-            "akki: invalid $LOGGER_NAME_STYLE_PROPERTY_NAME value '$value': " +
-                "expected '$LOGGER_NAME_STYLE_VALUE_SOURCE' or '$LOGGER_NAME_STYLE_VALUE_JVM_CLASS'",
-        )
+        else -> null
     }
+
+private fun invalidLoggerNameStyle(value: String?): AkkiException =
+    AkkiException(
+        "akki: invalid $LOGGER_NAME_STYLE_PROPERTY_NAME value '$value': " +
+            "expected '$LOGGER_NAME_STYLE_VALUE_SOURCE' or '$LOGGER_NAME_STYLE_VALUE_JVM_CLASS'",
+    )
 
 private fun loggerNameStyleProperty(): String? =
     try {
@@ -127,7 +135,7 @@ private fun Metadata.readLenientOrNull(): KotlinClassMetadata? =
     }
 
 internal actual fun platformDeclarationName(source: String, platformName: String): String =
-    when (configuredStyle) {
+    when (configuredStyle()) {
         JvmLoggerNameStyle.SOURCE -> source
         JvmLoggerNameStyle.JVM_CLASS -> platformName
     }

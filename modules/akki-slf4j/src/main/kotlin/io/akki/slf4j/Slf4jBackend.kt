@@ -1,9 +1,9 @@
 package io.akki.slf4j
 
 import io.akki.Level
-import io.akki.LogBackend
-import io.akki.Sink
-import io.akki.SinkResolver
+import io.akki.backend.LogBackend
+import io.akki.backend.LoggerBinding
+import io.akki.backend.Sink
 import java.util.concurrent.ConcurrentHashMap
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -12,23 +12,15 @@ import org.slf4j.event.Level as Slf4jLevel
 public class Slf4jBackend : LogBackend {
     private val bindings: ConcurrentHashMap<String, Slf4jBinding> = ConcurrentHashMap()
 
-    override fun isEnabled(name: String, level: Level): Boolean = binding(name).isEnabled(level)
-
-    override fun resolve(name: String, level: Level): Sink? = binding(name).resolve(level)
-
-    override fun bind(name: String): SinkResolver = binding(name)
-
-    private fun binding(name: String): Slf4jBinding =
-        bindings[name] ?: bindings.computeIfAbsent(name, ::Slf4jBinding)
+    override fun bind(name: String): LoggerBinding = bindings[name] ?: bindings.computeIfAbsent(name, ::Slf4jBinding)
 }
 
-private class Slf4jBinding(name: String) : SinkResolver {
+private class Slf4jBinding(name: String) : LoggerBinding {
     private val logger: Logger = LoggerFactory.getLogger(name)
     private val sinks: Array<Sink> = Array(LEVELS.size) { Slf4jSink(logger, LEVELS[it]) }
 
-    fun isEnabled(level: Level): Boolean = logger.isEnabledForLevel(LEVELS[level.ordinal])
-
-    override fun resolve(level: Level): Sink? = if (isEnabled(level)) sinks[level.ordinal] else null
+    override fun resolve(level: Level): Sink? =
+        if (logger.isEnabledForLevel(LEVELS[level.ordinal])) sinks[level.ordinal] else null
 }
 
 private val LEVELS: Array<Slf4jLevel> = Array(Level.entries.size) { ordinal ->

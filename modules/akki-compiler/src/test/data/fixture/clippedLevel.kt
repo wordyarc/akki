@@ -31,7 +31,7 @@ fun box(): String {
     }
 
     return listOf(
-        backend.records.messages.joinToString(","),
+        backend.records.map { it.message }.joinToString(","),
         effects.joinToString(","),
         gate,
     ).joinToString("|")

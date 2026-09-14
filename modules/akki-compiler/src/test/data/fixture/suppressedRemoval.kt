@@ -21,5 +21,5 @@ fun box(): String {
         reported(logger)
     }
 
-    return backend.records.messages.joinToString(",")
+    return backend.records.map { it.message }.joinToString(",")
 }

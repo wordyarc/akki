@@ -5,20 +5,22 @@ import io.akki.Logger
 
 public class RecordingLogger(
     override val name: String = "recording",
-    private val enabled: Set<Level> = Level.entries.toSet(),
+    private val minLevel: Level = Level.TRACE,
 ) : Logger() {
-    public val records: List<LogRecord>
-        field: MutableList<LogRecord> = mutableListOf()
+    private val recorded: RecordLog<LogRecord> = RecordLog()
 
-    override fun isEnabled(level: Level): Boolean = level in enabled
+    public val records: List<LogRecord>
+        get() = recorded.snapshot
+
+    override fun isEnabled(level: Level): Boolean = level >= minLevel
 
     override fun emit(
         level: Level,
         message: String,
         cause: Throwable?,
         fields: Map<String, Any?>,
-    ): Unit {
-        records += LogRecord(name, level, message, cause, fields)
+    ) {
+        recorded.add(LogRecord(name, level, message, cause, fields))
     }
 
     override fun toString(): String = "RecordingLogger($name)"

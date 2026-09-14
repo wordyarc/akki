@@ -1,6 +1,7 @@
 package consumer
 
 import io.akki.*
+import io.akki.backend.*
 
 class OrderService {
     fun handle(id: String) {

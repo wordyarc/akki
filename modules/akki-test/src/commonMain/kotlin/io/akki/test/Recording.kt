@@ -1,19 +1,27 @@
+@file:OptIn(ExperimentalContracts::class)
+
 package io.akki.test
 
 import io.akki.DelicateAkkiApi
 import io.akki.Level
 import io.akki.Log
-import io.akki.LogBackend
+import io.akki.backend.LogBackend
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 @OptIn(DelicateAkkiApi::class)
-public inline fun <T> withBackend(backend: LogBackend, block: () -> T): T =
-    Log.install(backend).use { block() }
+public inline fun <T> withBackend(backend: LogBackend, block: () -> T): T {
+    contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
+    return Log.install(backend).use { block() }
+}
 
-public fun recordLogs(
-    enabled: Set<Level> = Level.entries.toSet(),
+public inline fun recordLogs(
+    minLevel: Level = Level.TRACE,
     block: () -> Unit,
 ): List<LogRecord> {
-    val backend = RecordingBackend(enabled)
+    contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
+    val backend = RecordingBackend(minLevel)
     withBackend(backend, block)
     return backend.records
 }

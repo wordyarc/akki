@@ -2,33 +2,27 @@
 
 package io.akki
 
+import io.akki.backend.LogBackend
 import io.akki.internal.CallSite
-import io.akki.internal.LogRegistry
-import io.akki.internal.installPlatformBackend
-import io.akki.internal.platformTypeName
 import kotlin.reflect.KClass
 
-public object Log {
-    public class Installation internal constructor(
-        private val uninstall: () -> Unit,
-    ) : AutoCloseable {
-        public fun uninstall(): Unit = uninstall.invoke()
+public expect object Log {
+    public fun of(type: KClass<*>): Logger
 
-        override fun close(): Unit = uninstall()
-    }
-
-    public fun of(type: KClass<*>): Logger = LogRegistry.of(platformTypeName(type))
-
-    public inline fun <reified T : Any> of(): Logger = of(T::class)
+    public inline fun <reified T : Any> of(): Logger
 
     @CallSite
-    public fun forCaller(): Logger = LogRegistry.forCaller()
+    public fun forCaller(): Logger
 
     @CallSite
-    public fun auto(): Logger = LogRegistry.forCaller()
+    public fun auto(): Logger
 
-    public fun named(name: String): Logger = LogRegistry.of(name)
+    public fun named(name: String): Logger
 
     @DelicateAkkiApi
-    public fun install(backend: LogBackend): Installation = installPlatformBackend(backend)
+    public fun install(backend: LogBackend): Installation
+
+    public class Installation internal constructor(uninstall: () -> Unit) : AutoCloseable {
+        override fun close()
+    }
 }

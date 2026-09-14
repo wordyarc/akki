@@ -25,35 +25,20 @@ public final class io/akki/Level : java/lang/Enum {
 
 public final class io/akki/Log {
 	public static final field INSTANCE Lio/akki/Log;
-	public final fun auto ()Lio/akki/Logger;
-	public final fun forCaller ()Lio/akki/Logger;
-	public final fun install (Lio/akki/LogBackend;)Lio/akki/Log$Installation;
-	public final fun named (Ljava/lang/String;)Lio/akki/Logger;
-	public final fun of (Lkotlin/reflect/KClass;)Lio/akki/Logger;
+	public static final fun auto ()Lio/akki/Logger;
+	public static final fun forCaller ()Lio/akki/Logger;
+	public static final fun install (Lio/akki/backend/LogBackend;)Lio/akki/Log$Installation;
+	public static final fun named (Ljava/lang/String;)Lio/akki/Logger;
+	public static final fun of (Ljava/lang/Class;)Lio/akki/Logger;
+	public static final fun of (Lkotlin/reflect/KClass;)Lio/akki/Logger;
 }
 
 public final class io/akki/Log$Installation : java/lang/AutoCloseable {
 	public fun close ()V
-	public final fun uninstall ()V
-}
-
-public abstract interface class io/akki/LogBackend {
-	public fun bind (Ljava/lang/String;)Lio/akki/SinkResolver;
-	public fun isEnabled (Ljava/lang/String;Lio/akki/Level;)Z
-	public abstract fun resolve (Ljava/lang/String;Lio/akki/Level;)Lio/akki/Sink;
-}
-
-public final class io/akki/LogBackend$DefaultImpls {
-	public static fun bind (Lio/akki/LogBackend;Ljava/lang/String;)Lio/akki/SinkResolver;
-	public static fun isEnabled (Lio/akki/LogBackend;Ljava/lang/String;Lio/akki/Level;)Z
 }
 
 public abstract interface annotation class io/akki/LogName : java/lang/annotation/Annotation {
 	public abstract fun value ()Ljava/lang/String;
-}
-
-public final class io/akki/Log_jvmKt {
-	public static final fun of (Lio/akki/Log;Ljava/lang/Class;)Lio/akki/Logger;
 }
 
 public abstract class io/akki/Logger {
@@ -74,7 +59,7 @@ public abstract class io/akki/Logger {
 	public static synthetic fun info$default (Lio/akki/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V
 	public static synthetic fun info$default (Lio/akki/Logger;Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
 	public abstract fun isEnabled (Lio/akki/Level;)Z
-	public fun sink (Lio/akki/Level;)Lio/akki/Sink;
+	public fun sink (Lio/akki/Level;)Lio/akki/backend/Sink;
 	public final fun trace (Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
 	public final fun trace (Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;)V
 	public static synthetic fun trace$default (Lio/akki/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V
@@ -91,12 +76,20 @@ public final class io/akki/LoggerNameStyleKt {
 	public static final field LOGGER_NAME_STYLE_VALUE_SOURCE Ljava/lang/String;
 }
 
-public abstract interface class io/akki/Sink {
-	public abstract fun emit (Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
+public abstract interface class io/akki/backend/LogBackend {
+	public abstract fun bind (Ljava/lang/String;)Lio/akki/backend/LoggerBinding;
 }
 
-public abstract interface class io/akki/SinkResolver {
-	public abstract fun resolve (Lio/akki/Level;)Lio/akki/Sink;
+public final class io/akki/backend/LogBackendKt {
+	public static final fun LogBackend (Lkotlin/jvm/functions/Function2;)Lio/akki/backend/LogBackend;
+}
+
+public abstract interface class io/akki/backend/LoggerBinding {
+	public abstract fun resolve (Lio/akki/Level;)Lio/akki/backend/Sink;
+}
+
+public abstract interface class io/akki/backend/Sink {
+	public abstract fun emit (Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
 }
 
 public final class io/akki/internal/LogRegistry {

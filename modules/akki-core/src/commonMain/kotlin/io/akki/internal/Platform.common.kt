@@ -1,8 +1,8 @@
 package io.akki.internal
 
 import io.akki.Log
-import io.akki.LogBackend
 import io.akki.Logger
+import io.akki.backend.LogBackend
 import kotlin.reflect.KClass
 
 internal expect fun platformLogger(name: String): Logger

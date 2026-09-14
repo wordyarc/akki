@@ -1,5 +1,7 @@
 package io.akki
 
+import io.akki.backend.Sink
+
 public abstract class Logger {
     public abstract val name: String
 
@@ -10,7 +12,7 @@ public abstract class Logger {
         message: String,
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
-    ): Unit
+    )
 
     private val sinks: Array<Sink> by lazy(LazyThreadSafetyMode.PUBLICATION) {
         Array(Level.entries.size) { ordinal ->
@@ -28,7 +30,7 @@ public abstract class Logger {
         message: String,
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
-    ): Unit {
+    ) {
         sink(Level.TRACE)?.emit(message, cause, fields)
     }
 
@@ -37,7 +39,7 @@ public abstract class Logger {
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
         message: () -> String,
-    ): Unit {
+    ) {
         sink(Level.TRACE)?.emit(message(), cause, fields)
     }
 
@@ -47,7 +49,7 @@ public abstract class Logger {
         message: String,
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
-    ): Unit {
+    ) {
         sink(Level.DEBUG)?.emit(message, cause, fields)
     }
 
@@ -56,7 +58,7 @@ public abstract class Logger {
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
         message: () -> String,
-    ): Unit {
+    ) {
         sink(Level.DEBUG)?.emit(message(), cause, fields)
     }
 
@@ -66,7 +68,7 @@ public abstract class Logger {
         message: String,
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
-    ): Unit {
+    ) {
         sink(Level.INFO)?.emit(message, cause, fields)
     }
 
@@ -75,7 +77,7 @@ public abstract class Logger {
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
         message: () -> String,
-    ): Unit {
+    ) {
         sink(Level.INFO)?.emit(message(), cause, fields)
     }
 
@@ -85,7 +87,7 @@ public abstract class Logger {
         message: String,
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
-    ): Unit {
+    ) {
         sink(Level.WARN)?.emit(message, cause, fields)
     }
 
@@ -94,7 +96,7 @@ public abstract class Logger {
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
         message: () -> String,
-    ): Unit {
+    ) {
         sink(Level.WARN)?.emit(message(), cause, fields)
     }
 
@@ -104,7 +106,7 @@ public abstract class Logger {
         message: String,
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
-    ): Unit {
+    ) {
         sink(Level.ERROR)?.emit(message, cause, fields)
     }
 
@@ -113,7 +115,7 @@ public abstract class Logger {
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
         message: () -> String,
-    ): Unit {
+    ) {
         sink(Level.ERROR)?.emit(message(), cause, fields)
     }
 }

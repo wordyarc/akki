@@ -10,5 +10,5 @@ private fun <T : () -> String> viaTypeParameter(logger: Logger, message: T) {
 fun box(): String {
     val logger = RecordingLogger()
     viaTypeParameter(logger) { "via-type-parameter" }
-    return logger.records.messages.joinToString(",")
+    return logger.records.map { it.message }.joinToString(",")
 }

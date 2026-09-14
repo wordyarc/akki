@@ -1,8 +1,9 @@
 package io.akki.internal
 
 import io.akki.Level
-import io.akki.LogBackend
-import io.akki.Sink
+import io.akki.backend.LogBackend
+import io.akki.backend.LoggerBinding
+import io.akki.backend.Sink
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
@@ -10,11 +11,12 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 internal class DefaultBackend : LogBackend {
     private val announced = AtomicBoolean(false)
 
-    override fun isEnabled(name: String, level: Level): Boolean = level >= Level.INFO
-
-    override fun resolve(name: String, level: Level): Sink? {
-        if (level < Level.INFO) return null
-        return Sink { message, cause, fields -> printError(record(level, name, message, cause, fields)) }
+    override fun bind(name: String): LoggerBinding {
+        val sinks = Array(Level.entries.size) { ordinal ->
+            val level = Level.entries[ordinal]
+            Sink { message, cause, fields -> printError(record(level, name, message, cause, fields)) }
+        }
+        return LoggerBinding { level -> if (level >= THRESHOLD) sinks[level.ordinal] else null }
     }
 
     private fun record(
@@ -43,6 +45,8 @@ internal class DefaultBackend : LogBackend {
     }
 
     private companion object {
+        val THRESHOLD: Level = Level.INFO
+
         const val NOTICE: String =
             "akki: no backend installed, writing to stderr at INFO. Install one with Log.install(backend)."
 

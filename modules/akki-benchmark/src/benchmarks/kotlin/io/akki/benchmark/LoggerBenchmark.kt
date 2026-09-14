@@ -3,9 +3,10 @@ package io.akki.benchmark
 import io.akki.DelicateAkkiApi
 import io.akki.Level
 import io.akki.Log
-import io.akki.LogBackend
 import io.akki.Logger
-import io.akki.Sink
+import io.akki.backend.LogBackend
+import io.akki.backend.LoggerBinding
+import io.akki.backend.Sink
 import java.util.concurrent.TimeUnit
 import kotlinx.benchmark.Benchmark
 import kotlinx.benchmark.BenchmarkMode
@@ -64,5 +65,7 @@ class LoggerBenchmark {
 private object CountingBackend : LogBackend {
     private val sink = Sink { _, _, _ -> }
 
-    override fun resolve(name: String, level: Level): Sink? = sink.takeIf { level >= Level.INFO }
+    private val binding = LoggerBinding { level -> sink.takeIf { level >= Level.INFO } }
+
+    override fun bind(name: String): LoggerBinding = binding
 }

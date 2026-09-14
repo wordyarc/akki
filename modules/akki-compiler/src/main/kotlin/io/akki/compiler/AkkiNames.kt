@@ -11,10 +11,11 @@ internal object AkkiNames {
 
     val PACKAGE: FqName = FqName(PLUGIN_ID)
     val INTERNAL_PACKAGE: FqName = PACKAGE.child(Name.identifier("internal"))
+    val BACKEND_PACKAGE: FqName = PACKAGE.child(Name.identifier("backend"))
 
     val LOGGER_ID: ClassId = PACKAGE.classId("Logger")
     val LEVEL_ID: ClassId = PACKAGE.classId("Level")
-    val SINK_ID: ClassId = PACKAGE.classId("Sink")
+    val SINK_ID: ClassId = BACKEND_PACKAGE.classId("Sink")
     val LOG_NAME_ID: ClassId = PACKAGE.classId("LogName")
     val CALL_SITE_ID: ClassId = INTERNAL_PACKAGE.classId("CallSite")
     val LOG_ID: ClassId = PACKAGE.classId("Log")
@@ -28,6 +29,8 @@ internal object AkkiNames {
     val NAMED: Name = Name.identifier("named")
     val SINK: Name = Name.identifier("sink")
     val EMIT: Name = Name.identifier("emit")
+
+    val VALUE: Name = Name.identifier("value")
 
     val MESSAGE: Name = Name.identifier("message")
     val CAUSE: Name = Name.identifier("cause")

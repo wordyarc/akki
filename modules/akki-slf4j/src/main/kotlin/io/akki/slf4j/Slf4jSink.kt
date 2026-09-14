@@ -1,6 +1,6 @@
 package io.akki.slf4j
 
-import io.akki.Sink
+import io.akki.backend.Sink
 import org.slf4j.Logger
 import org.slf4j.event.Level
 import org.slf4j.spi.CallerBoundaryAware

@@ -5,7 +5,7 @@ import io.akki.test.*
 
 @OptIn(DelicateAkkiApi::class)
 fun box(): String {
-    val backend = RecordingBackend(setOf(Level.TRACE, Level.INFO, Level.WARN, Level.ERROR))
+    val backend = RecordingBackend(Level.INFO)
     val logger = Log.named("fixture")
     val effects = mutableListOf<String>()
 
@@ -21,6 +21,6 @@ fun box(): String {
     return listOf(
         backend.resolutions.joinToString(",") { it.level.name },
         effects.joinToString(","),
-        backend.records.messages.joinToString(","),
+        backend.records.map { it.message }.joinToString(","),
     ).joinToString("|")
 }

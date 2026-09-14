@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.diagnostics.errorWithoutSource
 import org.jetbrains.kotlin.diagnostics.rendering.BaseDiagnosticRendererFactory
 import org.jetbrains.kotlin.diagnostics.rendering.BaseSourcelessDiagnosticRendererFactory.Companion.MESSAGE_PLACEHOLDER
 import org.jetbrains.kotlin.diagnostics.rendering.CommonRenderers
+import org.jetbrains.kotlin.diagnostics.error0
 import org.jetbrains.kotlin.diagnostics.error1
 import org.jetbrains.kotlin.diagnostics.error2
 import org.jetbrains.kotlin.psi.KtElement
@@ -31,6 +32,8 @@ internal object AkkiErrors : KtDiagnosticsContainer() {
         KtElement::class,
         this,
     )
+
+    val BLANK_LOG_NAME by error0<KtElement>()
 
     val INCOMPATIBLE_AKKI_CORE by errorWithoutSource()
 
@@ -69,6 +72,11 @@ internal object AkkiDefaultErrorMessages : BaseDiagnosticRendererFactory() {
                 "configuration can bring the record back. Lower ''minLevel'' to keep it.",
             CommonRenderers.STRING,
             CommonRenderers.STRING,
+        )
+        map.put(
+            AkkiErrors.BLANK_LOG_NAME,
+            "'@LogName' must name the logger of this declaration, but the name is blank. Remove the annotation " +
+                "to keep the name derived from the declaration, or give it a non-blank name.",
         )
         map.put(AkkiErrors.INCOMPATIBLE_AKKI_CORE, MESSAGE_PLACEHOLDER)
     }

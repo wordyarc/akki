@@ -1,7 +1,5 @@
-public final class io/akki/slf4j/Slf4jBackend : io/akki/LogBackend {
+public final class io/akki/slf4j/Slf4jBackend : io/akki/backend/LogBackend {
 	public fun <init> ()V
-	public fun bind (Ljava/lang/String;)Lio/akki/SinkResolver;
-	public fun isEnabled (Ljava/lang/String;Lio/akki/Level;)Z
-	public fun resolve (Ljava/lang/String;Lio/akki/Level;)Lio/akki/Sink;
+	public fun bind (Ljava/lang/String;)Lio/akki/backend/LoggerBinding;
 }
 

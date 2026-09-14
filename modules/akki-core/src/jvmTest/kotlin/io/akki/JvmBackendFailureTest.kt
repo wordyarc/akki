@@ -1,5 +1,6 @@
 package io.akki
 
+import io.akki.backend.LogBackend
 import io.akki.test.withBackend
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
@@ -14,7 +15,7 @@ class JvmBackendFailureTest {
         val logger = Log.named("failure.announced")
 
         val output = captureError {
-            withBackend({ name, _ -> error("backend is broken for $name") }) {
+            withBackend(LogBackend { name -> error("backend is broken for $name") }) {
                 repeat(3) { logger.info("dropped") }
             }
         }

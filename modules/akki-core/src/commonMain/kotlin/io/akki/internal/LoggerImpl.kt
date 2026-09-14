@@ -2,10 +2,10 @@ package io.akki.internal
 
 import io.akki.InternalAkkiApi
 import io.akki.Level
-import io.akki.LogBackend
 import io.akki.Logger
-import io.akki.Sink
-import io.akki.SinkResolver
+import io.akki.backend.LogBackend
+import io.akki.backend.LoggerBinding
+import io.akki.backend.Sink
 import kotlin.concurrent.Volatile
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
@@ -17,7 +17,7 @@ internal class LoggerImpl(override val name: String) : Logger() {
 
     private val reported = AtomicBoolean(false)
 
-    override fun isEnabled(level: Level): Boolean = guarded(false) { platformBackend().isEnabled(name, level) }
+    override fun isEnabled(level: Level): Boolean = resolver().resolve(level) != null
 
     override fun sink(level: Level): Sink? = resolver().resolve(level)
 
@@ -26,17 +26,17 @@ internal class LoggerImpl(override val name: String) : Logger() {
         message: String,
         cause: Throwable?,
         fields: Map<String, Any?>,
-    ): Unit {
+    ) {
         resolver().resolve(level)?.emit(message, cause, fields)
     }
 
     override fun toString(): String = "Logger($name)"
 
-    private fun resolver(): SinkResolver {
+    private fun resolver(): LoggerBinding {
         val backend = platformBackend()
-        binding?.takeIf { it.backend === backend }?.let { return it.resolver }
-        val bound = guarded<SinkResolver?>(null) { backend.bind(name) } ?: return NO_SINK
-        return GuardedResolver(bound).also { binding = Binding(backend, it) }
+        binding?.takeIf { it.backend === backend }?.let { return it.binding }
+        val bound = guarded<LoggerBinding?>(null) { backend.bind(name) } ?: return NO_SINK
+        return GuardedBinding(bound).also { binding = Binding(backend, it) }
     }
 
     private inline fun <T> guarded(fallback: T, resolve: () -> T): T =
@@ -56,13 +56,13 @@ internal class LoggerImpl(override val name: String) : Logger() {
         )
     }
 
-    private inner class GuardedResolver(private val delegate: SinkResolver) : SinkResolver {
+    private inner class GuardedBinding(private val delegate: LoggerBinding) : LoggerBinding {
         override fun resolve(level: Level): Sink? = guarded<Sink?>(null) { delegate.resolve(level) }
     }
 
-    private class Binding(val backend: LogBackend, val resolver: SinkResolver)
+    private class Binding(val backend: LogBackend, val binding: LoggerBinding)
 
     private companion object {
-        val NO_SINK: SinkResolver = SinkResolver { null }
+        val NO_SINK: LoggerBinding = LoggerBinding { null }
     }
 }

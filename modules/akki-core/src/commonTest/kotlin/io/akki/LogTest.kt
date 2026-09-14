@@ -1,11 +1,12 @@
 package io.akki
 
+import io.akki.backend.LogBackend
+import io.akki.backend.LoggerBinding
+import io.akki.backend.Sink
 import io.akki.test.LogRecord
 import io.akki.test.RecordingBackend
 import io.akki.test.RecordingLogger
 import io.akki.test.Resolution
-import io.akki.test.levels
-import io.akki.test.messages
 import io.akki.test.withBackend
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -33,7 +34,7 @@ class LogTest {
 
     @Test
     fun `a consumer Logger reuses one sink per level`(): Unit {
-        val logger = RecordingLogger("custom", enabled = setOf(Level.INFO))
+        val logger = RecordingLogger("custom", minLevel = Level.INFO)
 
         assertSame(logger.sink(Level.INFO), logger.sink(Level.INFO))
         assertNull(logger.sink(Level.DEBUG))
@@ -69,9 +70,9 @@ class LogTest {
             logger.error("error", fields = fields)
         }
 
-        assertEquals(Level.entries, backend.records.levels)
+        assertEquals(Level.entries, backend.records.map { it.level })
         assertTrue(backend.records.all { it.name == "checkout" })
-        assertEquals(listOf("trace", "debug", "info", "warn", "error"), backend.records.messages)
+        assertEquals(listOf("trace", "debug", "info", "warn", "error"), backend.records.map { it.message })
         assertTrue(backend.records.all { it.fields == fields })
     }
 
@@ -89,15 +90,15 @@ class LogTest {
             logger.error(cause, fields) { "error" }
         }
 
-        assertEquals(Level.entries, backend.records.levels)
-        assertEquals(listOf("trace", "debug", "info", "warn", "error"), backend.records.messages)
+        assertEquals(Level.entries, backend.records.map { it.level })
+        assertEquals(listOf("trace", "debug", "info", "warn", "error"), backend.records.map { it.message })
         assertTrue(backend.records.all { it.fields == fields })
         assertSame(cause, backend.records.last().cause)
     }
 
     @Test
     fun `lazy message is evaluated only for an enabled level`(): Unit {
-        val backend = RecordingBackend(setOf(Level.ERROR))
+        val backend = RecordingBackend(Level.ERROR)
         val logger = Log.named("lazy-filtered")
         val evaluatedLevels: MutableList<Level> = mutableListOf()
         withBackend(backend) {
@@ -112,7 +113,7 @@ class LogTest {
         }
 
         assertEquals(listOf(Level.ERROR), evaluatedLevels)
-        assertEquals(listOf("recorded"), backend.records.messages)
+        assertEquals(listOf("recorded"), backend.records.map { it.message })
         assertEquals(
             listOf(Resolution("lazy-filtered", Level.INFO), Resolution("lazy-filtered", Level.ERROR)),
             backend.resolutions,
@@ -121,7 +122,7 @@ class LogTest {
 
     @Test
     fun `backend controls level filtering`(): Unit {
-        val backend = RecordingBackend(setOf(Level.ERROR))
+        val backend = RecordingBackend(Level.ERROR)
         val logger = Log.named("filtered")
         withBackend(backend) {
             assertFalse(logger.isEnabled(Level.INFO))
@@ -131,34 +132,31 @@ class LogTest {
             logger.error("recorded")
         }
 
-        assertEquals(listOf("recorded"), backend.records.messages)
+        assertEquals(listOf("recorded"), backend.records.map { it.message })
     }
 
     @Test
-    fun `backend can answer isEnabled without resolving a sink`(): Unit {
-        var resolutions = 0
-        val backend = object : LogBackend {
-            override fun resolve(name: String, level: Level): Sink? {
-                resolutions++
-                return null
-            }
-
-            override fun isEnabled(name: String, level: Level): Boolean = level >= Level.WARN
+    fun `a backend is bound once and asked per record`(): Unit {
+        var binds = 0
+        val backend = LogBackend { name ->
+            binds++
+            LoggerBinding { level -> if (level >= Level.WARN) Sink { _, _, _ -> } else null }
         }
-        val logger = Log.named("fast-enabled")
+        val logger = Log.named("bound-once")
 
         withBackend(backend) {
             assertFalse(logger.isEnabled(Level.INFO))
             assertTrue(logger.isEnabled(Level.ERROR))
+            logger.error("recorded")
         }
 
-        assertEquals(0, resolutions)
+        assertEquals(1, binds)
     }
 
     @Test
-    fun `isEnabled falls back to sink resolution`(): Unit {
-        val backend = RecordingBackend(setOf(Level.ERROR))
-        val logger = Log.named("fallback-enabled")
+    fun `isEnabled answers from the same binding as sink`(): Unit {
+        val backend = RecordingBackend(Level.ERROR)
+        val logger = Log.named("consistent-enabled")
 
         withBackend(backend) {
             assertFalse(logger.isEnabled(Level.INFO))
@@ -166,13 +164,13 @@ class LogTest {
         }
 
         assertEquals(
-            listOf(Resolution("fallback-enabled", Level.INFO), Resolution("fallback-enabled", Level.ERROR)),
+            listOf(Resolution("consistent-enabled", Level.INFO), Resolution("consistent-enabled", Level.ERROR)),
             backend.resolutions,
         )
     }
 
     @Test
-    fun `uninstall restores the previous backend`(): Unit {
+    fun `close restores the previous backend`(): Unit {
         val logger = Log.named("replaceable")
         val first = RecordingBackend()
         val second = RecordingBackend()
@@ -183,8 +181,8 @@ class LogTest {
             logger.info("restored")
         }
 
-        assertEquals(listOf("first", "restored"), first.records.messages)
-        assertEquals(listOf("second"), second.records.messages)
+        assertEquals(listOf("first", "restored"), first.records.map { it.message })
+        assertEquals(listOf("second"), second.records.map { it.message })
     }
 
     @Test
@@ -196,23 +194,24 @@ class LogTest {
         val secondInstallation = Log.install(second)
 
         try {
-            assertFailsWith<AkkiException> { firstInstallation.uninstall() }
+            val failure = assertFailsWith<IllegalStateException> { firstInstallation.close() }
+            assertFalse(failure is AkkiException, "misuse of install/close is not an akki misconfiguration")
             logger.info("current")
         } finally {
-            secondInstallation.uninstall()
-            firstInstallation.uninstall()
+            secondInstallation.close()
+            firstInstallation.close()
         }
 
         assertTrue(first.records.isEmpty())
-        assertEquals(listOf("current"), second.records.messages)
+        assertEquals(listOf("current"), second.records.map { it.message })
     }
 
     @Test
-    fun `installation can be uninstalled more than once`(): Unit {
+    fun `installation can be closed more than once`(): Unit {
         val installation = Log.install(RecordingBackend())
 
-        installation.uninstall()
-        installation.uninstall()
+        installation.close()
+        installation.close()
     }
 
     @Test
@@ -222,15 +221,15 @@ class LogTest {
         val second = Log.install(backend)
 
         try {
-            assertFailsWith<AkkiException> { first.uninstall() }
+            assertFailsWith<IllegalStateException> { first.close() }
         } finally {
-            second.uninstall()
-            first.uninstall()
+            second.close()
+            first.close()
         }
     }
 
     @Test
-    fun `installation is uninstalled on close`(): Unit {
+    fun `installation is released on close`(): Unit {
         val outer = RecordingBackend()
         val inner = RecordingBackend()
         val logger = Log.named("closeable")
@@ -240,8 +239,8 @@ class LogTest {
             logger.info("outside")
         }
 
-        assertEquals(listOf("inside"), inner.records.messages)
-        assertEquals(listOf("outside"), outer.records.messages)
+        assertEquals(listOf("inside"), inner.records.map { it.message })
+        assertEquals(listOf("outside"), outer.records.map { it.message })
     }
 
     @Test

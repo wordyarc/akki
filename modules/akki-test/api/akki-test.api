@@ -18,32 +18,25 @@ public final class io/akki/test/LogRecord {
 	public fun toString ()Ljava/lang/String;
 }
 
-public final class io/akki/test/LogRecordKt {
-	public static final fun getLevels (Ljava/util/List;)Ljava/util/List;
-	public static final fun getMessages (Ljava/util/List;)Ljava/util/List;
-}
-
-public final class io/akki/test/RecordingBackend : io/akki/LogBackend {
+public final class io/akki/test/RecordingBackend : io/akki/backend/LogBackend {
 	public fun <init> ()V
-	public fun <init> (Ljava/util/Set;)V
-	public synthetic fun <init> (Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public fun bind (Ljava/lang/String;)Lio/akki/SinkResolver;
+	public fun <init> (Lio/akki/Level;)V
+	public synthetic fun <init> (Lio/akki/Level;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun bind (Ljava/lang/String;)Lio/akki/backend/LoggerBinding;
 	public final fun getRecords ()Ljava/util/List;
 	public final fun getResolutions ()Ljava/util/List;
-	public fun isEnabled (Ljava/lang/String;Lio/akki/Level;)Z
-	public fun resolve (Ljava/lang/String;Lio/akki/Level;)Lio/akki/Sink;
 }
 
 public final class io/akki/test/RecordingKt {
-	public static final fun recordLogs (Ljava/util/Set;Lkotlin/jvm/functions/Function0;)Ljava/util/List;
-	public static synthetic fun recordLogs$default (Ljava/util/Set;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Ljava/util/List;
-	public static final fun withBackend (Lio/akki/LogBackend;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
+	public static final fun recordLogs (Lio/akki/Level;Lkotlin/jvm/functions/Function0;)Ljava/util/List;
+	public static synthetic fun recordLogs$default (Lio/akki/Level;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Ljava/util/List;
+	public static final fun withBackend (Lio/akki/backend/LogBackend;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 }
 
 public final class io/akki/test/RecordingLogger : io/akki/Logger {
 	public fun <init> ()V
-	public fun <init> (Ljava/lang/String;Ljava/util/Set;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;Lio/akki/Level;)V
+	public synthetic fun <init> (Ljava/lang/String;Lio/akki/Level;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun emit (Lio/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
 	public fun getName ()Ljava/lang/String;
 	public final fun getRecords ()Ljava/util/List;

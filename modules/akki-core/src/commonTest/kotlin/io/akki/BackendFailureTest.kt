@@ -1,7 +1,9 @@
 package io.akki
 
+import io.akki.backend.LogBackend
+import io.akki.backend.LoggerBinding
+import io.akki.backend.Sink
 import io.akki.test.RecordingBackend
-import io.akki.test.messages
 import io.akki.test.withBackend
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -38,7 +40,7 @@ class BackendFailureTest {
     fun `a level is disabled when the backend fails to answer`(): Unit {
         val logger = Log.named("failure.asking")
 
-        withBackend(FailingBackend(failing = Failing.IS_ENABLED)) {
+        withBackend(FailingBackend()) {
             assertFalse(logger.isEnabled(Level.ERROR))
         }
     }
@@ -55,7 +57,7 @@ class BackendFailureTest {
             logger.info("recorded")
         }
 
-        assertEquals(listOf("recorded"), working.records.messages)
+        assertEquals(listOf("recorded"), working.records.map { it.message })
     }
 
     @Test
@@ -73,27 +75,19 @@ class BackendFailureTest {
     private enum class Failing {
         RESOLVE,
         BIND,
-        IS_ENABLED,
     }
 
     private class FailingBackend(private val failing: Failing = Failing.RESOLVE) : LogBackend {
         var attempts: Int = 0
             private set
 
-        override fun resolve(name: String, level: Level): Sink? {
-            attempts++
-            if (failing == Failing.RESOLVE) fail(name)
-            return Sink { _, _, _ -> }
-        }
-
-        override fun isEnabled(name: String, level: Level): Boolean {
-            if (failing == Failing.IS_ENABLED) fail(name)
-            return true
-        }
-
-        override fun bind(name: String): SinkResolver {
+        override fun bind(name: String): LoggerBinding {
             if (failing == Failing.BIND) fail(name)
-            return SinkResolver { level -> resolve(name, level) }
+            return LoggerBinding {
+                attempts++
+                if (failing == Failing.RESOLVE) fail(name)
+                Sink { _, _, _ -> }
+            }
         }
 
         private fun fail(name: String): Nothing = throw IllegalStateException("backend is broken for $name")

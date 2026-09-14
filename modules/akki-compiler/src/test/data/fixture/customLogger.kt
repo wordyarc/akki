@@ -1,6 +1,7 @@
 package fixture
 
 import io.akki.*
+import io.akki.backend.*
 import io.akki.internal.*
 
 @OptIn(InternalAkkiApi::class)

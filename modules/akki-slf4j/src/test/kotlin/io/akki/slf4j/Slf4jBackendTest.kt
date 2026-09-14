@@ -37,7 +37,7 @@ class Slf4jBackendTest {
 
     @AfterTest
     fun uninstall() {
-        installation.uninstall()
+        installation.close()
     }
 
     @Test
@@ -90,18 +90,17 @@ class Slf4jBackendTest {
     }
 
     @Test
-    fun `reflects enabled levels in resolve and the fast path`() {
+    fun `a binding reflects enabled levels`() {
         val context = LoggerFactory.getILoggerFactory() as LoggerContext
         val logger = context.getLogger("quiet")
         logger.level = LogbackLevel.WARN
+        val binding = backend.bind("quiet")
 
-        assertFalse(backend.isEnabled("quiet", Level.INFO))
-        assertTrue(backend.isEnabled("quiet", Level.WARN))
-        assertNull(backend.resolve("quiet", Level.INFO))
-        assertTrue(backend.resolve("quiet", Level.WARN) != null)
+        assertNull(binding.resolve(Level.INFO))
+        assertTrue(binding.resolve(Level.WARN) != null)
 
         logger.level = LogbackLevel.DEBUG
-        assertTrue(backend.isEnabled("quiet", Level.INFO))
+        assertTrue(binding.resolve(Level.INFO) != null)
     }
 }
 

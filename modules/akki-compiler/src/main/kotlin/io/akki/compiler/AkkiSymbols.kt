@@ -16,10 +16,12 @@ import org.jetbrains.kotlin.ir.types.classOrNull
 import org.jetbrains.kotlin.ir.util.defaultType
 import org.jetbrains.kotlin.ir.util.functions
 import org.jetbrains.kotlin.ir.util.hasAnnotation
+import org.jetbrains.kotlin.ir.util.classId
 import org.jetbrains.kotlin.ir.util.hasShape
 import org.jetbrains.kotlin.ir.util.invokeFun
 import org.jetbrains.kotlin.ir.util.nonDispatchParameters
 import org.jetbrains.kotlin.name.ClassId
+import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.name.Name
 
 internal enum class EmitSlot {
@@ -64,7 +66,14 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
     val registryOf: IrSimpleFunctionSymbol =
         logRegistry.functionOrFail(AkkiNames.OF, REGISTRY_OF_SIGNATURE, parameters = 1).symbol
 
-    val ofType: IrSimpleFunctionSymbol = log.functionOrFail(AkkiNames.OF, OF_TYPE_SIGNATURE, parameters = 1).symbol
+    val ofType: IrSimpleFunctionSymbol = log.owner.functions
+        .singleOrNull {
+            it.name == AkkiNames.OF &&
+                it.hasShape(dispatchReceiver = true, regularParameters = 1) &&
+                it.parameters[1].type.classOrNull?.owner?.classId == StandardClassIds.KClass
+        }
+        ?.symbol
+        ?: incompatible(OF_TYPE_SIGNATURE)
 
     val ofReifiedType: IrSimpleFunctionSymbol =
         log.functionOrFail(AkkiNames.OF, OF_REIFIED_SIGNATURE, parameters = 0).symbol

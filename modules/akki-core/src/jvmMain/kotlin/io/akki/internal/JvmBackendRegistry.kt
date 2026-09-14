@@ -1,8 +1,7 @@
 package io.akki.internal
 
-import io.akki.AkkiException
 import io.akki.Log
-import io.akki.LogBackend
+import io.akki.backend.LogBackend
 import java.util.ServiceConfigurationError
 import java.util.ServiceLoader
 import java.util.concurrent.atomic.AtomicBoolean
@@ -21,7 +20,7 @@ private object JvmBackendRegistry {
             if (active.compareAndSet(true, false)) {
                 if (!this.backend.compareAndSet(installed, previous)) {
                     active.set(true)
-                    throw AkkiException("akki: backend installations must be uninstalled in reverse order")
+                    throw IllegalStateException("akki: backend installations must be uninstalled in reverse order")
                 }
             }
         }
@@ -39,10 +38,12 @@ private fun discover(): LogBackend =
     }
 
 internal fun chooseBackend(declared: List<LogBackend>): LogBackend {
-    val chosen = declared.firstOrNull() ?: return DefaultBackend()
-    if (declared.size > 1) {
+    if (declared.isEmpty()) return DefaultBackend()
+    val ordered = declared.sortedBy { it::class.java.name }
+    val chosen = ordered.first()
+    if (ordered.size > 1) {
         printError(
-            declared.joinToString(
+            ordered.joinToString(
                 prefix = "akki: multiple backends on the classpath, using ${chosen::class.java.name}: ",
             ) { it::class.java.name },
         )

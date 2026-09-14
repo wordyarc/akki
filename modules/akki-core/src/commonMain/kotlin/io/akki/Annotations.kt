@@ -6,6 +6,12 @@ public annotation class LogName(public val value: String)
 
 @MustBeDocumented
 @Retention(AnnotationRetention.BINARY)
+@Target(
+    AnnotationTarget.CLASS,
+    AnnotationTarget.FUNCTION,
+    AnnotationTarget.PROPERTY,
+    AnnotationTarget.TYPEALIAS,
+)
 @RequiresOptIn(
     level = RequiresOptIn.Level.WARNING,
     message = "This API changes process-wide Akki state and requires careful lifecycle management.",

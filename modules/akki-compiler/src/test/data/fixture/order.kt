@@ -24,6 +24,6 @@ fun box(): String {
     return listOf(
         backend.resolutions.joinToString(",") { it.level.name },
         effects.joinToString(","),
-        backend.records.messages.joinToString(","),
+        backend.records.map { it.message }.joinToString(","),
     ).joinToString("|")
 }

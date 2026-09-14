@@ -4,6 +4,7 @@ import io.akki.Level
 import io.akki.Log
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class RecordingTest {
@@ -26,18 +27,41 @@ class RecordingTest {
 
     @Test
     fun `disabled levels are resolved but not recorded`() {
-        val backend = RecordingBackend(setOf(Level.ERROR))
+        val backend = RecordingBackend(Level.ERROR)
 
         withBackend(backend) {
             Log.named("quiet").info("ignored")
             Log.named("quiet").error("kept")
         }
 
-        assertEquals(listOf("kept"), backend.records.messages)
+        assertEquals(listOf("kept"), backend.records.map { it.message })
         assertEquals(
             listOf(Resolution("quiet", Level.INFO), Resolution("quiet", Level.ERROR)),
             backend.resolutions,
         )
+    }
+
+    @Test
+    fun `records hands out a snapshot that later records do not change`() {
+        val backend = RecordingBackend()
+
+        withBackend(backend) {
+            Log.named("snapshot").info("first")
+            val taken = backend.records
+            Log.named("snapshot").info("second")
+
+            assertEquals(listOf("first"), taken.map { it.message })
+            assertEquals(listOf("first", "second"), backend.records.map { it.message })
+        }
+    }
+
+    @Test
+    fun `records cannot be written through the list it returns`() {
+        val backend = RecordingBackend()
+        withBackend(backend) { Log.named("read-only").info("kept") }
+
+        assertFalse(backend.records is MutableList<*>)
+        assertFalse(RecordingLogger().records is MutableList<*>)
     }
 
     @Test
@@ -50,8 +74,8 @@ class RecordingTest {
             Log.named("nested").info("outside")
         }
 
-        assertEquals(listOf("inside"), inner.records.messages)
-        assertEquals(listOf("outside"), outer.records.messages)
+        assertEquals(listOf("inside"), inner.records.map { it.message })
+        assertEquals(listOf("outside"), outer.records.map { it.message })
     }
 
     @Test
@@ -61,13 +85,13 @@ class RecordingTest {
 
     @Test
     fun `recording logger needs no installation`() {
-        val logger = RecordingLogger("checkout", enabled = setOf(Level.ERROR))
+        val logger = RecordingLogger("checkout", minLevel = Level.ERROR)
 
         logger.info("ignored")
         logger.error("kept")
 
-        assertEquals(listOf("kept"), logger.records.messages)
-        assertEquals(listOf(Level.ERROR), logger.records.levels)
+        assertEquals(listOf("kept"), logger.records.map { it.message })
+        assertEquals(listOf(Level.ERROR), logger.records.map { it.level })
         assertTrue(logger.isEnabled(Level.ERROR))
     }
 
