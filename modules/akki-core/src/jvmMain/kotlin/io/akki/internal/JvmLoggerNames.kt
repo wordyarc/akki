@@ -18,14 +18,18 @@ internal enum class JvmLoggerNameStyle {
     JVM_CLASS,
 }
 
-private val styleSetting: String? = loggerNameStyleProperty()
-
-private val resolvedStyle: JvmLoggerNameStyle? = jvmLoggerNameStyleOrNull(styleSetting)
-
-private fun configuredStyle(): JvmLoggerNameStyle = resolvedStyle ?: throw invalidLoggerNameStyle(styleSetting)
+private val configuredStyle: JvmLoggerNameStyle = loggerNameStyleProperty().let { setting ->
+    jvmLoggerNameStyleOrNull(setting) ?: run {
+        printError(
+            invalidLoggerNameStyle(setting) +
+                ", falling back to '$LOGGER_NAME_STYLE_VALUE_SOURCE'",
+        )
+        JvmLoggerNameStyle.SOURCE
+    }
+}
 
 private val typeNames: ClassValue<String> = object : ClassValue<String>() {
-    override fun computeValue(type: Class<*>): String = platformTypeName(type, configuredStyle())
+    override fun computeValue(type: Class<*>): String = platformTypeName(type, configuredStyle)
 }
 
 internal actual fun platformTypeName(type: KClass<*>): String = platformTypeName(type.java)
@@ -35,7 +39,7 @@ internal fun platformTypeName(type: Class<*>): String = typeNames.get(type)
 internal fun platformTypeName(type: Class<*>, style: JvmLoggerNameStyle): String {
     var owner = type
     while (true) {
-        owner.getDeclaredAnnotation(LogName::class.java)?.let { return it.value }
+        owner.getDeclaredAnnotation(LogName::class.java)?.let { return it.logName(owner) }
         owner = owner.logicalEnclosingOwner() ?: break
     }
     return when (style) {
@@ -44,21 +48,24 @@ internal fun platformTypeName(type: Class<*>, style: JvmLoggerNameStyle): String
     }
 }
 
+private fun LogName.logName(owner: Class<*>): String =
+    value.ifBlank {
+        throw AkkiException("akki: @LogName on ${owner.name} has a blank value, a logger name must not be blank")
+    }
+
 internal fun parseJvmLoggerNameStyle(value: String?): JvmLoggerNameStyle =
-    jvmLoggerNameStyleOrNull(value) ?: throw invalidLoggerNameStyle(value)
+    jvmLoggerNameStyleOrNull(value) ?: throw AkkiException(invalidLoggerNameStyle(value))
 
 private fun jvmLoggerNameStyleOrNull(value: String?): JvmLoggerNameStyle? =
-    when (value) {
+    when (value?.trim()?.lowercase()?.replace('_', '-')?.ifEmpty { null }) {
         null, LOGGER_NAME_STYLE_VALUE_SOURCE -> JvmLoggerNameStyle.SOURCE
         LOGGER_NAME_STYLE_VALUE_JVM_CLASS -> JvmLoggerNameStyle.JVM_CLASS
         else -> null
     }
 
-private fun invalidLoggerNameStyle(value: String?): AkkiException =
-    AkkiException(
-        "akki: invalid $LOGGER_NAME_STYLE_PROPERTY_NAME value '$value': " +
-            "expected '$LOGGER_NAME_STYLE_VALUE_SOURCE' or '$LOGGER_NAME_STYLE_VALUE_JVM_CLASS'",
-    )
+private fun invalidLoggerNameStyle(value: String?): String =
+    "akki: invalid $LOGGER_NAME_STYLE_PROPERTY_NAME value '$value': " +
+        "expected '$LOGGER_NAME_STYLE_VALUE_SOURCE' or '$LOGGER_NAME_STYLE_VALUE_JVM_CLASS'"
 
 private fun loggerNameStyleProperty(): String? =
     try {
@@ -135,7 +142,7 @@ private fun Metadata.readLenientOrNull(): KotlinClassMetadata? =
     }
 
 internal actual fun platformDeclarationName(source: String, platformName: String): String =
-    when (configuredStyle()) {
+    when (configuredStyle) {
         JvmLoggerNameStyle.SOURCE -> source
         JvmLoggerNameStyle.JVM_CLASS -> platformName
     }

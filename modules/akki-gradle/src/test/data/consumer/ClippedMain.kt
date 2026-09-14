@@ -13,7 +13,7 @@ class OrderService {
 @OptIn(DelicateAkkiApi::class)
 fun main() {
     val records = mutableListOf<String>()
-    val backend = LogBackend { _, _ -> Sink { message, _, _ -> records += message } }
+    val backend = LogBackend { _ -> LoggerBinding { Sink { message, _, _ -> records += message } } }
     Log.install(backend).use { OrderService().handle("A-1") }
     println("AKKI records=${records.joinToString(",")}")
 }

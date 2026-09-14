@@ -12,8 +12,8 @@ class OrderService {
 @OptIn(DelicateAkkiApi::class)
 fun main() {
     var evaluated = 0
-    val backend = LogBackend { _, level ->
-        if (level == Level.DEBUG) null else Sink { _, _, _ -> }
+    val backend = LogBackend { _ ->
+        LoggerBinding { level -> if (level == Level.DEBUG) null else Sink { _, _, _ -> } }
     }
     val service = OrderService()
     Log.install(backend).use {

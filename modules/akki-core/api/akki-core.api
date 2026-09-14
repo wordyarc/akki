@@ -30,7 +30,7 @@ public final class io/akki/Log {
 	public static final fun install (Lio/akki/backend/LogBackend;)Lio/akki/Log$Installation;
 	public static final fun named (Ljava/lang/String;)Lio/akki/Logger;
 	public static final fun of (Ljava/lang/Class;)Lio/akki/Logger;
-	public static final fun of (Lkotlin/reflect/KClass;)Lio/akki/Logger;
+	public final fun of (Lkotlin/reflect/KClass;)Lio/akki/Logger;
 }
 
 public final class io/akki/Log$Installation : java/lang/AutoCloseable {
@@ -78,10 +78,6 @@ public final class io/akki/LoggerNameStyleKt {
 
 public abstract interface class io/akki/backend/LogBackend {
 	public abstract fun bind (Ljava/lang/String;)Lio/akki/backend/LoggerBinding;
-}
-
-public final class io/akki/backend/LogBackendKt {
-	public static final fun LogBackend (Lkotlin/jvm/functions/Function2;)Lio/akki/backend/LogBackend;
 }
 
 public abstract interface class io/akki/backend/LoggerBinding {
