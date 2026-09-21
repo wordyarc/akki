@@ -46,6 +46,12 @@ import org.jetbrains.kotlin.platform.jvm.isJvm
 
 private const val CONTEXTUAL_KEY: String = "contextual"
 
+private enum class Entry {
+    CONTEXTUAL,
+    NAMED,
+    TYPE,
+}
+
 internal class LoggerFieldLowering(
     private val context: IrPluginContext,
     private val symbols: AkkiSymbols,
@@ -62,19 +68,23 @@ internal class LoggerFieldLowering(
 
     override fun visitCall(expression: IrCall): IrExpression {
         expression.transformChildrenVoid()
+        val entry = expression.entry() ?: return expression
         if (isInlined()) return expression
-        val field = expression.loggerField() ?: return expression
+        val field = expression.loggerField(entry) ?: return expression
         return expression.reading(field)
     }
 
-    private fun IrCall.loggerField(): IrField? {
-        val function = symbol.owner
-        return when {
-            symbols.isCallSite(function) -> contextualField()
-            function.symbol == symbols.named -> namedField()
-            function.symbol == symbols.ofType || function.symbol == symbols.ofReifiedType -> typeField()
-            else -> null
-        }
+    private fun IrCall.entry(): Entry? = when {
+        symbol == symbols.named -> Entry.NAMED
+        symbol == symbols.ofType || symbol == symbols.ofReifiedType -> Entry.TYPE
+        symbols.isCallSite(symbol.owner) -> Entry.CONTEXTUAL
+        else -> null
+    }
+
+    private fun IrCall.loggerField(entry: Entry): IrField? = when (entry) {
+        Entry.CONTEXTUAL -> contextualField()
+        Entry.NAMED -> namedField()
+        Entry.TYPE -> typeField()
     }
 
     private fun contextualField(): IrField? {

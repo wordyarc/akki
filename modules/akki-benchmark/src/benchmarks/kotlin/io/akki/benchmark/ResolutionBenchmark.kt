@@ -5,7 +5,6 @@ package io.akki.benchmark
 import io.akki.InternalAkkiApi
 import io.akki.Log
 import io.akki.Logger
-import io.akki.of
 import io.akki.internal.LogRegistry
 import java.util.concurrent.TimeUnit
 import kotlinx.benchmark.Benchmark

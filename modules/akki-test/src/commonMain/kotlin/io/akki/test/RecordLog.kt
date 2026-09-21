@@ -5,21 +5,17 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 @OptIn(ExperimentalAtomicApi::class)
 internal class RecordLog<T> {
-    private val entries: AtomicReference<List<T>> = AtomicReference(emptyList())
+    private val head: AtomicReference<Node<T>?> = AtomicReference(null)
 
     val snapshot: List<T>
-        get() = Snapshot(entries.load())
+        get() = generateSequence(head.load()) { it.next }.map { it.value }.toList().asReversed()
 
     fun add(entry: T) {
         while (true) {
-            val current = entries.load()
-            if (entries.compareAndSet(current, current + entry)) return
+            val current = head.load()
+            if (head.compareAndSet(current, Node(entry, current))) return
         }
     }
 
-    private class Snapshot<T>(private val entries: List<T>) : AbstractList<T>() {
-        override val size: Int get() = entries.size
-
-        override fun get(index: Int): T = entries[index]
-    }
+    private class Node<T>(val value: T, val next: Node<T>?)
 }

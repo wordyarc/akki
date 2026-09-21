@@ -4,15 +4,12 @@ import io.akki.Level
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import io.akki.backend.Sink
-import java.util.concurrent.ConcurrentHashMap
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.slf4j.event.Level as Slf4jLevel
 
 public class Slf4jBackend : LogBackend {
-    private val bindings: ConcurrentHashMap<String, Slf4jBinding> = ConcurrentHashMap()
-
-    override fun bind(name: String): LoggerBinding = bindings[name] ?: bindings.computeIfAbsent(name, ::Slf4jBinding)
+    override fun bind(name: String): LoggerBinding = Slf4jBinding(name)
 }
 
 private class Slf4jBinding(name: String) : LoggerBinding {

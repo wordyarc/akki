@@ -10,13 +10,14 @@ import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccessExpression
 import org.jetbrains.kotlin.fir.references.toResolvedCallableSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
 import org.jetbrains.kotlin.name.Name
+import org.jetbrains.kotlin.name.isSubpackageOf
 
-internal fun FirExpression.callSiteName(session: FirSession): Name? =
-    (this as? FirQualifiedAccessExpression)
-        ?.calleeReference
-        ?.toResolvedCallableSymbol()
-        ?.takeIf { it.hasAnnotation(AkkiNames.CALL_SITE_ID, session) }
-        ?.name
+internal fun FirExpression.callSiteName(session: FirSession): Name? {
+    val symbol = (this as? FirQualifiedAccessExpression)?.calleeReference?.toResolvedCallableSymbol() ?: return null
+    val packageName = symbol.callableId?.packageName ?: return null
+    if (!packageName.isSubpackageOf(AkkiNames.PACKAGE)) return null
+    return symbol.name.takeIf { symbol.hasAnnotation(AkkiNames.CALL_SITE_ID, session) }
+}
 
 internal fun CheckerContext.enclosingInlineFunction(): FirFunctionSymbol<*>? =
     containingDeclarations.asReversed()
