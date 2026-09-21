@@ -1,8 +1,10 @@
+import akki.buildlogic.compileModuleDescriptor
 import akki.buildlogic.jvmTargetVersion
 import akki.buildlogic.jvmToolchainVersion
 import akki.buildlogic.library
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("akki.base")
@@ -17,6 +19,8 @@ java {
 tasks.withType<JavaCompile>().configureEach {
     options.release = jvmTargetVersion
 }
+
+compileModuleDescriptor(tasks.named<JavaCompile>("compileJava"), tasks.named<KotlinCompile>("compileKotlin"))
 
 kotlin {
     @OptIn(ExperimentalAbiValidation::class)

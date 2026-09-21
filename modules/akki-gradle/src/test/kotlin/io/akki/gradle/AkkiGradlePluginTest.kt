@@ -31,6 +31,18 @@ class AkkiGradlePluginTest {
     }
 
     @Test
+    fun `runs on the module path and binds the backend as a service`(@TempDir projectDirectory: Path) {
+        val output = build(projectDirectory, consumer = Consumer.Modular)
+        val line = lineOf(Consumer.Modular, """log.info("received""")
+
+        assertTrue(
+            output.contains("AKKI INFO consumer.OrderService [consumer.OrderService.handle:$line] - received A-1"),
+            output,
+        )
+        assertContains(output, "AKKI modules=consumer,io.akki.core slf4j=true")
+    }
+
+    @Test
     fun `keeps every level until a threshold is configured`(@TempDir projectDirectory: Path) {
         val output = build(projectDirectory, consumer = Consumer.Clipped)
 
@@ -194,6 +206,10 @@ class AkkiGradlePluginTest {
             projectDirectory.resolve("src/main/resources").createDirectories().resolve(it)
                 .writeText(fixture("consumer/$it"))
         }
+        if (consumer.modular) {
+            projectDirectory.resolve("src/main/java").createDirectories().resolve("module-info.java")
+                .writeText("module consumer {\n    requires io.akki.core;\n}\n")
+        }
 
         return GradleRunner.create()
             .withProjectDir(projectDirectory.toFile())
@@ -305,13 +321,14 @@ class AkkiGradlePluginTest {
 
         application {
             mainClass.set("${consumer.mainClass}")
+            ${if (consumer.modular) "mainModule.set(\"consumer\")" else ""}
         }
         """.trimIndent()
 
     private fun dependencies(consumer: Consumer): String = when (consumer) {
         Consumer.Bare -> emptyList()
         Consumer.Core, Consumer.Clipped -> listOf("""implementation("io.akki:akki-core:$VERSION")""")
-        Consumer.Slf4j -> listOf(
+        Consumer.Slf4j, Consumer.Modular -> listOf(
             """implementation("io.akki:akki-slf4j:$VERSION")""",
             """runtimeOnly("ch.qos.logback:logback-classic:${property("akki.logback.version")}")""",
         )
@@ -327,11 +344,17 @@ class AkkiGradlePluginTest {
     private fun fixture(name: String): String =
         requireNotNull(javaClass.getResource("/$name")) { "no fixture /$name" }.readText()
 
-    private enum class Consumer(val source: String, val mainClass: String, val resource: String?) {
+    private enum class Consumer(
+        val source: String,
+        val mainClass: String,
+        val resource: String?,
+        val modular: Boolean = false,
+    ) {
         Bare("BareMain.kt", "consumer.BareMainKt", null),
         Core("Main.kt", "consumer.MainKt", null),
         Slf4j("Slf4jMain.kt", "consumer.Slf4jMainKt", "logback.xml"),
         Clipped("ClippedMain.kt", "consumer.ClippedMainKt", null),
+        Modular("ModularMain.kt", "consumer.ModularMainKt", "logback.xml", modular = true),
     }
 
     private companion object {
