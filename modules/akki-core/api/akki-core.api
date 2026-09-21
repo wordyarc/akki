@@ -48,7 +48,6 @@ public abstract class io/akki/Logger {
 	public static synthetic fun debug$default (Lio/akki/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V
 	public static synthetic fun debug$default (Lio/akki/Logger;Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
 	protected abstract fun emit (Lio/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
-	public static synthetic fun emit$default (Lio/akki/Logger;Lio/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V
 	public final fun error (Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
 	public final fun error (Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;)V
 	public static synthetic fun error$default (Lio/akki/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V

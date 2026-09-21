@@ -1,6 +1,7 @@
 package io.akki
 
 import io.akki.backend.Sink
+import kotlin.concurrent.Volatile
 
 public abstract class Logger {
     public abstract val name: String
@@ -10,19 +11,20 @@ public abstract class Logger {
     protected abstract fun emit(
         level: Level,
         message: String,
-        cause: Throwable? = null,
-        fields: Map<String, Any?> = emptyMap(),
+        cause: Throwable?,
+        fields: Map<String, Any?>,
     )
 
-    private val sinks: Array<Sink> by lazy(LazyThreadSafetyMode.PUBLICATION) {
-        Array(Level.entries.size) { ordinal ->
-            val level = Level.entries[ordinal]
-            Sink { message, cause, fields -> emit(level, message, cause, fields) }
-        }
-    }
+    @Volatile
+    private var sinks: Array<Sink>? = null
 
     @InternalAkkiApi
-    public open fun sink(level: Level): Sink? = if (isEnabled(level)) sinks[level.ordinal] else null
+    public open fun sink(level: Level): Sink? = if (isEnabled(level)) sinks()[level.ordinal] else null
+
+    private fun sinks(): Array<Sink> = sinks ?: Array(Level.entries.size) { ordinal ->
+        val level = Level.entries[ordinal]
+        Sink { message, cause, fields -> emit(level, message, cause, fields) }
+    }.also { sinks = it }
 
     @Suppress("NOTHING_TO_INLINE")
     @OptIn(InternalAkkiApi::class)

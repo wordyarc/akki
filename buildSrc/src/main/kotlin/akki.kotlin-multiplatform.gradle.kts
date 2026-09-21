@@ -17,8 +17,16 @@ kotlin {
 
     jvmToolchain(jvmToolchainVersion)
 
+    compilerOptions {
+        allWarningsAsErrors = true
+        freeCompilerArgs.addAll("-progressive", "-Xexpect-actual-classes")
+    }
+
     targets.withType<KotlinJvmTarget>().configureEach {
-        compilerOptions.jvmTarget = JvmTarget.fromTarget(jvmTargetVersion.toString())
+        compilerOptions {
+            jvmTarget = JvmTarget.fromTarget(jvmTargetVersion.toString())
+            freeCompilerArgs.add("-Xjdk-release=$jvmTargetVersion")
+        }
     }
 
     sourceSets {

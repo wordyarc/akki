@@ -33,6 +33,11 @@ internal class LoggerCallLoweringTest : FixtureTest() {
     }
 
     @Test
+    fun `keeps non-local returns from lazy messages`() {
+        assertLoweringIsTransparent("early,late", "lazyReturn")
+    }
+
+    @Test
     fun `keeps argument evaluation order`() {
         val (lowered, plain) = effectsBothWays("order")
 

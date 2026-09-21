@@ -42,6 +42,7 @@ internal class LoggerFieldLoweringTest : FixtureTest() {
                 "objectExpression=fixture.Service",
                 "enumEntry=fixture.Colour",
                 "renamedClass=class-audit",
+                "renamedByConstant=constant-audit",
                 "interfaceMethod=fixture.Contract",
             ).joinToString(","),
             "nameMatrix",
@@ -62,6 +63,11 @@ internal class LoggerFieldLoweringTest : FixtureTest() {
             ).joinToString(","),
             "constantFactory",
         )
+    }
+
+    @Test
+    fun `shares one field between the intrinsic and a folded factory call for the same logger`() {
+        assertBox("\$\$log,viaOf|true", "sharedField")
     }
 
     @Test

@@ -72,6 +72,13 @@ class Renamed {
     fun probe(): Logger = log
 }
 
+private const val CONSTANT_NAME = "constant-audit"
+
+@LogName(CONSTANT_NAME)
+class RenamedByConstant {
+    fun probe(): Logger = log
+}
+
 interface Contract {
     fun probe(): Logger = log
 }
@@ -100,5 +107,6 @@ fun box(): String = listOf(
     agrees("objectExpression", Service().objectExpression(), factory(Service::class)),
     agrees("enumEntry", Colour.RED.probe(), factory(Colour::class)),
     agrees("renamedClass", Renamed().probe(), factory(Renamed::class)),
+    agrees("renamedByConstant", RenamedByConstant().probe(), factory(RenamedByConstant::class)),
     agrees("interfaceMethod", ContractImpl().probe(), factory(Contract::class)),
 ).joinToString(",")

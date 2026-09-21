@@ -44,8 +44,6 @@ import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 import org.jetbrains.kotlin.load.java.JavaDescriptorVisibilities
 import org.jetbrains.kotlin.platform.jvm.isJvm
 
-private const val CONTEXTUAL_KEY: String = "contextual"
-
 private enum class Entry {
     CONTEXTUAL,
     NAMED,
@@ -87,16 +85,12 @@ internal class LoggerFieldLowering(
         Entry.TYPE -> typeField()
     }
 
-    private fun contextualField(): IrField? {
-        val owner = fieldOwner() ?: return null
-        val name = owner.declarationName(isJvm)
-        return owner.loggerField(CONTEXTUAL_KEY) { declarationLogger(name) }
-    }
+    private fun contextualField(): IrField =
+        fieldOwner().declarationField(namingOwner().declarationName(isJvm), contextual = true)
 
     private fun IrCall.namedField(): IrField? {
         val name = (arguments.lastOrNull() as? IrConst)?.value as? String ?: return null
-        val owner = fieldOwner() ?: return null
-        return owner.loggerField("named:$name") {
+        return fieldOwner().loggerField("named:$name", contextual = false) {
             irCall(symbols.registryOf).apply {
                 arguments[0] = irGetObject(symbols.logRegistry)
                 arguments[1] = irString(name)
@@ -108,10 +102,11 @@ internal class LoggerFieldLowering(
         val referenced = referencedClass() ?: return null
         if (isJvm && referenced.isMappedToJava()) return null
         val named = referenced.namingDeclaration() ?: return null
-        val name = named.declarationName(isJvm)
-        val owner = fieldOwner() ?: return null
-        return owner.loggerField("type:${name.source}|${name.platform}") { declarationLogger(name) }
+        return fieldOwner().declarationField(named.declarationName(isJvm), contextual = false)
     }
+
+    private fun IrDeclarationContainer.declarationField(name: DeclarationName, contextual: Boolean): IrField =
+        loggerField("declaration:${name.source}|${name.platform}", contextual) { declarationLogger(name) }
 
     private fun IrCall.referencedClass(): IrClass? {
         val type = typeArguments.firstOrNull() ?: (arguments.lastOrNull() as? IrClassReference)?.classType
@@ -143,13 +138,14 @@ internal class LoggerFieldLowering(
 
     private fun isInlined(): Boolean = allScopes.any { (it.irElement as? IrFunction)?.isInline == true }
 
-    private fun fieldOwner(): IrDeclarationContainer? {
-        for (scope in allScopes.asReversed()) {
-            val enclosing = scope.irElement as? IrClass ?: continue
-            if (enclosing.isHoisted()) continue
-            return enclosing.takeIf { isJvm || !it.isInterface }
-        }
-        return currentFile
+    private fun namingOwner(): IrDeclarationContainer =
+        allScopes.asReversed().firstNotNullOfOrNull { scope ->
+            (scope.irElement as? IrClass)?.takeUnless { it.isHoisted() }
+        } ?: currentFile
+
+    private fun fieldOwner(): IrDeclarationContainer {
+        val owner = namingOwner()
+        return if (!isJvm && owner is IrClass && owner.isInterface) currentFile else owner
     }
 
     private fun IrClass.isHoisted(): Boolean =
@@ -159,21 +155,23 @@ internal class LoggerFieldLowering(
 
     private fun IrDeclarationContainer.loggerField(
         key: String,
+        contextual: Boolean,
         initializer: DeclarationIrBuilder.() -> IrExpression,
     ): IrField {
         val created = fields.getOrPut(this) { linkedMapOf() }
-        return created.getOrPut(key) { createLoggerField(key, created.size, initializer) }
+        val field = created.getOrPut(key) { createLoggerField(created.size, initializer) }
+        if (contextual && created.values.none { it.name == AkkiNames.LOGGER_FIELD }) field.name = AkkiNames.LOGGER_FIELD
+        return field
     }
 
     private fun IrDeclarationContainer.createLoggerField(
-        key: String,
         index: Int,
         initializer: DeclarationIrBuilder.() -> IrExpression,
     ): IrField {
         val field = context.irFactory.buildField {
             startOffset = SYNTHETIC_OFFSET
             endOffset = SYNTHETIC_OFFSET
-            name = if (key == CONTEXTUAL_KEY) AkkiNames.LOGGER_FIELD else AkkiNames.loggerField(index)
+            name = AkkiNames.loggerField(index)
             type = symbols.loggerType
             visibility = fieldVisibility()
             isStatic = true

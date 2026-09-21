@@ -14,10 +14,10 @@ internal class LogNameCheckerTest : FixtureTest() {
     }
 
     @Test
-    fun `reports the blank name once and leaves a real one alone`() {
+    fun `reports each blank name once, constants included, and leaves a real one alone`() {
         val output = compileExpectingFailure("blankLogName")
 
-        assertEquals(1, output.lines().count { it.contains("the name is blank") }, output)
+        assertEquals(2, output.lines().count { it.contains("the name is blank") }, output)
         assertFalse(output.contains("audit"), output)
     }
 }

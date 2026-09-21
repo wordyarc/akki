@@ -12,8 +12,10 @@ plugins {
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(jvmToolchainVersion)
-    sourceCompatibility = JavaVersion.toVersion(jvmTargetVersion)
-    targetCompatibility = JavaVersion.toVersion(jvmTargetVersion)
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.release = jvmTargetVersion
 }
 
 kotlin {
@@ -22,6 +24,8 @@ kotlin {
 
     compilerOptions {
         jvmTarget = JvmTarget.fromTarget(jvmTargetVersion.toString())
+        allWarningsAsErrors = true
+        freeCompilerArgs.addAll("-progressive", "-Xjdk-release=$jvmTargetVersion")
     }
 }
 
