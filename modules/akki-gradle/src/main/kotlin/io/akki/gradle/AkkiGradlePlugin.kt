@@ -1,19 +1,25 @@
 package io.akki.gradle
 
 import java.util.Properties
+import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.provider.Provider
+import org.jetbrains.kotlin.gradle.plugin.KotlinBasePlugin
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilerPluginSupportPlugin
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.plugin.SubpluginArtifact
 import org.jetbrains.kotlin.gradle.plugin.SubpluginOption
 
 public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
     override fun apply(target: Project) {
         target.extensions.create(EXTENSION, AkkiExtension::class.java)
+        target.plugins.withType(KotlinBasePlugin::class.java) { kotlin -> checkKotlinVersion(kotlin.pluginVersion) }
     }
 
-    override fun isApplicable(kotlinCompilation: KotlinCompilation<*>): Boolean = true
+    override fun isApplicable(kotlinCompilation: KotlinCompilation<*>): Boolean =
+        kotlinCompilation.platformType == KotlinPlatformType.jvm ||
+            kotlinCompilation.platformType == KotlinPlatformType.androidJvm
 
     override fun getCompilerPluginId(): String = PLUGIN_ID
 
@@ -43,6 +49,18 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
     }
 
     private companion object {
+        fun checkKotlinVersion(actual: String) {
+            val expected = kotlinVersion.minor()
+            if (actual.minor() == expected) return
+            throw GradleException(
+                "akki $pluginVersion is built for Kotlin $expected and cannot run with Kotlin $actual: the compiler " +
+                    "plugin API changes between Kotlin releases. Use an akki built for Kotlin ${actual.minor()} " +
+                    "or Kotlin $expected.x.",
+            )
+        }
+
+        fun String.minor(): String = split('.').take(2).joinToString(".")
+
         fun notice(level: MinLevel): String =
             "akki: minLevel=${level.name.lowercase()}, records below it are removed from the bytecode and no " +
                 "logging configuration can bring them back"
@@ -54,13 +72,18 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
         const val COMPILER_ARTIFACT: String = "akki-compiler"
         const val CORE_ARTIFACT: String = "akki-core"
 
-        val pluginVersion: String by lazy {
-            val properties = Properties()
+        val properties: Properties by lazy {
             val resource = requireNotNull(
                 AkkiGradlePlugin::class.java.getResourceAsStream("/akki-gradle.properties")
             ) { "akki-gradle.properties is missing from the Akki Gradle plugin jar" }
-            resource.use(properties::load)
-            requireNotNull(properties.getProperty("version")) { "akki-gradle.properties has no version" }
+            Properties().apply { resource.use(::load) }
         }
+
+        val pluginVersion: String by lazy { property("version") }
+
+        val kotlinVersion: String by lazy { property("kotlin") }
+
+        fun property(name: String): String =
+            requireNotNull(properties.getProperty(name)) { "akki-gradle.properties has no $name" }
     }
 }

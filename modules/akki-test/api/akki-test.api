@@ -30,7 +30,6 @@ public final class io/akki/test/RecordingLogger : io/akki/Logger {
 	public fun <init> ()V
 	public fun <init> (Ljava/lang/String;Lio/akki/Level;)V
 	public synthetic fun <init> (Ljava/lang/String;Lio/akki/Level;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public fun emit (Lio/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
 	public fun getName ()Ljava/lang/String;
 	public final fun getRecords ()Ljava/util/List;
 	public fun isEnabled (Lio/akki/Level;)Z

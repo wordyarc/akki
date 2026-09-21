@@ -10,6 +10,7 @@ import io.akki.internal.platformTypeName
 import kotlin.reflect.KClass
 
 public actual object Log {
+    @JvmStatic
     public actual fun of(type: KClass<*>): Logger = LogRegistry.of(platformTypeName(type))
 
     public actual inline fun <reified T : Any> of(): Logger = of(T::class)

@@ -16,6 +16,7 @@ dependencyResolutionManagement {
     versionCatalogs {
         create("libs") {
             from(files("../gradle/libs.versions.toml"))
+            providers.gradleProperty("akki.kotlin").orNull?.let { version("kotlin", it) }
         }
     }
 }

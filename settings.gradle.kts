@@ -13,6 +13,14 @@ dependencyResolutionManagement {
     repositories {
         mavenCentral()
     }
+
+    providers.gradleProperty("akki.kotlin").orNull?.let { kotlin ->
+        versionCatalogs {
+            create("libs") {
+                version("kotlin", kotlin)
+            }
+        }
+    }
 }
 
 rootProject.name = "akki"

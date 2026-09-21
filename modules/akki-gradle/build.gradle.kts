@@ -16,7 +16,7 @@ val akkiCoreJar: Configuration = artifactConfiguration("akkiCoreJar")
 val akkiSlf4jJar: Configuration = artifactConfiguration("akkiSlf4jJar")
 
 dependencies {
-    implementation(libs.kotlin.gradle.plugin.api)
+    compileOnly(libs.kotlin.gradle.plugin.api)
     akkiCompilerJar(project(":akki-compiler"))
     akkiCoreJar(project(":akki-core"))
     akkiSlf4jJar(project(":akki-slf4j"))
@@ -30,6 +30,7 @@ kotlin {
 val writeAkkiGradleProperties = tasks.register<WriteProperties>("writeAkkiGradleProperties") {
     destinationFile = layout.buildDirectory.file("generated/akki-gradle.properties")
     property("version", project.version.toString())
+    property("kotlin", libs.versions.kotlin.get())
 }
 
 tasks.processResources {

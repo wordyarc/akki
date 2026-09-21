@@ -20,13 +20,14 @@ private class Probe(override val name: String) : Logger() {
     }
 }
 
+@OptIn(InternalAkkiApi::class)
 private class Prefixing(private val delegate: Logger) : Logger() {
     override val name: String get() = delegate.name
 
     override fun isEnabled(level: Level): Boolean = delegate.isEnabled(level)
 
     override fun emit(level: Level, message: String, cause: Throwable?, fields: Map<String, Any?>) {
-        delegate.emit(level, "[$name] $message", cause, fields)
+        delegate.sink(level)?.emit("[$name] $message", cause, fields)
     }
 }
 

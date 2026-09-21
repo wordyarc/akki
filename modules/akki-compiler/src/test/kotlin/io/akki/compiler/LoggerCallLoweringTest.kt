@@ -172,7 +172,7 @@ internal class LoggerCallLoweringTest : FixtureTest() {
     @Test
     fun `routes through the sink a custom logger declares`() {
         assertLoweringIsTransparent(
-            "sink:INFO,own:INFO:kept,sink:DEBUG,sink:WARN,own:WARN:lazy,emit:ERROR:[delegate] decorated",
+            "sink:INFO,own:INFO:kept,sink:DEBUG,sink:WARN,own:WARN:lazy,sink:ERROR,own:ERROR:[delegate] decorated",
             "customLogger",
         )
     }

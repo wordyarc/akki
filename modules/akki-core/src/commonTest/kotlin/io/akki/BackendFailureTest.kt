@@ -19,7 +19,7 @@ class BackendFailureTest {
 
         withBackend(FailingBackend()) {
             logger.info("dropped")
-            logger.emit(Level.ERROR, "dropped too")
+            logger.error("dropped too")
 
             assertNull(logger.sink(Level.INFO))
         }

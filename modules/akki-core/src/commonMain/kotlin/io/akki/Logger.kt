@@ -7,7 +7,7 @@ public abstract class Logger {
 
     public abstract fun isEnabled(level: Level): Boolean
 
-    public abstract fun emit(
+    protected abstract fun emit(
         level: Level,
         message: String,
         cause: Throwable? = null,

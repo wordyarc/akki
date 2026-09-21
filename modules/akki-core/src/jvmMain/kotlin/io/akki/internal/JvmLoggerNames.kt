@@ -18,15 +18,7 @@ internal enum class JvmLoggerNameStyle {
     JVM_CLASS,
 }
 
-private val configuredStyle: JvmLoggerNameStyle = loggerNameStyleProperty().let { setting ->
-    jvmLoggerNameStyleOrNull(setting) ?: run {
-        printError(
-            invalidLoggerNameStyle(setting) +
-                ", falling back to '$LOGGER_NAME_STYLE_VALUE_SOURCE'",
-        )
-        JvmLoggerNameStyle.SOURCE
-    }
-}
+private val configuredStyle: JvmLoggerNameStyle by lazy { parseJvmLoggerNameStyle(loggerNameStyleProperty()) }
 
 private val typeNames: ClassValue<String> = object : ClassValue<String>() {
     override fun computeValue(type: Class<*>): String = platformTypeName(type, configuredStyle)

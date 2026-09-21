@@ -55,6 +55,70 @@ class AkkiGradlePluginTest {
     }
 
     @Test
+    fun `rejects a Kotlin release it was not built for`(@TempDir projectDirectory: Path) {
+        val expected = property("akki.kotlin.version").minor()
+        require(OTHER_KOTLIN.minor() != expected)
+        val repository = publishRepository(projectDirectory.resolve("repository"))
+        projectDirectory.resolve("settings.gradle.kts").writeText(settings(repository))
+        projectDirectory.resolve("build.gradle.kts")
+            .writeText(buildScript(repository, Consumer.Bare, kotlinVersion = OTHER_KOTLIN))
+
+        val output = GradleRunner.create()
+            .withProjectDir(projectDirectory.toFile())
+            .withArguments("help", "--console=plain")
+            .buildAndFail()
+            .output
+
+        assertContains(output, "akki $VERSION is built for Kotlin $expected and cannot run with Kotlin $OTHER_KOTLIN")
+    }
+
+    @Test
+    fun `applies only to JVM compilations`(@TempDir projectDirectory: Path) {
+        val repository = publishRepository(projectDirectory.resolve("repository"))
+        projectDirectory.resolve("settings.gradle.kts").writeText(settings(repository))
+        projectDirectory.resolve("build.gradle.kts").writeText(
+            """
+            plugins {
+                kotlin("multiplatform") version "${property("akki.kotlin.version")}"
+                id("io.akki") version "$VERSION"
+            }
+
+            repositories {
+                mavenCentral()
+                maven { url = uri("${repository.toUri()}") }
+            }
+
+            kotlin {
+                jvm()
+                js { nodejs() }
+            }
+
+            tasks.register("akkiDependencies") {
+                doLast {
+                    for (name in listOf("jvmCompileClasspath", "jsCompileClasspath")) {
+                        val akki = configurations.getByName(name).allDependencies.filter { it.group == "io.akki" }
+                        println("AKKI " + name + " " + akki.map { it.name })
+                    }
+                }
+            }
+            """.trimIndent()
+        )
+        projectDirectory.resolve("src/commonMain/kotlin/consumer").createDirectories()
+            .resolve("Shared.kt").writeText("package consumer\n\nfun shared(): String = \"shared\"\n")
+        projectDirectory.resolve("src/jvmMain/kotlin/consumer").createDirectories()
+            .resolve("BareMain.kt").writeText(fixture("consumer/BareMain.kt"))
+
+        val output = GradleRunner.create()
+            .withProjectDir(projectDirectory.toFile())
+            .withArguments("akkiDependencies", "compileKotlinJvm", "compileKotlinJs", "--console=plain")
+            .build()
+            .output
+
+        assertContains(output, "AKKI jvmCompileClasspath [akki-core]")
+        assertContains(output, "AKKI jsCompileClasspath []")
+    }
+
+    @Test
     fun `brings its own runtime to a consumer that declares none`(@TempDir projectDirectory: Path) {
         val output = build(projectDirectory, consumer = Consumer.Bare)
 
@@ -159,15 +223,7 @@ class AkkiGradlePluginTest {
                 Triple("org.slf4j", "slf4j-api", property("akki.slf4j.version")),
             ),
         )
-        publish(
-            repository,
-            "io.akki",
-            "akki-gradle",
-            path("akki.gradle.plugin.jar"),
-            dependencies = listOf(
-                Triple("org.jetbrains.kotlin", "kotlin-gradle-plugin-api", property("akki.kotlin.version")),
-            ),
-        )
+        publish(repository, "io.akki", "akki-gradle", path("akki.gradle.plugin.jar"))
         publish(
             repository,
             "io.akki",
@@ -225,11 +281,15 @@ class AkkiGradlePluginTest {
         rootProject.name = "consumer"
         """.trimIndent()
 
-    private fun buildScript(repository: Path, consumer: Consumer): String =
+    private fun buildScript(
+        repository: Path,
+        consumer: Consumer,
+        kotlinVersion: String = property("akki.kotlin.version"),
+    ): String =
         """
         plugins {
             application
-            kotlin("jvm") version "${property("akki.kotlin.version")}"
+            kotlin("jvm") version "$kotlinVersion"
             id("io.akki") version "$VERSION"
         }
 
@@ -276,5 +336,9 @@ class AkkiGradlePluginTest {
 
     private companion object {
         val VERSION: String = requireNotNull(System.getProperty("akki.version"))
+
+        const val OTHER_KOTLIN: String = "2.3.21"
+
+        fun String.minor(): String = split('.').take(2).joinToString(".")
     }
 }
