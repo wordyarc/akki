@@ -47,8 +47,8 @@ internal object AkkiDefaultErrorMessages : BaseDiagnosticRendererFactory() {
         map.put(
             AkkiErrors.CONTEXTUAL_LOGGER_IN_INLINE_DECLARATION,
             "''{0}'' is not available inside the inline declaration ''{1}'': the body is inlined into every " +
-                "call site, so the generated logger field would be read from another module and the plugin " +
-                "cannot lower it. Use ''Log.of<T>()'' or ''Log.named(\"...\")'' here.",
+                "call site, so a generated logger field is read from another module and the plugin cannot " +
+                "lower it. Use ''Log.of<T>()'' or ''Log.named(\"...\")'' here.",
             CommonRenderers.STRING,
             CommonRenderers.STRING,
         )
@@ -56,7 +56,7 @@ internal object AkkiDefaultErrorMessages : BaseDiagnosticRendererFactory() {
             AkkiErrors.REDUNDANT_LOGGER_PROPERTY,
             "''{0}'' holds the logger of the enclosing declaration, which is what ''{1}'' resolves to anywhere " +
                 "in it. The Akki compiler plugin already keeps that logger in a static field, so the property " +
-                "only adds another one. Use ''Log.of(javaClass)'' if you meant the logger of the runtime type.",
+                "only adds another one. Use ''Log.of(javaClass)'' for the logger of the runtime type.",
             CommonRenderers.STRING,
             CommonRenderers.STRING,
         )

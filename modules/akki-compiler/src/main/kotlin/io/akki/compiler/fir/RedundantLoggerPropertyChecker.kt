@@ -10,6 +10,7 @@ import org.jetbrains.kotlin.fir.analysis.checkers.declaration.FirPropertyChecker
 import org.jetbrains.kotlin.fir.declarations.FirProperty
 import org.jetbrains.kotlin.fir.declarations.impl.FirDefaultPropertyGetter
 import org.jetbrains.kotlin.fir.declarations.utils.visibility
+import org.jetbrains.kotlin.fir.expressions.FirCallableReferenceAccess
 
 internal object RedundantLoggerPropertyChecker : FirPropertyChecker(MppCheckerKind.Common) {
     context(context: CheckerContext, reporter: DiagnosticReporter)
@@ -17,7 +18,8 @@ internal object RedundantLoggerPropertyChecker : FirPropertyChecker(MppCheckerKi
         if (declaration.isVar || declaration.delegate != null) return
         if (!declaration.isShadowable()) return
         if (context.enclosingInlineFunction() != null) return
-        val callee = declaration.initializer?.callSiteName(context.session) ?: return
+        val initializer = declaration.initializer?.takeUnless { it is FirCallableReferenceAccess } ?: return
+        val callee = initializer.callSiteName(context.session) ?: return
         reporter.reportOn(
             declaration.source,
             AkkiErrors.REDUNDANT_LOGGER_PROPERTY,

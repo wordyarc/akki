@@ -2,8 +2,6 @@ package io.akki
 
 import io.akki.internal.DefaultBackend
 import io.akki.test.withBackend
-import java.io.ByteArrayOutputStream
-import java.io.PrintStream
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -12,7 +10,7 @@ import kotlin.test.assertFalse
 class JvmDefaultBackendTest {
     @Test
     fun `default backend writes to standard error`(): Unit {
-        val output = captureError {
+        val output = defaultBackendOutput {
             Log.named("acme.Checkout").info("started", fields = mapOf("orderId" to 42))
         }
 
@@ -21,7 +19,7 @@ class JvmDefaultBackendTest {
 
     @Test
     fun `default backend announces itself once`(): Unit {
-        val output = captureError {
+        val output = defaultBackendOutput {
             Log.named("acme.Notice").error("first")
             Log.named("acme.Notice").error("second")
         }
@@ -31,7 +29,7 @@ class JvmDefaultBackendTest {
 
     @Test
     fun `default backend suppresses levels below INFO`(): Unit {
-        val output = captureError {
+        val output = defaultBackendOutput {
             Log.named("acme.Quiet").trace("trace")
             Log.named("acme.Quiet").debug("debug")
         }
@@ -41,7 +39,7 @@ class JvmDefaultBackendTest {
 
     @Test
     fun `default backend keeps the cause attached to its message`(): Unit {
-        val output = captureError {
+        val output = defaultBackendOutput {
             Log.named("acme.Failing").error("failed", IllegalStateException("broken"))
         }
 
@@ -50,15 +48,5 @@ class JvmDefaultBackendTest {
         assertEquals("java.lang.IllegalStateException: broken", lines[message + 1])
     }
 
-    private fun captureError(block: () -> Unit): String {
-        val buffer = ByteArrayOutputStream()
-        val original = System.err
-        System.setErr(PrintStream(buffer, true))
-        try {
-            withBackend(DefaultBackend(), block)
-        } finally {
-            System.setErr(original)
-        }
-        return buffer.toString()
-    }
+    private fun defaultBackendOutput(block: () -> Unit): String = captureStderr { withBackend(DefaultBackend(), block) }
 }

@@ -1,0 +1,1 @@
+user: error: [INCOMPATIBLE_AKKI_CORE] The Akki compiler plugin <version> cannot use the akki-core on the compile classpath: it does not state its version and does not declare 'io.akki.internal.LogRegistry'. The plugin and akki-core must come from the same version.

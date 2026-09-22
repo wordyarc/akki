@@ -6,8 +6,6 @@ import io.akki.backend.Sink
 import io.akki.internal.DefaultBackend
 import io.akki.internal.chooseBackend
 import io.akki.internal.discover
-import java.io.ByteArrayOutputStream
-import java.io.PrintStream
 import java.net.URLClassLoader
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
@@ -42,7 +40,7 @@ class JvmBackendDiscoveryTest {
         val first = RecordingOnlyBackend()
         val second = SilentBackend()
 
-        val output = captureError { assertSame(first, chooseBackend(listOf(first, second))) }
+        val output = captureStderr { assertSame(first, chooseBackend(listOf(first, second))) }
 
         assertContains(output, RecordingOnlyBackend::class.java.name)
         assertContains(output, SilentBackend::class.java.name)
@@ -53,8 +51,12 @@ class JvmBackendDiscoveryTest {
         val recording = RecordingOnlyBackend()
         val silent = SilentBackend()
 
-        val chosen = silencingError { chooseBackend(listOf(recording, silent)) }
-        val reversed = silencingError { chooseBackend(listOf(silent, recording)) }
+        lateinit var chosen: LogBackend
+        lateinit var reversed: LogBackend
+        captureStderr {
+            chosen = chooseBackend(listOf(recording, silent))
+            reversed = chooseBackend(listOf(silent, recording))
+        }
 
         assertSame(recording, chosen)
         assertSame(recording, reversed)
@@ -70,33 +72,11 @@ class JvmBackendDiscoveryTest {
         )
         val loader = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader)
 
-        val output = captureError { assertIs<DeclaredBackend>(discover(loader)) }
+        val output = captureStderr { assertIs<DeclaredBackend>(discover(loader)) }
 
         assertContains(output, "io.akki.MissingBackend")
         assertContains(output, ThrowingBackend::class.java.name)
         assertEquals(2, output.lines().count { it.contains("ignoring a broken backend service declaration") }, output)
-    }
-
-    private fun <T> silencingError(block: () -> T): T {
-        val original = System.err
-        System.setErr(PrintStream(ByteArrayOutputStream(), true))
-        try {
-            return block()
-        } finally {
-            System.setErr(original)
-        }
-    }
-
-    private fun captureError(block: () -> Unit): String {
-        val buffer = ByteArrayOutputStream()
-        val original = System.err
-        System.setErr(PrintStream(buffer, true))
-        try {
-            block()
-        } finally {
-            System.setErr(original)
-        }
-        return buffer.toString()
     }
 
     private class RecordingOnlyBackend : LogBackend {

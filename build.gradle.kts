@@ -6,6 +6,16 @@ plugins {
 group = providers.gradleProperty("akki.group").get()
 version = providers.gradleProperty("akki.version").get()
 
+kover {
+    reports {
+        filters {
+            excludes {
+                packages("io.akki.compiler.test")
+            }
+        }
+    }
+}
+
 dependencies {
     kover(project(":akki-core"))
     kover(project(":akki-slf4j"))

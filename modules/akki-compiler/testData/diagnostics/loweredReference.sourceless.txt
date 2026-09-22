@@ -1,0 +1,1 @@
+main: error: [ERROR_SEVERITY_CHANGED] Diagnostic "LOGGING_CALL_REFERENCE" is an error. Changing the severity of errors is prohibited

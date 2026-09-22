@@ -17,6 +17,7 @@ import org.jetbrains.kotlin.ir.util.kotlinFqName
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.JvmStandardClassIds.MULTIFILE_PART_NAME_DELIMITER
 import org.jetbrains.kotlin.name.NameUtils
+import org.jetbrains.kotlin.resolve.jvm.JvmClassName
 
 internal class DeclarationName(val source: String, val platform: String)
 
@@ -38,9 +39,8 @@ private fun IrAnnotationContainer.logName(): DeclarationName? {
 
 private fun IrClass.className(): DeclarationName {
     val classId = classId ?: return kotlinFqName.asString().let { DeclarationName(it, it) }
-    val relative = classId.relativeClassName.asString()
-    val prefix = classId.packageFqName.qualifier()
-    return DeclarationName(prefix + relative, prefix + relative.replace('.', '$'))
+    val binaryName = JvmClassName.byClassId(classId).internalName.replace('/', '.')
+    return DeclarationName(classId.asSingleFqName().asString(), binaryName)
 }
 
 private fun IrFile.jvmFileName(): DeclarationName {

@@ -4,6 +4,7 @@ import akki.buildlogic.WriteVersionConstant
 plugins {
     id("akki.kotlin-jvm")
     id("org.jetbrains.kotlinx.kover")
+    `java-test-fixtures`
 }
 
 val writeVersionConstant = tasks.register<WriteVersionConstant>("writeVersionConstant") {
@@ -23,25 +24,62 @@ val fixtureRuntime: Configuration = configurations.create("fixtureRuntime") {
     isCanBeResolved = true
 }
 
+val compilerTestLibraries: Configuration = configurations.create("compilerTestLibraries") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    isTransitive = false
+}
+
 dependencies {
     compileOnly(libs.kotlin.compiler)
+    testFixturesApi(libs.kotlin.compiler)
+    testFixturesApi(libs.kotlin.compiler.internal.test.framework)
+    testFixturesApi(libs.junit.jupiter)
+    testFixturesRuntimeOnly(libs.compiler.test.framework.legacy.junit)
+    testImplementation(libs.kotlin.reflect)
     fixtureRuntime(project(":akki-core"))
     fixtureRuntime(project(":akki-slf4j"))
     fixtureRuntime(project(":akki-test"))
     fixtureRuntime(libs.logback.classic)
-    testImplementation(project(":akki-core"))
-    testImplementation(project(":akki-slf4j"))
-    testImplementation(project(":akki-test"))
-    testImplementation(libs.logback.classic)
-    testImplementation(libs.kotlin.compiler)
+    compilerTestLibraries(libs.kotlin.stdlib)
+    compilerTestLibraries(libs.kotlin.stdlib.jdk8)
+    compilerTestLibraries(libs.kotlin.reflect)
+    compilerTestLibraries(libs.kotlin.test)
+    compilerTestLibraries(libs.kotlin.script.runtime)
+    compilerTestLibraries(libs.kotlin.annotations.jvm)
+}
+
+val testData: Directory = layout.projectDirectory.dir("testData")
+
+val generateTests = tasks.register<JavaExec>("generateTests") {
+    val output = layout.buildDirectory.dir("generated/tests")
+    inputs.dir(testData).withPropertyName("testData").withPathSensitivity(PathSensitivity.RELATIVE)
+    outputs.dir(output).withPropertyName("tests")
+    classpath = sourceSets.testFixtures.get().runtimeClasspath
+    mainClass = "io.akki.compiler.test.GenerateTestsKt"
+    args(output.get().asFile.path, testData.asFile.name)
 }
 
 sourceSets.test {
-    resources.srcDir("src/test/data")
+    java.srcDir(generateTests)
 }
 
 tasks.test {
-    jvmArgumentProviders.add(ClasspathSystemProperty("akki.compiler.plugin.jar", files(tasks.jar)))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.fixture.classpath", fixtureRuntime))
+    listOf(
+        "kotlin-stdlib",
+        "kotlin-stdlib-jdk8",
+        "kotlin-reflect",
+        "kotlin-test",
+        "kotlin-script-runtime",
+        "kotlin-annotations-jvm",
+    ).forEach { library ->
+        val jar = compilerTestLibraries.filter { it.name.matches(Regex("$library-\\d.*\\.jar")) }
+        jvmArgumentProviders.add(ClasspathSystemProperty("org.jetbrains.kotlin.test.$library", jar))
+    }
     systemProperty("akki.jvm.target", libs.versions.jvm.target.get())
+    systemProperty("idea.ignore.disabled.plugins", "true")
+    systemProperty("idea.home.path", projectDir)
+    val updateTestData = providers.gradleProperty("kotlin.test.update.test.data").orElse("false")
+    systemProperty("kotlin.test.update.test.data", updateTestData.get())
 }

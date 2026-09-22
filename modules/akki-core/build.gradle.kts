@@ -39,9 +39,7 @@ kotlin {
         jvmTest.dependencies {
             implementation(libs.kotlin.test.junit5)
             implementation(libs.junit.jupiter)
-            implementation(libs.slf4j.api)
             runtimeOnly(libs.junit.platform.launcher)
-            runtimeOnly(libs.slf4j.simple)
         }
     }
 }

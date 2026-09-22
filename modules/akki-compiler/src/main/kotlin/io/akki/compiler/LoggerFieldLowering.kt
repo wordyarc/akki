@@ -41,10 +41,10 @@ import org.jetbrains.kotlin.ir.util.createThisReceiverParameter
 import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.isAnnotationClass
 import org.jetbrains.kotlin.ir.util.isEnumClass
+import org.jetbrains.kotlin.ir.util.isEnumEntry
 import org.jetbrains.kotlin.ir.util.isInterface
 import org.jetbrains.kotlin.ir.util.isLocal
 import org.jetbrains.kotlin.ir.util.parents
-import org.jetbrains.kotlin.ir.util.superClass
 import org.jetbrains.kotlin.load.java.JavaDescriptorVisibilities
 import org.jetbrains.kotlin.platform.jvm.isJvm
 
@@ -178,9 +178,7 @@ internal class LoggerFieldLowering(
     }
 
     private fun IrClass.isHoisted(): Boolean =
-        !hasAnnotation(AkkiNames.LOG_NAME_ID) && (isLocal || isCompanion || isEnumEntryBody())
-
-    private fun IrClass.isEnumEntryBody(): Boolean = superClass?.isEnumClass == true
+        !hasAnnotation(AkkiNames.LOG_NAME_ID) && (isLocal || isCompanion || isEnumEntry)
 
     private fun IrDeclarationContainer.loggerField(
         key: String,

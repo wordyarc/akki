@@ -1,0 +1,23 @@
+// RUN_PIPELINE_TILL: BACKEND
+package fixture
+
+import io.akki.*
+
+class Service {
+    private val <!REDUNDANT_LOGGER_PROPERTY!>journal<!> = logger()
+    private val <!REDUNDANT_LOGGER_PROPERTY!>fromIntrinsic<!> = log
+    private val <!REDUNDANT_LOGGER_PROPERTY!>fromFactory<!> = Log.forCaller()
+
+    internal val shared = logger()
+    private var reassigned = logger()
+    private val named = Log.named("audit")
+    private val runtimeType = Log.of(javaClass)
+
+    fun probe(): String = listOf(journal, fromIntrinsic, fromFactory, shared, reassigned, named, runtimeType)
+        .joinToString(",") { it.name }
+}
+
+fun local(): String {
+    val <!REDUNDANT_LOGGER_PROPERTY!>here<!> = logger()
+    return here.name
+}

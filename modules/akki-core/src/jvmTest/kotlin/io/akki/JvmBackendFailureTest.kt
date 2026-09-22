@@ -3,8 +3,6 @@ package io.akki
 import io.akki.backend.LogBackend
 import io.akki.test.RecordingBackend
 import io.akki.test.withBackend
-import java.io.ByteArrayOutputStream
-import java.io.PrintStream
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -16,7 +14,7 @@ class JvmBackendFailureTest {
     fun `a backend failure is announced once per logger`(): Unit {
         val logger = Log.named("failure.announced")
 
-        val output = captureError {
+        val output = captureStderr {
             withBackend(LogBackend { name -> error("backend is broken for $name") }) {
                 repeat(3) { logger.info("dropped") }
             }
@@ -36,7 +34,7 @@ class JvmBackendFailureTest {
         val logger = Log.named("failure.repeated")
         val broken = LogBackend { name -> error("backend is broken for $name") }
 
-        val output = captureError {
+        val output = captureStderr {
             withBackend(broken) {
                 logger.info("dropped")
                 withBackend(RecordingBackend()) { logger.info("recorded") }
@@ -61,7 +59,7 @@ class JvmBackendFailureTest {
     fun `a linkage error in the backend is contained like any other failure`(): Unit {
         val logger = Log.named("failure.linkage")
 
-        val output = captureError {
+        val output = captureStderr {
             withBackend(LogBackend { _ -> throw NoClassDefFoundError("org/slf4j/LoggerFactory") }) {
                 logger.info("dropped")
                 assertFalse(logger.isEnabled(Level.ERROR))
@@ -75,17 +73,5 @@ class JvmBackendFailureTest {
             },
         )
         assertContains(output, "java.lang.NoClassDefFoundError: org/slf4j/LoggerFactory")
-    }
-
-    private fun captureError(block: () -> Unit): String {
-        val buffer = ByteArrayOutputStream()
-        val original = System.err
-        System.setErr(PrintStream(buffer, true))
-        try {
-            block()
-        } finally {
-            System.setErr(original)
-        }
-        return buffer.toString()
     }
 }
