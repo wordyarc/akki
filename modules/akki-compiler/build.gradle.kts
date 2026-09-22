@@ -3,6 +3,7 @@ import akki.buildlogic.WriteVersionConstant
 
 plugins {
     id("akki.kotlin-jvm")
+    id("org.jetbrains.kotlinx.kover")
 }
 
 val writeVersionConstant = tasks.register<WriteVersionConstant>("writeVersionConstant") {

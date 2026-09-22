@@ -26,6 +26,8 @@ internal object AkkiErrors : KtDiagnosticsContainer() {
 
     val LOGGING_CALL_REFERENCE by error1<KtElement, String>()
 
+    val CONTEXTUAL_LOGGER_REFERENCE by error1<KtElement, String>()
+
     val LOGGING_CALL_REMOVED by DiagnosticFactory2DelegateProvider<String, String>(
         Severity.INFO,
         SourceElementPositioningStrategies.DEFAULT,
@@ -63,6 +65,13 @@ internal object AkkiDefaultErrorMessages : BaseDiagnosticRendererFactory() {
             "''{0}'' cannot be taken as a callable reference: a reference is not lowered, so the record skips the " +
                 "level check, reports Akki as the caller and survives the ''minLevel'' threshold. Wrap the call in " +
                 "a lambda instead.",
+            CommonRenderers.STRING,
+        )
+        map.put(
+            AkkiErrors.CONTEXTUAL_LOGGER_REFERENCE,
+            "''{0}'' cannot be taken as a callable reference: a reference is not lowered, so invoking it has no " +
+                "declaration to name the logger after and fails at runtime as if the plugin were absent. Call " +
+                "''{0}'' directly, or use ''Log.of<T>()'' or ''Log.named(\"...\")''.",
             CommonRenderers.STRING,
         )
         map.put(

@@ -22,6 +22,11 @@ jobs:
       - uses: gradle/actions/wrapper-validation@v4
       - uses: gradle/actions/setup-gradle@v4
       - run: ./gradlew build --continue --stacktrace
+      - run: ./gradlew koverHtmlReport
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: build/reports/kover/html
 
       - uses: mikepenz/action-junit-report@v5
         if: success() || failure()

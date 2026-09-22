@@ -5,13 +5,21 @@ import io.akki.backend.LoggerBinding
 import io.akki.backend.Sink
 import io.akki.internal.DefaultBackend
 import io.akki.internal.chooseBackend
+import io.akki.internal.discover
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
+import java.net.URLClassLoader
+import java.nio.file.Path
+import kotlin.io.path.createDirectories
+import kotlin.io.path.writeText
 import kotlin.test.Test
 import kotlin.test.assertContains
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertIsNot
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.io.TempDir
 
 class JvmBackendDiscoveryTest {
     @Test
@@ -52,6 +60,23 @@ class JvmBackendDiscoveryTest {
         assertSame(recording, reversed)
     }
 
+    @Test
+    fun `skips broken service declarations and keeps the rest`(@TempDir directory: Path): Unit {
+        val declarations = directory.resolve("META-INF/services/${LogBackend::class.java.name}")
+        declarations.parent.createDirectories()
+        declarations.writeText(
+            listOf("io.akki.MissingBackend", ThrowingBackend::class.java.name, DeclaredBackend::class.java.name)
+                .joinToString("\n"),
+        )
+        val loader = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader)
+
+        val output = captureError { assertIs<DeclaredBackend>(discover(loader)) }
+
+        assertContains(output, "io.akki.MissingBackend")
+        assertContains(output, ThrowingBackend::class.java.name)
+        assertEquals(2, output.lines().count { it.contains("ignoring a broken backend service declaration") }, output)
+    }
+
     private fun <T> silencingError(block: () -> T): T {
         val original = System.err
         System.setErr(PrintStream(ByteArrayOutputStream(), true))
@@ -81,4 +106,16 @@ class JvmBackendDiscoveryTest {
     private class SilentBackend : LogBackend {
         override fun bind(name: String): LoggerBinding = LoggerBinding { null }
     }
+}
+
+class DeclaredBackend : LogBackend {
+    override fun bind(name: String): LoggerBinding = LoggerBinding { null }
+}
+
+class ThrowingBackend : LogBackend {
+    init {
+        error("broken constructor")
+    }
+
+    override fun bind(name: String): LoggerBinding = LoggerBinding { null }
 }

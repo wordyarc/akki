@@ -7,4 +7,5 @@ dependencies {
     implementation(libs.kotlin.power.assert.gradle.plugin)
     implementation(libs.kotlin.allopen.gradle.plugin)
     implementation(libs.kotlinx.benchmark.gradle.plugin)
+    implementation(libs.kover.gradle.plugin)
 }

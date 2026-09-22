@@ -3,6 +3,7 @@ import org.gradle.api.tasks.testing.Test
 
 plugins {
     id("akki.kotlin-multiplatform")
+    id("org.jetbrains.kotlinx.kover")
 }
 
 val writeVersionConstant = tasks.register<WriteVersionConstant>("writeVersionConstant") {

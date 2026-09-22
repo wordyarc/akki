@@ -169,6 +169,16 @@ internal class LoggerFieldLoweringTest : FixtureTest() {
     }
 
     @Test
+    fun `rejects a callable reference to an entry point instead of letting it skip the lowering`() {
+        val output = compileExpectingFailure("entryPointReference")
+
+        assertContains(output, "'log' cannot be taken as a callable reference")
+        assertContains(output, "'logger' cannot be taken as a callable reference")
+        assertContains(output, "'forCaller' cannot be taken as a callable reference")
+        assertEquals(3, output.lines().count { it.contains("cannot be taken as a callable reference") }, output)
+    }
+
+    @Test
     fun `leaves an explicit logger property alone and names it the same`() {
         assertBox(
             "fixture.Service,fixture.Service,fixture.Service,fixture.Holder,fixture.Fixture" +

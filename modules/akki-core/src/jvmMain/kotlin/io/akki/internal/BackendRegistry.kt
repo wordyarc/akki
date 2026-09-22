@@ -7,7 +7,8 @@ import java.util.ServiceLoader
 import java.util.concurrent.atomic.AtomicReference
 
 private object JvmBackendRegistry {
-    private val backend: AtomicReference<BackendState> = AtomicReference(BackendState(discover()))
+    private val backend: AtomicReference<BackendState> =
+        AtomicReference(BackendState(discover(LogBackend::class.java.classLoader)))
 
     fun backend(): LogBackend = backend.get().backend
 
@@ -20,13 +21,18 @@ private object JvmBackendRegistry {
     private class BackendState(val backend: LogBackend)
 }
 
-private fun discover(): LogBackend =
-    try {
-        chooseBackend(ServiceLoader.load(LogBackend::class.java, LogBackend::class.java.classLoader).toList())
-    } catch (error: ServiceConfigurationError) {
-        printError("akki: ignoring a broken backend service declaration: ${error.message}")
-        DefaultBackend()
+internal fun discover(loader: ClassLoader): LogBackend {
+    val declared = mutableListOf<LogBackend>()
+    val providers = ServiceLoader.load(LogBackend::class.java, loader).iterator()
+    while (providers.hasNext()) {
+        try {
+            declared += providers.next()
+        } catch (error: ServiceConfigurationError) {
+            printError("akki: ignoring a broken backend service declaration: ${error.message}")
+        }
     }
+    return chooseBackend(declared)
+}
 
 internal fun chooseBackend(declared: List<LogBackend>): LogBackend {
     if (declared.isEmpty()) return DefaultBackend()
