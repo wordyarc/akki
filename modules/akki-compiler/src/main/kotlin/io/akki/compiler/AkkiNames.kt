@@ -37,6 +37,7 @@ internal object AkkiNames {
     val FIELDS: Name = Name.identifier("fields")
 
     val LOGGER_FIELD: Name = Name.identifier("\$\$log")
+    val LOGGER_HOLDER: Name = Name.identifier("\$Log")
 
     fun loggerField(index: Int): Name = Name.identifier("${LOGGER_FIELD.asString()}\$$index")
 

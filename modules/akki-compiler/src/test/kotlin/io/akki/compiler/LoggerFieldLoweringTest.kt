@@ -110,13 +110,26 @@ internal class LoggerFieldLoweringTest : FixtureTest() {
     }
 
     @Test
-    fun `lowers interface default methods`() {
-        val lowered = compile("interfaceDefault").references("fixture.Contract")
+    fun `lowers interface default methods through a holder class`() {
+        val compilation = compile("interfaceDefault")
+        val lowered = compilation.references("fixture.Contract")
         val plain = compile("interfaceDefault", Plugin.Absent).references("fixture.Contract")
 
-        assertContains(lowered, "\$\$log")
+        assertContains(compilation.references("fixture.Contract\$\$Log"), "\$\$log")
+        assertContains(lowered, "fixture/Contract\$\$Log.\$\$log")
         assertFalse(lowered.any { it.contains("IntrinsicKt") })
         assertTrue(plain.any { it.contains("IntrinsicKt") })
+    }
+
+    @Test
+    fun `initializes the logger before enum entries and interface companions`() {
+        val compilation = compile("initializerOrder")
+
+        assertEquals("fixture.Colour,audit,fixture.Contract,fixture.Contract", compilation.invoke())
+        assertContains(compilation.references("fixture.Colour\$\$Log"), "\$\$log")
+        assertContains(compilation.references("fixture.Colour\$\$Log"), "\$\$log\$1")
+        assertContains(compilation.references("fixture.Colour"), "fixture/Colour\$\$Log.\$\$log")
+        assertFalse(compilation.references("fixture.Colour").contains("\$\$log"))
     }
 
     @Test

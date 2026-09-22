@@ -1,33 +1,15 @@
 package io.akki
 
 import io.akki.backend.Sink
-import kotlin.concurrent.Volatile
 
 public abstract class Logger {
     public abstract val name: String
 
-    public abstract fun isEnabled(level: Level): Boolean
+    public abstract fun sink(level: Level): Sink?
 
-    protected abstract fun emit(
-        level: Level,
-        message: String,
-        cause: Throwable?,
-        fields: Map<String, Any?>,
-    )
-
-    @Volatile
-    private var sinks: Array<Sink>? = null
-
-    @InternalAkkiApi
-    public open fun sink(level: Level): Sink? = if (isEnabled(level)) sinks()[level.ordinal] else null
-
-    private fun sinks(): Array<Sink> = sinks ?: Array(Level.entries.size) { ordinal ->
-        val level = Level.entries[ordinal]
-        Sink { message, cause, fields -> emit(level, message, cause, fields) }
-    }.also { sinks = it }
+    public fun isEnabled(level: Level): Boolean = sink(level) != null
 
     @Suppress("NOTHING_TO_INLINE")
-    @OptIn(InternalAkkiApi::class)
     public inline fun trace(
         message: String,
         cause: Throwable? = null,
@@ -36,7 +18,6 @@ public abstract class Logger {
         sink(Level.TRACE)?.emit(message, cause, fields)
     }
 
-    @OptIn(InternalAkkiApi::class)
     public inline fun trace(
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
@@ -46,7 +27,6 @@ public abstract class Logger {
     }
 
     @Suppress("NOTHING_TO_INLINE")
-    @OptIn(InternalAkkiApi::class)
     public inline fun debug(
         message: String,
         cause: Throwable? = null,
@@ -55,7 +35,6 @@ public abstract class Logger {
         sink(Level.DEBUG)?.emit(message, cause, fields)
     }
 
-    @OptIn(InternalAkkiApi::class)
     public inline fun debug(
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
@@ -65,7 +44,6 @@ public abstract class Logger {
     }
 
     @Suppress("NOTHING_TO_INLINE")
-    @OptIn(InternalAkkiApi::class)
     public inline fun info(
         message: String,
         cause: Throwable? = null,
@@ -74,7 +52,6 @@ public abstract class Logger {
         sink(Level.INFO)?.emit(message, cause, fields)
     }
 
-    @OptIn(InternalAkkiApi::class)
     public inline fun info(
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
@@ -84,7 +61,6 @@ public abstract class Logger {
     }
 
     @Suppress("NOTHING_TO_INLINE")
-    @OptIn(InternalAkkiApi::class)
     public inline fun warn(
         message: String,
         cause: Throwable? = null,
@@ -93,7 +69,6 @@ public abstract class Logger {
         sink(Level.WARN)?.emit(message, cause, fields)
     }
 
-    @OptIn(InternalAkkiApi::class)
     public inline fun warn(
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
@@ -103,7 +78,6 @@ public abstract class Logger {
     }
 
     @Suppress("NOTHING_TO_INLINE")
-    @OptIn(InternalAkkiApi::class)
     public inline fun error(
         message: String,
         cause: Throwable? = null,
@@ -112,7 +86,6 @@ public abstract class Logger {
         sink(Level.ERROR)?.emit(message, cause, fields)
     }
 
-    @OptIn(InternalAkkiApi::class)
     public inline fun error(
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),

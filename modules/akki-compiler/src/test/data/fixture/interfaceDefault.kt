@@ -10,6 +10,7 @@ class Service {
     fun probe(): String = log.name
 }
 
-fun box(): String = listOf(Contract::class.java, Service::class.java).joinToString(",") {
-    it.simpleName + "=" + it.declaredFields.single().isSynthetic
-}
+fun box(): String = listOf(
+    "Contract" to Class.forName("fixture.Contract\$\$Log"),
+    "Service" to Service::class.java,
+).joinToString(",") { (label, type) -> label + "=" + type.declaredFields.single().isSynthetic }

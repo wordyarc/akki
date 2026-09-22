@@ -16,7 +16,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
-@OptIn(DelicateAkkiApi::class, InternalAkkiApi::class)
+@OptIn(DelicateAkkiApi::class)
 class LogTest {
     @Test
     fun `factories resolve the same instance`(): Unit {

@@ -15,7 +15,7 @@ private fun selectLog(logger: Logger): Logger {
     return logger
 }
 
-@OptIn(DelicateAkkiApi::class, InternalAkkiApi::class)
+@OptIn(DelicateAkkiApi::class)
 fun box(): String {
     val backend = RecordingBackend()
     val logger = Log.named("fixture")

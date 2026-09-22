@@ -7,9 +7,12 @@ import org.jetbrains.kotlin.backend.common.IrElementTransformerVoidWithContext
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
 import org.jetbrains.kotlin.builtins.jvm.JavaToKotlinClassMap
+import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.descriptors.DescriptorVisibility
+import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.ir.IrElement
+import org.jetbrains.kotlin.ir.builders.declarations.buildClass
 import org.jetbrains.kotlin.ir.builders.declarations.buildField
 import org.jetbrains.kotlin.ir.builders.irCall
 import org.jetbrains.kotlin.ir.builders.irExprBody
@@ -34,6 +37,7 @@ import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.types.classOrNull
 import org.jetbrains.kotlin.ir.util.SYNTHETIC_OFFSET
 import org.jetbrains.kotlin.ir.util.classId
+import org.jetbrains.kotlin.ir.util.createThisReceiverParameter
 import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.isEnumClass
 import org.jetbrains.kotlin.ir.util.isInterface
@@ -58,10 +62,14 @@ internal class LoggerFieldLowering(
 
     private val fields = mutableMapOf<IrDeclarationContainer, MutableMap<String, IrField>>()
 
+    private val holders = mutableMapOf<IrClass, IrClass>()
+
     override fun lower(irFile: IrFile) {
         irFile.transform(this, null)
         fields.forEach { (container, created) -> container.declarations.addAll(0, created.values.toList()) }
+        holders.forEach { (owner, holder) -> owner.declarations.add(holder) }
         fields.clear()
+        holders.clear()
     }
 
     override fun visitCall(expression: IrCall): IrExpression {
@@ -144,8 +152,26 @@ internal class LoggerFieldLowering(
         } ?: currentFile
 
     private fun fieldOwner(): IrDeclarationContainer {
-        val owner = namingOwner()
-        return if (!isJvm && owner is IrClass && owner.isInterface) currentFile else owner
+        val owner = namingOwner() as? IrClass ?: return currentFile
+        return when {
+            owner.isInterface && !isJvm -> currentFile
+            owner.isInterface || owner.isEnumClass -> holders.getOrPut(owner) { owner.createLoggerHolder() }
+            else -> owner
+        }
+    }
+
+    private fun IrClass.createLoggerHolder(): IrClass = context.irFactory.buildClass {
+        startOffset = SYNTHETIC_OFFSET
+        endOffset = SYNTHETIC_OFFSET
+        name = AkkiNames.LOGGER_HOLDER
+        kind = ClassKind.CLASS
+        visibility = JavaDescriptorVisibilities.PACKAGE_VISIBILITY
+        modality = Modality.FINAL
+        origin = GENERATED_LOGGER_HOLDER
+    }.apply {
+        parent = this@createLoggerHolder
+        superTypes = listOf(context.irBuiltIns.anyType)
+        createThisReceiverParameter()
     }
 
     private fun IrClass.isHoisted(): Boolean =
@@ -185,9 +211,6 @@ internal class LoggerFieldLowering(
         return field
     }
 
-    private fun IrDeclarationContainer.fieldVisibility(): DescriptorVisibility = when {
-        this is IrClass && isInterface -> DescriptorVisibilities.PUBLIC
-        isJvm -> JavaDescriptorVisibilities.PACKAGE_VISIBILITY
-        else -> DescriptorVisibilities.PRIVATE
-    }
+    private fun fieldVisibility(): DescriptorVisibility =
+        if (isJvm) JavaDescriptorVisibilities.PACKAGE_VISIBILITY else DescriptorVisibilities.PRIVATE
 }

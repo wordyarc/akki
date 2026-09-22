@@ -9,9 +9,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
-@OptIn(DelicateAkkiApi::class, InternalAkkiApi::class)
+@OptIn(DelicateAkkiApi::class)
 class BackendFailureTest {
     @Test
     fun `a backend that fails to resolve drops the record`(): Unit {
@@ -61,15 +60,20 @@ class BackendFailureTest {
     }
 
     @Test
-    fun `a failing backend is asked again on the next record`(): Unit {
-        val logger = Log.named("failure.repeating")
+    fun `a failing backend is not asked again until another backend is installed`(): Unit {
+        val logger = Log.named("failure.terminal")
         val backend = FailingBackend()
+        val working = RecordingBackend()
 
         withBackend(backend) {
             repeat(3) { logger.info("dropped") }
         }
+        withBackend(working) {
+            logger.info("recorded")
+        }
 
-        assertTrue(backend.attempts >= 3, "resolve was tried ${backend.attempts} times")
+        assertEquals(1, backend.attempts)
+        assertEquals(listOf("recorded"), working.records.map { it.message })
     }
 
     private enum class Failing {
