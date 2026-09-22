@@ -4,7 +4,6 @@ import io.akki.Log
 import io.akki.backend.LogBackend
 import java.util.ServiceConfigurationError
 import java.util.ServiceLoader
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 private object JvmBackendRegistry {
@@ -15,15 +14,7 @@ private object JvmBackendRegistry {
     fun install(backend: LogBackend): Log.Installation {
         val installed = BackendState(backend)
         val previous = this.backend.getAndSet(installed)
-        val active = AtomicBoolean(true)
-        return Log.Installation {
-            if (active.compareAndSet(true, false)) {
-                if (!this.backend.compareAndSet(installed, previous)) {
-                    active.set(true)
-                    throw IllegalStateException("akki: backend installations must be uninstalled in reverse order")
-                }
-            }
-        }
+        return Log.Installation(backend) { this.backend.compareAndSet(installed, previous) }
     }
 
     private class BackendState(val backend: LogBackend)

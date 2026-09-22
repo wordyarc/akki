@@ -1,11 +1,22 @@
+import akki.buildlogic.WriteVersionConstant
 import org.gradle.api.tasks.testing.Test
 
 plugins {
     id("akki.kotlin-multiplatform")
 }
 
+val writeVersionConstant = tasks.register<WriteVersionConstant>("writeVersionConstant") {
+    packageName = "io.akki.internal"
+    version = project.version.toString()
+    outputDirectory = layout.buildDirectory.dir("generated/source/version")
+}
+
 kotlin {
     explicitApi()
+
+    sourceSets.commonMain {
+        kotlin.srcDir(writeVersionConstant)
+    }
 
     jvm {
         testRuns.configureEach {

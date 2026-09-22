@@ -44,6 +44,8 @@ internal class DefaultBackend : LogBackend {
         }
     }
 
+    override fun toString(): String = "DefaultBackend"
+
     private companion object {
         val THRESHOLD: Level = Level.INFO
 

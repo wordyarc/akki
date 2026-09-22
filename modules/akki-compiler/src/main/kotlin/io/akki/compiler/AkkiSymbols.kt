@@ -4,9 +4,11 @@ package io.akki.compiler
 
 import org.jetbrains.kotlin.backend.common.extensions.DeclarationFinder
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
+import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrEnumEntry
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
+import org.jetbrains.kotlin.ir.expressions.IrConst
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.symbols.IrEnumEntrySymbol
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
@@ -20,6 +22,7 @@ import org.jetbrains.kotlin.ir.util.classId
 import org.jetbrains.kotlin.ir.util.hasShape
 import org.jetbrains.kotlin.ir.util.invokeFun
 import org.jetbrains.kotlin.ir.util.nonDispatchParameters
+import org.jetbrains.kotlin.ir.util.properties
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.name.Name
@@ -169,17 +172,35 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
         fun of(context: IrPluginContext): AkkiSymbols? {
             val finder = context.finderForBuiltins()
             finder.findClass(AkkiNames.LOGGER_ID) ?: return null
+            val coreVersion = finder.findClass(AkkiNames.LOG_REGISTRY_ID)?.owner?.declaredVersion()
+            if (coreVersion != null && coreVersion != AKKI_VERSION) {
+                return context.incompatible(
+                    "The Akki compiler plugin $AKKI_VERSION cannot use akki-core $coreVersion on the compile " +
+                        "classpath: the plugin and akki-core must come from the same version.",
+                )
+            }
             return try {
                 AkkiSymbols(context, finder)
             } catch (failure: IncompatibleCore) {
-                context.diagnosticReporter.report(
-                    AkkiErrors.INCOMPATIBLE_AKKI_CORE,
-                    "The Akki compiler plugin cannot use the akki-core on the compile classpath: it does not " +
-                        "declare '${failure.signature}'. The plugin and akki-core must come from the same version.",
+                context.incompatible(
+                    "The Akki compiler plugin $AKKI_VERSION cannot use the akki-core on the compile classpath: " +
+                        "it does not state its version and does not declare '${failure.signature}'. " +
+                        "The plugin and akki-core must come from the same version.",
                 )
-                null
             }
         }
+
+        private fun IrPluginContext.incompatible(message: String): AkkiSymbols? {
+            diagnosticReporter.report(AkkiErrors.INCOMPATIBLE_AKKI_CORE, message)
+            return null
+        }
+
+        private fun IrClass.declaredVersion(): String? = properties
+            .singleOrNull { it.name == AkkiNames.VERSION && it.isConst }
+            ?.backingField
+            ?.initializer
+            ?.expression
+            .let { (it as? IrConst)?.value as? String }
     }
 }
 

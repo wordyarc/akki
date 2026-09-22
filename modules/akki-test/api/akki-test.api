@@ -18,6 +18,7 @@ public final class io/akki/test/RecordingBackend : io/akki/backend/LogBackend {
 	public fun bind (Ljava/lang/String;)Lio/akki/backend/LoggerBinding;
 	public final fun getRecords ()Ljava/util/List;
 	public final fun getResolutions ()Ljava/util/List;
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class io/akki/test/RecordingKt {

@@ -39,6 +39,8 @@ dependencies {
     compilerPlugin(project(":akki-compiler"))
     listOf(plugged, plain, clipped).forEach { sourceSet ->
         sourceSet.implementationConfigurationName(project(":akki-core"))
+        sourceSet.implementationConfigurationName(project(":akki-slf4j"))
+        sourceSet.implementationConfigurationName(libs.logback.classic)
         sourceSet.implementationConfigurationName(libs.kotlinx.benchmark.runtime)
     }
 }

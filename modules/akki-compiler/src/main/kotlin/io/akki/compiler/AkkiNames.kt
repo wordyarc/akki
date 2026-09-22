@@ -31,6 +31,7 @@ internal object AkkiNames {
     val EMIT: Name = Name.identifier("emit")
 
     val VALUE: Name = Name.identifier("value")
+    val VERSION: Name = Name.identifier("VERSION")
 
     val MESSAGE: Name = Name.identifier("message")
     val CAUSE: Name = Name.identifier("cause")

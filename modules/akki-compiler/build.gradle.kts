@@ -1,7 +1,20 @@
 import akki.buildlogic.ClasspathSystemProperty
+import akki.buildlogic.WriteVersionConstant
 
 plugins {
     id("akki.kotlin-jvm")
+}
+
+val writeVersionConstant = tasks.register<WriteVersionConstant>("writeVersionConstant") {
+    packageName = "io.akki.compiler"
+    version = project.version.toString()
+    outputDirectory = layout.buildDirectory.dir("generated/source/version")
+}
+
+kotlin {
+    sourceSets.main {
+        kotlin.srcDir(writeVersionConstant)
+    }
 }
 
 val fixtureRuntime: Configuration = configurations.create("fixtureRuntime") {

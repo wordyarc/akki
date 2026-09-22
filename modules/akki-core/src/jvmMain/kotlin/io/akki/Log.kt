@@ -7,6 +7,7 @@ import io.akki.internal.CallSite
 import io.akki.internal.LogRegistry
 import io.akki.internal.installPlatformBackend
 import io.akki.internal.platformTypeName
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.reflect.KClass
 
 public actual object Log {
@@ -33,11 +34,20 @@ public actual object Log {
     @DelicateAkkiApi
     public actual fun install(backend: LogBackend): Installation = installPlatformBackend(backend)
 
-    public actual class Installation internal actual constructor(uninstall: () -> Unit) : AutoCloseable {
-        private val uninstall: () -> Unit = uninstall
+    public actual class Installation internal actual constructor(
+        private val backend: LogBackend,
+        private val restore: () -> Boolean,
+    ) : AutoCloseable {
+        private val active = AtomicBoolean(true)
 
         actual override fun close() {
-            uninstall.invoke()
+            if (!active.compareAndSet(true, false)) return
+            if (restore()) return
+            active.set(true)
+            throw IllegalStateException("akki: backend installations must be uninstalled in reverse order")
         }
+
+        override fun toString(): String =
+            "Log.Installation(${if (active.get()) "active" else "closed"}, backend=$backend)"
     }
 }

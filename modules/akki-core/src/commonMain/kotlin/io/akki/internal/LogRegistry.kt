@@ -6,6 +6,8 @@ import io.akki.Logger
 
 @InternalAkkiApi
 public object LogRegistry {
+    public const val VERSION: String = AKKI_VERSION
+
     public fun of(name: String): Logger = platformLogger(name.orRejectBlank())
 
     public fun forDeclaration(source: String, platformName: String): Logger =

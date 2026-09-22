@@ -10,6 +10,8 @@ import org.slf4j.event.Level as Slf4jLevel
 
 public class Slf4jBackend : LogBackend {
     override fun bind(name: String): LoggerBinding = Slf4jBinding(name)
+
+    override fun toString(): String = "Slf4jBackend"
 }
 
 private class Slf4jBinding(name: String) : LoggerBinding {

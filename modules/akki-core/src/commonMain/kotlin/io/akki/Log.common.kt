@@ -22,7 +22,7 @@ public expect object Log {
     @DelicateAkkiApi
     public fun install(backend: LogBackend): Installation
 
-    public class Installation internal constructor(uninstall: () -> Unit) : AutoCloseable {
+    public class Installation internal constructor(backend: LogBackend, restore: () -> Boolean) : AutoCloseable {
         override fun close()
     }
 }

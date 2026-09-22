@@ -28,4 +28,6 @@ public class RecordingBackend(
             if (level >= minLevel) sinks[level.ordinal] else null
         }
     }
+
+    override fun toString(): String = "RecordingBackend(minLevel=$minLevel, records=${records.size})"
 }
