@@ -133,6 +133,30 @@ internal class LoggerFieldLoweringTest : FixtureTest() {
     }
 
     @Test
+    fun `lowers annotation class companions through a holder class`() {
+        val compilation = compile("annotationCompanion")
+
+        assertEquals("fixture.Marker,fixture.Marker,true,true", compilation.invoke())
+        assertContains(compilation.references("fixture.Marker\$Companion"), "fixture/Marker\$\$Log.\$\$log")
+        assertFalse(compilation.references("fixture.Marker").contains("\$\$log"))
+    }
+
+    @Test
+    fun `names a renamed facade the way the runtime does`() {
+        assertEquals("fixture.Orders,fixture.Orders,true", compile("renamedFacade").invoke("fixture.Orders"))
+    }
+
+    @Test
+    fun `names a multifile part the way the runtime does`() {
+        val compilation = compile("multifileFacade")
+        val part = compilation.references("fixture.Orders__FixtureKt")
+
+        assertEquals("fixture.Fixture,fixture.Fixture,true", compilation.invoke("fixture.Orders"))
+        assertContains(part, "fixture.Fixture")
+        assertContains(part, "fixture.Orders__FixtureKt")
+    }
+
+    @Test
     fun `hides the field from everyone but the generated code`() {
         assertEquals("Contract=true,Service=true", box("interfaceDefault"))
     }

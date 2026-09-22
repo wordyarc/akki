@@ -1,6 +1,7 @@
 package io.akki
 
 import io.akki.backend.LogBackend
+import io.akki.test.RecordingBackend
 import io.akki.test.withBackend
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
@@ -28,6 +29,32 @@ class JvmBackendFailureTest {
             },
         )
         assertContains(output, "java.lang.IllegalStateException: backend is broken for failure.announced")
+    }
+
+    @Test
+    fun `a backend failure is announced again for another backend`(): Unit {
+        val logger = Log.named("failure.repeated")
+        val broken = LogBackend { name -> error("backend is broken for $name") }
+
+        val output = captureError {
+            withBackend(broken) {
+                logger.info("dropped")
+                withBackend(RecordingBackend()) { logger.info("recorded") }
+                logger.info("dropped again")
+            }
+            withBackend(LogBackend { name -> error("the next backend is broken for $name too") }) {
+                logger.info("dropped elsewhere")
+            }
+        }
+
+        assertEquals(
+            2,
+            output.lineSequence().count {
+                it.startsWith("akki: the backend failed to resolve logger 'failure.repeated'")
+            },
+        )
+        assertContains(output, "java.lang.IllegalStateException: backend is broken for failure.repeated")
+        assertContains(output, "java.lang.IllegalStateException: the next backend is broken for failure.repeated too")
     }
 
     @Test
