@@ -31,6 +31,20 @@ class AkkiGradlePluginTest {
     }
 
     @Test
+    fun `survives an slf4j-api downgraded below the version it was built for`(@TempDir projectDirectory: Path) {
+        val output = build(
+            projectDirectory,
+            consumer = Consumer.Slf4j,
+            extra = """configurations.all { resolutionStrategy.force("org.slf4j:slf4j-api:1.7.36") }""",
+        )
+
+        assertContains(output, "AKKI evaluated=0")
+        assertContains(output, "akki: the backend failed to resolve logger 'consumer.OrderService'")
+        assertContains(output, "java.lang.NoSuchMethodError")
+        assertFalse(output.contains("AKKI INFO consumer.OrderService"), output)
+    }
+
+    @Test
     fun `runs on the module path and binds the backend as a service`(@TempDir projectDirectory: Path) {
         val output = build(projectDirectory, consumer = Consumer.Modular)
         val line = lineOf(Consumer.Modular, """log.info("received""")

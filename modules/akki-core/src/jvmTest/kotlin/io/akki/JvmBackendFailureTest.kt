@@ -7,6 +7,7 @@ import java.io.PrintStream
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 
 @OptIn(DelicateAkkiApi::class)
 class JvmBackendFailureTest {
@@ -27,6 +28,26 @@ class JvmBackendFailureTest {
             },
         )
         assertContains(output, "java.lang.IllegalStateException: backend is broken for failure.announced")
+    }
+
+    @Test
+    fun `a linkage error in the backend is contained like any other failure`(): Unit {
+        val logger = Log.named("failure.linkage")
+
+        val output = captureError {
+            withBackend(LogBackend { _ -> throw NoClassDefFoundError("org/slf4j/LoggerFactory") }) {
+                logger.info("dropped")
+                assertFalse(logger.isEnabled(Level.ERROR))
+            }
+        }
+
+        assertEquals(
+            1,
+            output.lineSequence().count {
+                it.startsWith("akki: the backend failed to resolve logger 'failure.linkage'")
+            },
+        )
+        assertContains(output, "java.lang.NoClassDefFoundError: org/slf4j/LoggerFactory")
     }
 
     private fun captureError(block: () -> Unit): String {

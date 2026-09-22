@@ -42,12 +42,12 @@ internal class LoggerImpl(override val name: String) : Logger() {
     private inline fun <T> guarded(fallback: T, resolve: () -> T): T =
         try {
             resolve()
-        } catch (failure: Exception) {
+        } catch (failure: Throwable) {
             report(failure)
             fallback
         }
 
-    private fun report(failure: Exception) {
+    private fun report(failure: Throwable) {
         if (!reported.compareAndSet(false, true)) return
         printError(
             "akki: the backend failed to resolve logger '$name', its records are dropped " +
