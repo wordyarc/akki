@@ -21,6 +21,8 @@ dependencies {
     kover(project(":akki-slf4j"))
     kover(project(":akki-compiler"))
     kover(project(":akki-test"))
+    kover(project(":akki-coroutines"))
+    kover(project(":akki-test-coroutines"))
 }
 
 tasks.register("apiCheck") {

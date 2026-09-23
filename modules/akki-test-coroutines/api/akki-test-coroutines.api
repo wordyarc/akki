@@ -1,0 +1,5 @@
+public final class io/akki/test/coroutines/RecordingKt {
+	public static final fun recordLogs (Lio/akki/Level;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun recordLogs$default (Lio/akki/Level;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+

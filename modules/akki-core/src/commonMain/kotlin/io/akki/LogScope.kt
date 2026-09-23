@@ -7,23 +7,24 @@ import io.akki.backend.LoggerBinding
 import io.akki.internal.akkiError
 import io.akki.internal.currentScope
 import io.akki.internal.setCurrentScope
-import kotlin.concurrent.atomics.AtomicInt
+import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.AtomicReference
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
-import kotlin.concurrent.atomics.decrementAndFetch
-import kotlin.concurrent.atomics.incrementAndFetch
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
-private val entered = AtomicInt(0)
+private val used = AtomicBoolean(false)
 
 public class LogScope(public val backend: LogBackend) {
     private val bindings = AtomicReference<Map<String, LoggerBinding>>(emptyMap())
 
+    init {
+        if (!used.load()) used.store(true)
+    }
+
     public fun enter(): Entry {
         val entry = Entry(this, currentScope())
-        entered.incrementAndFetch()
         setCurrentScope(this)
         return entry
     }
@@ -56,11 +57,10 @@ public class LogScope(public val backend: LogBackend) {
             if (currentScope() !== scope) akkiError("logging scopes must be exited on their own thread in reverse order")
             closed = true
             setCurrentScope(previous)
-            entered.decrementAndFetch()
         }
     }
 
     public companion object {
-        public fun current(): LogScope? = if (entered.load() == 0) null else currentScope()
+        public fun current(): LogScope? = if (used.load()) currentScope() else null
     }
 }

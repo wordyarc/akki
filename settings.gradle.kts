@@ -31,6 +31,8 @@ listOf(
     "akki-compiler",
     "akki-gradle",
     "akki-test",
+    "akki-coroutines",
+    "akki-test-coroutines",
     "akki-benchmark",
 ).forEach { module ->
     include(module)
