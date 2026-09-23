@@ -14,6 +14,9 @@ fun main(args: Array<String>) {
                 model("transparent")
                 model("semantics")
             }
+            testClass<AbstractAkkiBackendBoxTest> {
+                model("backend")
+            }
             testClass<AbstractAkkiPluginlessBoxTest> {
                 model("transparent")
                 model("pluginless")

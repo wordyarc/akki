@@ -1,25 +1,8 @@
 package io.akki.internal
 
-import io.akki.Log
 import io.akki.backend.LogBackend
 import java.util.ServiceConfigurationError
 import java.util.ServiceLoader
-import java.util.concurrent.atomic.AtomicReference
-
-private object JvmBackendRegistry {
-    private val backend: AtomicReference<BackendState> =
-        AtomicReference(BackendState(discover(LogBackend::class.java.classLoader)))
-
-    fun backend(): LogBackend = backend.get().backend
-
-    fun install(backend: LogBackend): Log.Installation {
-        val installed = BackendState(backend)
-        val previous = this.backend.getAndSet(installed)
-        return Log.Installation(backend) { this.backend.compareAndSet(installed, previous) }
-    }
-
-    private class BackendState(val backend: LogBackend)
-}
 
 internal fun discover(loader: ClassLoader): LogBackend {
     val declared = mutableListOf<LogBackend>()
@@ -54,6 +37,4 @@ internal fun chooseBackend(declared: List<LogBackend>): LogBackend {
     return chosen
 }
 
-internal actual fun platformBackend(): LogBackend = JvmBackendRegistry.backend()
-
-internal actual fun installPlatformBackend(backend: LogBackend): Log.Installation = JvmBackendRegistry.install(backend)
+internal actual fun discoverPlatformBackend(): LogBackend = discover(LogBackend::class.java.classLoader)

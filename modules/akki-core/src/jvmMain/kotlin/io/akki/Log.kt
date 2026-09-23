@@ -3,9 +3,9 @@
 package io.akki
 
 import io.akki.backend.LogBackend
+import io.akki.internal.BackendRegistry
 import io.akki.internal.LogRegistry
 import io.akki.internal.akkiError
-import io.akki.internal.installPlatformBackend
 import io.akki.internal.platformTypeName
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.reflect.KClass
@@ -24,7 +24,7 @@ public actual object Log {
 
     @JvmStatic
     @DelicateAkkiApi
-    public actual fun install(backend: LogBackend): Installation = installPlatformBackend(backend)
+    public actual fun install(backend: LogBackend): Installation = BackendRegistry.install(backend)
 
     public actual class Installation internal actual constructor(
         private val backend: LogBackend,

@@ -8,7 +8,7 @@ import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 @OptIn(ExperimentalAtomicApi::class)
-internal class DefaultBackend : LogBackend {
+internal class DefaultBackend(private val notice: String = NOTICE) : LogBackend {
     private val announced = AtomicBoolean(false)
 
     override fun bind(name: String): LoggerBinding {
@@ -27,7 +27,7 @@ internal class DefaultBackend : LogBackend {
         fields: Map<String, Any?>,
     ): String = buildString {
         if (!announced.load() && announced.compareAndSet(false, true)) {
-            append(NOTICE)
+            append(notice)
             append('\n')
         }
         append(LABELS[level.ordinal])

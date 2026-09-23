@@ -28,6 +28,7 @@ import org.jetbrains.kotlin.test.services.EnvironmentConfigurator
 import org.jetbrains.kotlin.test.services.RuntimeClasspathProvider
 import org.jetbrains.kotlin.test.services.TestModuleStructure
 import org.jetbrains.kotlin.test.services.TestServices
+import org.jetbrains.kotlin.test.services.getOrCreateTempDirectory
 
 internal fun TestConfigurationBuilder.configureAkki() {
     useDirectives(AkkiDirectives)
@@ -93,12 +94,20 @@ private class LogbackHelperProvider(testServices: TestServices) : AdditionalSour
         testModuleStructure: TestModuleStructure,
     ): List<TestFile> {
         if (!containsDirective(globalDirectives, module, AkkiDirectives.WITH_LOGBACK)) return emptyList()
-        val testData = testModuleStructure.originalTestDataFiles.first().parentFile.parentFile
-        return listOf(testData.resolve("helpers/Logback.kt").toTestFile())
+        return listOf(File("testData/helpers/Logback.kt").toTestFile())
     }
 }
 
 private class AkkiRuntimeClasspathProvider(testServices: TestServices) : RuntimeClasspathProvider(testServices) {
-    override fun runtimeClassPaths(module: TestModule): List<File> =
-        if (AkkiDirectives.WITHOUT_AKKI in module.directives) emptyList() else fixtureClasspath
+    override fun runtimeClassPaths(module: TestModule): List<File> {
+        if (AkkiDirectives.WITHOUT_AKKI in module.directives) return emptyList()
+        val backends = module.directives[AkkiDirectives.BACKEND_SERVICES]
+        if (backends.isEmpty()) return fixtureClasspath
+        val services = testServices.getOrCreateTempDirectory("${module.name}_backend_services")
+        services.resolve("META-INF/services/io.akki.backend.LogBackend").apply {
+            parentFile.mkdirs()
+            writeText(backends.joinToString("\n"))
+        }
+        return fixtureClasspath.filterNot { it.name.startsWith("akki-slf4j-") } + services
+    }
 }

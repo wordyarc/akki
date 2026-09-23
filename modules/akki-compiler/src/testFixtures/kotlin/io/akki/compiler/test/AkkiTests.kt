@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.test.runners.AbstractFirPhasedDiagnosticTest
 import org.jetbrains.kotlin.test.runners.codegen.AbstractFirBlackBoxCodegenTestBase
 import org.jetbrains.kotlin.test.services.EnvironmentBasedStandardLibrariesPathProvider
 import org.jetbrains.kotlin.test.services.KotlinStandardLibrariesPathProvider
+import org.junit.jupiter.api.parallel.Isolated
 
 abstract class AbstractAkkiBoxTest : AbstractFirBlackBoxCodegenTestBase(FirParser.LightTree) {
     override fun createKotlinStandardLibrariesPathProvider(): KotlinStandardLibrariesPathProvider =
@@ -37,6 +38,9 @@ abstract class AbstractAkkiPluginlessBoxTest : AbstractAkkiBoxTest() {
         }
     }
 }
+
+@Isolated
+abstract class AbstractAkkiBackendBoxTest : AbstractAkkiBoxTest()
 
 abstract class AbstractAkkiClippedBoxTest : AbstractAkkiBoxTest() {
     override fun configure(builder: TestConfigurationBuilder) {

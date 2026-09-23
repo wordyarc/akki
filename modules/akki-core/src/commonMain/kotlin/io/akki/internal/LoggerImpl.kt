@@ -18,8 +18,14 @@ internal class LoggerImpl(override val name: String) : Logger() {
 
     override fun toString(): String = "Logger($name)"
 
+    fun release(backend: LogBackend) {
+        val previous = binding.load()
+        if (previous?.backend === backend) binding.compareAndSet(previous, null)
+        reported.compareAndSet(backend, null)
+    }
+
     private fun resolver(): LoggerBinding {
-        val backend = platformBackend()
+        val backend = BackendRegistry.backend()
         val previous = binding.load()
         previous?.takeIf { it.backend === backend }?.let { return it }
         val delegate = try {

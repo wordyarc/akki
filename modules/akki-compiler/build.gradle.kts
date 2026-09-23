@@ -66,6 +66,10 @@ sourceSets.test {
 
 tasks.test {
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.fixture.classpath", fixtureRuntime))
+    val javacProperties = mapOf(
+        "kotlin-stdlib" to "kotlin.full.stdlib.path",
+        "kotlin-reflect" to "kotlin.reflect.jar.path",
+    )
     listOf(
         "kotlin-stdlib",
         "kotlin-stdlib-jdk8",
@@ -76,6 +80,7 @@ tasks.test {
     ).forEach { library ->
         val jar = compilerTestLibraries.filter { it.name.matches(Regex("$library-\\d.*\\.jar")) }
         jvmArgumentProviders.add(ClasspathSystemProperty("org.jetbrains.kotlin.test.$library", jar))
+        javacProperties[library]?.let { jvmArgumentProviders.add(ClasspathSystemProperty(it, jar)) }
     }
     systemProperty("akki.jvm.target", libs.versions.jvm.target.get())
     systemProperty("io.akki.loggerNameStyle", "source")
