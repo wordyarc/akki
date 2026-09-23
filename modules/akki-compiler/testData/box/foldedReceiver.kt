@@ -1,3 +1,6 @@
+// CHECK_BYTECODE_TEXT
+// 0 io/akki/Log\.named \(
+// 1 io/akki/internal/LogRegistry\.of
 package fixture
 
 import io.akki.*
@@ -17,13 +20,13 @@ private fun throwingLog(): Log {
 }
 
 fun box(): String {
-    events += "logger=" + selectLog().forCaller().name
+    events += "logger=" + selectLog().named("receiver-audit").name
     try {
-        throwingLog().forCaller()
+        throwingLog().named("receiver-audit")
         events += "not-thrown"
     } catch (caught: IllegalStateException) {
         events += "caught=" + (caught === failure)
     }
-    assertEquals("selected,logger=fixture.ContextualReceiver,throwing,caught=true", events.joinToString(","))
+    assertEquals("selected,logger=receiver-audit,throwing,caught=true", events.joinToString(","))
     return "OK"
 }

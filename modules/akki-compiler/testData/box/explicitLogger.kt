@@ -16,7 +16,7 @@ class Service {
 }
 
 object Holder {
-    private val journal = Log.forCaller()
+    private val journal = logger()
 
     fun probe(): String = journal.name
 }

@@ -3,7 +3,6 @@
 package io.akki
 
 import io.akki.backend.LogBackend
-import io.akki.internal.CallSite
 import io.akki.internal.LogRegistry
 import io.akki.internal.akkiError
 import io.akki.internal.installPlatformBackend
@@ -19,14 +18,6 @@ public actual object Log {
 
     @JvmStatic
     public fun of(type: Class<*>): Logger = LogRegistry.of(platformTypeName(type))
-
-    @JvmStatic
-    @CallSite
-    public actual fun forCaller(): Logger = LogRegistry.forCaller()
-
-    @JvmStatic
-    @CallSite
-    public actual fun auto(): Logger = LogRegistry.forCaller()
 
     @JvmStatic
     public actual fun named(name: String): Logger = LogRegistry.of(name)

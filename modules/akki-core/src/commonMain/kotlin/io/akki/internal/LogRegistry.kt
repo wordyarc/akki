@@ -13,9 +13,8 @@ public object LogRegistry {
         platformLogger(platformDeclarationName(source, platformName).orRejectBlank())
 
     public fun forCaller(): Logger = akkiError(
-        "the compiler plugin is not applied to this source set, so `log`, `logger()` and " +
-            "`Log.forCaller()` cannot resolve a name. Apply the io.akki Gradle plugin, " +
-            "or use Log.of<T>() / Log.named(\"...\") instead.",
+        "the compiler plugin is not applied to this source set, so `log` and `logger()` cannot resolve " +
+            "a name. Apply the io.akki Gradle plugin, or use Log.of<T>() / Log.named(\"...\") instead.",
     )
 }
 

@@ -22,8 +22,6 @@ public final class io/akki/Level : java/lang/Enum {
 
 public final class io/akki/Log {
 	public static final field INSTANCE Lio/akki/Log;
-	public static final fun auto ()Lio/akki/Logger;
-	public static final fun forCaller ()Lio/akki/Logger;
 	public static final fun install (Lio/akki/backend/LogBackend;)Lio/akki/Log$Installation;
 	public static final fun named (Ljava/lang/String;)Lio/akki/Logger;
 	public static final fun of (Ljava/lang/Class;)Lio/akki/Logger;

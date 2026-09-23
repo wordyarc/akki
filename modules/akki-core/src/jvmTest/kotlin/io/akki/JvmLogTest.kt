@@ -19,10 +19,8 @@ class JvmLogTest {
         val entryPoints = listOf<() -> Logger>(
             caller::intrinsic,
             caller::functionAnchor,
-            caller::factoryAnchor,
             ::fileIntrinsic,
             ::fileFunctionAnchor,
-            ::fileFactoryAnchor,
         )
 
         entryPoints.forEach { entryPoint ->
@@ -37,6 +35,5 @@ class JvmLogTest {
         fun intrinsic(): Logger = log
 
         fun functionAnchor(): Logger = logger()
-
-        fun factoryAnchor(): Logger = Log.forCaller()
-    }}
+    }
+}

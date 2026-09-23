@@ -9,7 +9,6 @@ class Host {
             fun probe(): List<String> = listOf(
                 log.name,
                 logger().name,
-                Log.forCaller().name,
                 Log.of<Local>().name,
                 listOf(Unit).map { log.name }.single(),
             )
@@ -19,6 +18,6 @@ class Host {
 }
 
 fun box(): String {
-    assertEquals("fixture.Host,fixture.Host,fixture.Host,fixture.Host,fixture.Host", Host().probe())
+    assertEquals("fixture.Host,fixture.Host,fixture.Host,fixture.Host", Host().probe())
     return "OK"
 }
