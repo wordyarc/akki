@@ -14,6 +14,7 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import org.slf4j.LoggerFactory
 
@@ -101,6 +102,22 @@ class Slf4jBackendTest {
 
         logger.level = LogbackLevel.DEBUG
         assertTrue(binding.resolve(Level.INFO) != null)
+    }
+
+    @Test
+    fun `a retained sink respects subsequent level changes`() {
+        val context = LoggerFactory.getILoggerFactory() as LoggerContext
+        val logger = context.getLogger("retained")
+        logger.level = LogbackLevel.DEBUG
+        val sink = assertNotNull(Log.named("retained").sink(Level.DEBUG))
+
+        logger.level = LogbackLevel.WARN
+        sink.emit("disabled", null, emptyMap())
+        assertTrue(appender.list.isEmpty())
+
+        logger.level = LogbackLevel.DEBUG
+        sink.emit("enabled again", null, emptyMap())
+        assertEquals("enabled again", appender.list.single().message)
     }
 }
 

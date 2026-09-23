@@ -10,6 +10,8 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
+public const val LOG_BACKEND_RESOURCE_NAME: String = "io.akki.Log.backend"
+
 @OptIn(DelicateAkkiApi::class)
 public inline fun <T> withBackend(backend: LogBackend, block: () -> T): T {
     contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }

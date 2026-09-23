@@ -72,6 +72,7 @@ benchmark {
             iterationTimeUnit = "ms"
             mode = "avgt"
             outputTimeUnit = "ns"
+            advanced("jvmForks", 3)
         }
     }
 }

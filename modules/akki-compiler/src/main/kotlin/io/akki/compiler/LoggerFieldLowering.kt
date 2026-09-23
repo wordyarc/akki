@@ -44,6 +44,7 @@ import org.jetbrains.kotlin.ir.util.isEnumClass
 import org.jetbrains.kotlin.ir.util.isEnumEntry
 import org.jetbrains.kotlin.ir.util.isInterface
 import org.jetbrains.kotlin.ir.util.isObject
+import org.jetbrains.kotlin.ir.util.isSuspendFunction
 import org.jetbrains.kotlin.ir.util.parents
 import org.jetbrains.kotlin.load.java.JavaDescriptorVisibilities
 import org.jetbrains.kotlin.platform.jvm.isJvm
@@ -123,7 +124,11 @@ internal class LoggerFieldLowering(
 
     private fun IrClass.isJvmMapped(): Boolean =
         symbol.isArrayOrPrimitiveArray(context.irBuiltIns) ||
-            classId?.let { JavaToKotlinClassMap.mapKotlinToJava(it.asSingleFqName().toUnsafe()) } != null
+            symbol.isSuspendFunction() ||
+            classId?.asSingleFqName()?.let {
+                JavaToKotlinClassMap.mapKotlinToJava(it.toUnsafe()) != null ||
+                    JavaToKotlinClassMap.mapJavaToKotlin(it) != null
+            } == true
 
     private fun IrClass.namingDeclaration(): IrDeclarationContainer? =
         (sequenceOf<IrDeclarationParent>(this) + parents)

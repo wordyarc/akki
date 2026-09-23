@@ -61,6 +61,11 @@ class Slf4jBenchmark {
     }
 
     @Benchmark
+    fun akkiSuppressedLazy() {
+        log.debug { "order ${id++} accepted" }
+    }
+
+    @Benchmark
     fun slf4jRecorded() {
         slf4j.info("order ${id++} accepted")
     }
@@ -77,6 +82,11 @@ class Slf4jBenchmark {
 
     @Benchmark
     fun slf4jSuppressed() {
+        slf4j.debug("order ${id++} accepted")
+    }
+
+    @Benchmark
+    fun slf4jSuppressedGuarded() {
         if (slf4j.isDebugEnabled) slf4j.debug("order ${id++} accepted")
     }
 

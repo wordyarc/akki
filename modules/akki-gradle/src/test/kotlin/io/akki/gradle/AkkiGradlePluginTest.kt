@@ -34,6 +34,63 @@ class AkkiGradlePluginTest {
     }
 
     @Test
+    fun `logs through slf4j-simple in an isolated consumer`(@TempDir projectDirectory: Path) {
+        prepareConsumer(
+            projectDirectory,
+            Consumer.SimpleSlf4j,
+            extra = """
+                application {
+                    applicationDefaultJvmArgs = listOf(
+                        "-Dorg.slf4j.simpleLogger.defaultLogLevel=" + providers.gradleProperty("simpleLevel").get(),
+                    )
+                }
+            """.trimIndent(),
+        )
+        val verbose: String = runConsumer(projectDirectory, "-PsimpleLevel=trace").output
+        assertContains(verbose, "TRACE consumer.OrderService - trace message")
+        assertContains(verbose, "DEBUG consumer.OrderService - debug message")
+        assertContains(verbose, "INFO consumer.OrderService - order=A-1 tenant=null received A-1")
+        assertContains(verbose, "WARN consumer.OrderService - warn message")
+        assertContains(verbose, "ERROR consumer.OrderService - failed")
+        assertContains(verbose, "java.lang.IllegalStateException: boom")
+        assertContains(verbose, "AKKI evaluated=2")
+        assertFalse(verbose.contains("multiple SLF4J providers"), verbose)
+
+        val quiet: String = runConsumer(projectDirectory, "-PsimpleLevel=info").output
+        assertContains(quiet, "INFO consumer.OrderService - order=A-1 tenant=null received A-1")
+        assertContains(quiet, "AKKI evaluated=0")
+        assertFalse(quiet.contains("trace message"), quiet)
+        assertFalse(quiet.contains("debug message"), quiet)
+    }
+
+    @Test
+    fun `reads the logger name style at JVM startup before main`(@TempDir projectDirectory: Path) {
+        prepareBootstrapConsumer(projectDirectory)
+
+        val source = runConsumer(projectDirectory, "-PloggerNameStyle=source").output
+        assertContains(source, "AKKI entered main")
+        assertContains(source, "AKKI name=consumer.Owner.Nested")
+
+        val jvm = runConsumer(projectDirectory, "-PloggerNameStyle=jvm-class").output
+        assertContains(jvm, "AKKI entered main")
+        assertContains(jvm, "AKKI name=consumer.Owner\$Nested")
+    }
+
+    @Test
+    fun `reports an invalid startup style through the initializer cause`(@TempDir projectDirectory: Path) {
+        prepareBootstrapConsumer(projectDirectory)
+
+        val output: String = consumerRunner(projectDirectory, "-PloggerNameStyle=invalid").buildAndFail().output
+        assertContains(output, "java.lang.ExceptionInInitializerError")
+        assertContains(output, "Caused by: java.lang.IllegalStateException: akki:")
+        assertContains(output, "io.akki.loggerNameStyle")
+        assertContains(output, "invalid")
+        assertContains(output, "source")
+        assertContains(output, "jvm-class")
+        assertFalse(output.contains("AKKI entered main"), output)
+    }
+
+    @Test
     fun `survives an slf4j-api downgraded below the version it was built for`(@TempDir projectDirectory: Path) {
         val output = build(
             projectDirectory,
@@ -281,6 +338,20 @@ class AkkiGradlePluginTest {
         return runConsumer(projectDirectory).output
     }
 
+    private fun prepareBootstrapConsumer(projectDirectory: Path) {
+        prepareConsumer(
+            projectDirectory,
+            Consumer.Bootstrap,
+            extra = """
+                application {
+                    applicationDefaultJvmArgs = listOf(
+                        "-Dio.akki.loggerNameStyle=" + providers.gradleProperty("loggerNameStyle").get(),
+                    )
+                }
+            """.trimIndent(),
+        )
+    }
+
     private fun prepareConsumer(projectDirectory: Path, consumer: Consumer, extra: String = "") {
         val repository = publishRepository(projectDirectory.resolve("repository"))
         projectDirectory.resolve("settings.gradle.kts").writeText(settings(repository))
@@ -300,10 +371,12 @@ class AkkiGradlePluginTest {
     }
 
     private fun runConsumer(projectDirectory: Path, vararg arguments: String): BuildResult =
+        consumerRunner(projectDirectory, *arguments).build()
+
+    private fun consumerRunner(projectDirectory: Path, vararg arguments: String): GradleRunner =
         GradleRunner.create()
             .withProjectDir(projectDirectory.toFile())
             .withArguments("run", "--stacktrace", "--configuration-cache", "--no-build-cache", "--console=plain", *arguments)
-            .build()
 
     private fun publishRepository(repository: Path): Path {
         publish(repository, "io.akki", "akki-compiler", path("akki.compiler.plugin.jar"))
@@ -414,7 +487,12 @@ class AkkiGradlePluginTest {
 
     private fun dependencies(consumer: Consumer): String = when (consumer) {
         Consumer.Bare -> emptyList()
-        Consumer.Core, Consumer.Clipped, Consumer.Incremental -> listOf("""implementation("io.akki:akki-core:$VERSION")""")
+        Consumer.Core, Consumer.Clipped, Consumer.Incremental, Consumer.Bootstrap ->
+            listOf("""implementation("io.akki:akki-core:$VERSION")""")
+        Consumer.SimpleSlf4j -> listOf(
+            """implementation("io.akki:akki-slf4j:$VERSION")""",
+            """runtimeOnly("org.slf4j:slf4j-simple:${property("akki.slf4j.version")}")""",
+        )
         Consumer.Slf4j, Consumer.Modular -> listOf(
             """implementation("io.akki:akki-slf4j:$VERSION")""",
             """runtimeOnly("ch.qos.logback:logback-classic:${property("akki.logback.version")}")""",
@@ -440,6 +518,8 @@ class AkkiGradlePluginTest {
         Bare("BareMain.kt", "consumer.BareMainKt", null),
         Core("Main.kt", "consumer.MainKt", null),
         Slf4j("Slf4jMain.kt", "consumer.Slf4jMainKt", "logback.xml"),
+        SimpleSlf4j("SimpleSlf4jMain.kt", "consumer.SimpleSlf4jMainKt", null),
+        Bootstrap("BootstrapMain.kt", "consumer.BootstrapMainKt", null),
         Clipped("ClippedMain.kt", "consumer.ClippedMainKt", null),
         Incremental("IncrementalMain.kt", "consumer.IncrementalMainKt", null),
         Modular("ModularMain.kt", "consumer.ModularMainKt", "logback.xml", modular = true),
