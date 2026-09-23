@@ -1,6 +1,6 @@
 // CHECK_BYTECODE_TEXT
-// 2 fixture/First\.\$\$log : Lio/akki/Logger;
-// 2 fixture/Second\.\$\$log : Lio/akki/Logger;
+// 2 fixture/First\$\$Log\.\$\$log : Lio/akki/Logger;
+// 2 fixture/Second\$\$Log\.\$\$log : Lio/akki/Logger;
 // 0 fixture/TwoClassesKt\.\$\$log
 package fixture
 

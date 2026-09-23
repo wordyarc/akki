@@ -21,6 +21,6 @@ fun box(): String {
     assertEquals("fixture.Contract", ContractImpl().probe())
     assertEquals("fixture.Service", Service().probe())
     assertTrue(Class.forName("fixture.Contract\$\$Log").declaredFields.single().isSynthetic)
-    assertTrue(Service::class.java.declaredFields.single().isSynthetic)
+    assertTrue(Class.forName("fixture.Service\$\$Log").declaredFields.single().isSynthetic)
     return "OK"
 }

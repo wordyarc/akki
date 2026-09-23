@@ -1,5 +1,5 @@
 // CHECK_BYTECODE_TEXT
-// 2 fixture/Service\.\$\$log : Lio/akki/Logger;
+// 2 fixture/Service\$\$Log\.\$\$log : Lio/akki/Logger;
 // 1 io/akki/internal/LogRegistry\.forDeclaration
 // 0 forCaller
 // 0 io/akki/IntrinsicKt
