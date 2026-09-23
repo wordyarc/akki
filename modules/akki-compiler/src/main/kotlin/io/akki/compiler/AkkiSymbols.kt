@@ -22,6 +22,7 @@ import org.jetbrains.kotlin.ir.util.hasShape
 import org.jetbrains.kotlin.ir.util.invokeFun
 import org.jetbrains.kotlin.ir.util.nonDispatchParameters
 import org.jetbrains.kotlin.ir.util.properties
+import org.jetbrains.kotlin.ir.util.resolveFakeOverride
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.name.Name
@@ -105,7 +106,7 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
         }
     }
 
-    fun callFor(function: IrSimpleFunction): LoggerCall? = calls[function.symbol]
+    fun callFor(function: IrSimpleFunction): LoggerCall? = calls[function.resolveFakeOverride()?.symbol]
 
     fun isCallSite(function: IrSimpleFunction): Boolean =
         function.returnType.classOrNull == logger &&

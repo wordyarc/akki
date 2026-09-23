@@ -5,14 +5,12 @@ import io.akki.Logger
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import io.akki.backend.Sink
-import kotlin.concurrent.Volatile
 import kotlin.concurrent.atomics.AtomicReference
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 @OptIn(ExperimentalAtomicApi::class)
 internal class LoggerImpl(override val name: String) : Logger() {
-    @Volatile
-    private var binding: Binding? = null
+    private val binding = AtomicReference<Binding?>(null)
 
     private val reported = AtomicReference<LogBackend?>(null)
 
@@ -22,14 +20,23 @@ internal class LoggerImpl(override val name: String) : Logger() {
 
     private fun resolver(): LoggerBinding {
         val backend = platformBackend()
-        binding?.takeIf { it.backend === backend }?.let { return it }
+        val previous = binding.load()
+        previous?.takeIf { it.backend === backend }?.let { return it }
         val delegate = try {
             backend.bind(name)
         } catch (failure: Throwable) {
             report(backend, failure)
             NO_SINK
         }
-        return Binding(backend, delegate).also { binding = it }
+        val created = Binding(backend, delegate)
+        var expected = previous
+        while (!binding.compareAndSet(expected, created)) {
+            val current = binding.load()
+            if (current?.backend !== backend) return created
+            if (!created.isFailed || current.isFailed) return current
+            expected = current
+        }
+        return created
     }
 
     private fun report(backend: LogBackend, failure: Throwable) {
@@ -43,12 +50,14 @@ internal class LoggerImpl(override val name: String) : Logger() {
     }
 
     private inner class Binding(val backend: LogBackend, private val delegate: LoggerBinding) : LoggerBinding {
+        val isFailed: Boolean get() = delegate === NO_SINK
+
         override fun resolve(level: Level): Sink? =
             try {
                 delegate.resolve(level)
             } catch (failure: Throwable) {
+                binding.compareAndSet(this, Binding(backend, NO_SINK))
                 report(backend, failure)
-                binding = Binding(backend, NO_SINK)
                 null
             }
     }

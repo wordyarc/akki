@@ -64,19 +64,59 @@ class JvmBackendDiscoveryTest {
 
     @Test
     fun `skips broken service declarations and keeps the rest`(@TempDir directory: Path): Unit {
-        val declarations = directory.resolve("META-INF/services/${LogBackend::class.java.name}")
-        declarations.parent.createDirectories()
-        declarations.writeText(
-            listOf("io.akki.MissingBackend", ThrowingBackend::class.java.name, DeclaredBackend::class.java.name)
-                .joinToString("\n"),
+        directory.declareBackends(
+            "io.akki.MissingBackend", ThrowingBackend::class.java.name, DeclaredBackend::class.java.name,
         )
-        val loader = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader)
-
-        val output = captureStderr { assertIs<DeclaredBackend>(discover(loader)) }
+        val output = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
+            captureStderr { assertIs<DeclaredBackend>(discover(loader)) }
+        }
 
         assertContains(output, "io.akki.MissingBackend")
         assertContains(output, ThrowingBackend::class.java.name)
         assertEquals(2, output.lines().count { it.contains("ignoring a broken backend service declaration") }, output)
+    }
+
+    @Test
+    fun `falls back when a provider cannot be linked`(@TempDir directory: Path): Unit {
+        directory.declareBackends(UNLINKED_BACKEND)
+
+        val output = UnlinkedProviderLoader(directory).use { loader ->
+            captureStderr { assertIs<DefaultBackend>(discover(loader)) }
+        }
+
+        assertContains(output, "akki: failed to discover backends")
+        assertContains(output, "NoClassDefFoundError: provider/AbsentBase")
+    }
+
+    @Test
+    fun `keeps an already loaded backend when discovery fails`(@TempDir directory: Path): Unit {
+        directory.declareBackends(DeclaredBackend::class.java.name, UNLINKED_BACKEND)
+
+        val output = UnlinkedProviderLoader(directory).use { loader ->
+            captureStderr { assertIs<DeclaredBackend>(discover(loader)) }
+        }
+
+        assertContains(output, "NoClassDefFoundError: provider/AbsentBase")
+    }
+
+    private fun Path.declareBackends(vararg names: String) {
+        val declarations = resolve("META-INF/services/${LogBackend::class.java.name}")
+        declarations.parent.createDirectories()
+        declarations.writeText(names.joinToString("\n"))
+    }
+
+    private class UnlinkedProviderLoader(directory: Path) : URLClassLoader(
+        arrayOf(directory.toUri().toURL()),
+        LogBackend::class.java.classLoader,
+    ) {
+        override fun loadClass(name: String, resolve: Boolean): Class<*> {
+            if (name == UNLINKED_BACKEND) throw NoClassDefFoundError("provider/AbsentBase")
+            return super.loadClass(name, resolve)
+        }
+    }
+
+    private companion object {
+        const val UNLINKED_BACKEND: String = "io.akki.UnlinkedBackend"
     }
 
     private class RecordingOnlyBackend : LogBackend {

@@ -4,6 +4,7 @@
 package fixture
 
 import io.akki.*
+import io.akki.test.RecordingLogger
 
 private fun mark(effect: String): String = effect
 
@@ -18,4 +19,8 @@ fun reported(logger: Logger) {
     logger.<!LOGGING_CALL_REMOVED!>debug(fields = mapOf("k" to mark("debug-fields")), message = "debug-named")<!>
     logger.info("info-${mark("info")}")
     logger.warn("warn-${mark("warn")}")
+}
+
+fun inherited(logger: RecordingLogger) {
+    logger.<!LOGGING_CALL_REMOVED!>debug("inherited")<!>
 }

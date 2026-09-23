@@ -36,6 +36,7 @@ import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.types.classOrNull
 import org.jetbrains.kotlin.ir.util.SYNTHETIC_OFFSET
 import org.jetbrains.kotlin.ir.util.classId
+import org.jetbrains.kotlin.ir.util.companionObject
 import org.jetbrains.kotlin.ir.util.createThisReceiverParameter
 import org.jetbrains.kotlin.ir.util.isAnnotationClass
 import org.jetbrains.kotlin.ir.util.isArrayOrPrimitiveArray
@@ -43,6 +44,7 @@ import org.jetbrains.kotlin.ir.util.isEnumClass
 import org.jetbrains.kotlin.ir.util.isEnumEntry
 import org.jetbrains.kotlin.ir.util.isInterface
 import org.jetbrains.kotlin.ir.util.isLocal
+import org.jetbrains.kotlin.ir.util.isObject
 import org.jetbrains.kotlin.ir.util.parents
 import org.jetbrains.kotlin.load.java.JavaDescriptorVisibilities
 import org.jetbrains.kotlin.platform.jvm.isJvm
@@ -155,13 +157,16 @@ internal class LoggerFieldLowering(
         val owner = namingOwner() as? IrClass ?: return currentFile
         return when {
             !isJvm -> if (owner.isJvmInterface) currentFile else owner
-            owner.isJvmInterface || owner.isEnumClass -> holders.getOrPut(owner) { owner.createLoggerHolder() }
+            owner.needsLoggerHolder -> holders.getOrPut(owner) { owner.createLoggerHolder() }
             else -> owner
         }
     }
 
     private val IrClass.isJvmInterface: Boolean
         get() = isInterface || isAnnotationClass
+
+    private val IrClass.needsLoggerHolder: Boolean
+        get() = isJvmInterface || isEnumClass || isObject || companionObject() != null
 
     private fun IrClass.createLoggerHolder(): IrClass = context.irFactory.buildClass {
         startOffset = SYNTHETIC_OFFSET

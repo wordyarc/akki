@@ -23,13 +23,17 @@ private object JvmBackendRegistry {
 
 internal fun discover(loader: ClassLoader): LogBackend {
     val declared = mutableListOf<LogBackend>()
-    val providers = ServiceLoader.load(LogBackend::class.java, loader).iterator()
-    while (providers.hasNext()) {
-        try {
-            declared += providers.next()
-        } catch (error: ServiceConfigurationError) {
-            printError("akki: ignoring a broken backend service declaration: ${error.message}")
+    try {
+        val providers = ServiceLoader.load(LogBackend::class.java, loader).iterator()
+        while (providers.hasNext()) {
+            try {
+                declared += providers.next()
+            } catch (error: ServiceConfigurationError) {
+                printError("akki: ignoring a broken backend service declaration: ${error.message}")
+            }
         }
+    } catch (failure: Throwable) {
+        printError("akki: failed to discover backends\n${failure.stackTraceToString().trimEnd()}")
     }
     return chooseBackend(declared)
 }

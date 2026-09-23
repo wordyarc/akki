@@ -71,7 +71,7 @@ internal class LoggerCallLowering(
         if (minLevel.clips(target.level.owner.name)) clip(call, target, hoisted) else record(call, target, hoisted)
 
     private fun clip(call: IrCall, target: LoggerCall, hoisted: List<IrVariable>): IrExpression? {
-        val receiver = call.arguments[target.receiver] ?: return null
+        val receiver = call.arguments[target.receiver.indexInParameters] ?: return null
         val scope = currentScope?.scope?.scopeOwnerSymbol ?: return null
         context.diagnosticReporter.at(call, currentFile).report(
             AkkiErrors.LOGGING_CALL_REMOVED,
@@ -89,8 +89,8 @@ internal class LoggerCallLowering(
     }
 
     private fun record(call: IrCall, target: LoggerCall, hoisted: List<IrVariable>): IrExpression? {
-        val receiver = call.arguments[target.receiver] ?: return null
-        val message = call.arguments[target.message] ?: return null
+        val receiver = call.arguments[target.receiver.indexInParameters] ?: return null
+        val message = call.arguments[target.message.indexInParameters] ?: return null
         val scope = currentScope?.scope?.scopeOwnerSymbol ?: return null
         val beforeGuard = hoisted.prefixReadBy(receiver)
         val builder = DeclarationIrBuilder(context, scope, call.startOffset, call.endOffset)
@@ -123,7 +123,7 @@ internal class LoggerCallLowering(
         target: LoggerCall,
         message: IrExpression,
     ): List<Pair<IrValueParameter, IrExpression>> = target.arguments.map { argument ->
-        val written = call.arguments[argument.source]
+        val written = call.arguments[argument.source.indexInParameters]
         val value = when (argument.slot) {
             EmitSlot.MESSAGE -> if (target.isLazy) invoke(message) else message
             EmitSlot.CAUSE -> written ?: irNull(argument.destination.type)
