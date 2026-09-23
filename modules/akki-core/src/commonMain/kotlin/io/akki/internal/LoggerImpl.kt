@@ -35,6 +35,7 @@ internal class LoggerImpl(override val name: String) : Logger() {
         val delegate = try {
             backend.bind(name)
         } catch (failure: Throwable) {
+            if (failure.isFatal()) throw failure
             report(backend, failure)
             NO_SINK
         }
@@ -66,6 +67,7 @@ internal class LoggerImpl(override val name: String) : Logger() {
             try {
                 delegate.resolve(level)
             } catch (failure: Throwable) {
+                if (failure.isFatal()) throw failure
                 binding.compareAndSet(this, Binding(backend, NO_SINK))
                 report(backend, failure)
                 null

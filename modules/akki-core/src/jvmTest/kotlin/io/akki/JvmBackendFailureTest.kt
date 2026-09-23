@@ -1,10 +1,12 @@
 package io.akki
 
 import io.akki.backend.LogBackend
+import io.akki.backend.LoggerBinding
 import io.akki.test.RecordingBackend
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 
 @OptIn(DelicateAkkiApi::class)
@@ -72,5 +74,44 @@ class JvmBackendFailureTest {
             },
         )
         assertContains(output, "java.lang.NoClassDefFoundError: org/slf4j/LoggerFactory")
+    }
+
+    @Test
+    fun `a fatal error from bind reaches the caller and the next record binds again`(): Unit {
+        val logger = Log.named("failure.fatal.bind")
+        val recording = RecordingBackend()
+        var failures = 1
+        val backend = LogBackend { name -> if (failures-- > 0) throw OutOfMemoryError() else recording.bind(name) }
+
+        val output = captureStderr {
+            Log.install(backend).use {
+                assertFailsWith<OutOfMemoryError> { logger.info("lost") }
+                logger.info("kept")
+            }
+        }
+
+        assertEquals(listOf("kept"), recording.records.map { it.message })
+        assertEquals("", output)
+    }
+
+    @Test
+    fun `a fatal error from resolve reaches the caller and the logger keeps writing`(): Unit {
+        val logger = Log.named("failure.fatal.resolve")
+        val recording = RecordingBackend()
+        var failures = 1
+        val backend = LogBackend { name ->
+            val binding = recording.bind(name)
+            LoggerBinding { level -> if (failures-- > 0) throw StackOverflowError() else binding.resolve(level) }
+        }
+
+        val output = captureStderr {
+            Log.install(backend).use {
+                assertFailsWith<StackOverflowError> { logger.info("lost") }
+                logger.info("kept")
+            }
+        }
+
+        assertEquals(listOf("kept"), recording.records.map { it.message })
+        assertEquals("", output)
     }
 }

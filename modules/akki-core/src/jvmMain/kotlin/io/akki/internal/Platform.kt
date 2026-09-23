@@ -6,6 +6,8 @@ private val scopes = ThreadLocal<LogScope?>()
 
 internal actual fun printError(message: String): Unit = System.err.println(message)
 
+internal actual fun Throwable.isFatal(): Boolean = this is VirtualMachineError
+
 internal actual fun currentScope(): LogScope? = scopes.get()
 
 internal actual fun setCurrentScope(scope: LogScope?) {

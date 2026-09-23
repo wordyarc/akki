@@ -36,6 +36,7 @@ public final class io/akki/Log$Installation : java/lang/AutoCloseable {
 public final class io/akki/LogScope {
 	public static final field Companion Lio/akki/LogScope$Companion;
 	public fun <init> (Lio/akki/backend/LogBackend;)V
+	public static final fun current ()Lio/akki/LogScope;
 	public final fun enter ()Lio/akki/LogScope$Entry;
 	public final fun getBackend ()Lio/akki/backend/LogBackend;
 	public final fun run (Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;

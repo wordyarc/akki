@@ -13,6 +13,7 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
+import kotlin.jvm.JvmStatic
 
 private val used = AtomicBoolean(false)
 
@@ -61,6 +62,7 @@ public class LogScope(public val backend: LogBackend) {
     }
 
     public companion object {
+        @JvmStatic
         public fun current(): LogScope? = if (used.load()) currentScope() else null
     }
 }

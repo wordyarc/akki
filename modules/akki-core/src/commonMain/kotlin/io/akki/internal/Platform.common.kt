@@ -17,6 +17,8 @@ internal expect fun platformTypeName(type: KClass<*>): String
 
 internal expect fun printError(message: String)
 
+internal expect fun Throwable.isFatal(): Boolean
+
 internal expect fun currentScope(): LogScope?
 
 internal expect fun setCurrentScope(scope: LogScope?)
