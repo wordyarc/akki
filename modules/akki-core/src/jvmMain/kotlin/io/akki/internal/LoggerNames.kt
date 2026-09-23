@@ -90,10 +90,12 @@ private fun Class<*>.sourceName(): String {
 }
 
 private fun Class<*>.fileClassName(metadata: Metadata): String {
-    val stem = name
-        .substringAfterLast('.')
-        .substringAfterLast(MULTIFILE_PART_DELIMITER)
-        .removeSuffix(FACADE_SUFFIX)
+    val shortName = name.substringAfterLast('.')
+    val stem = if (metadata.kind == KotlinClassMetadata.MULTI_FILE_CLASS_PART_KIND) {
+        shortName.removePrefix(metadata.extraString.substringAfterLast('/') + MULTIFILE_PART_DELIMITER)
+    } else {
+        shortName
+    }.removeSuffix(FACADE_SUFFIX)
     val packageName = metadata.packageName.ifEmpty(::getPackageName)
     return if (packageName.isEmpty()) stem else "$packageName.$stem"
 }

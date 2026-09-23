@@ -3,8 +3,26 @@ import akki.buildlogic.WriteVersionConstant
 
 plugins {
     id("akki.kotlin-jvm")
+    id("akki.publishing")
     id("org.jetbrains.kotlinx.kover")
     `java-test-fixtures`
+}
+
+java {
+    withSourcesJar()
+}
+
+(components["java"] as AdhocComponentWithVariants).apply {
+    withVariantsFromConfiguration(configurations["testFixturesApiElements"]) { skip() }
+    withVariantsFromConfiguration(configurations["testFixturesRuntimeElements"]) { skip() }
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+        }
+    }
 }
 
 val writeVersionConstant = tasks.register<WriteVersionConstant>("writeVersionConstant") {

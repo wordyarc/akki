@@ -1,6 +1,7 @@
 package io.akki.internal
 
 import io.akki.backend.LogBackend
+import java.io.IOException
 import java.util.ServiceConfigurationError
 import java.util.ServiceLoader
 
@@ -13,6 +14,10 @@ internal fun discover(loader: ClassLoader): LogBackend {
                 if (!providers.hasNext()) break
                 declared += providers.next()
             } catch (failure: Throwable) {
+                if (failure is ServiceConfigurationError && failure.cause is IOException) {
+                    printError("akki: backend service enumeration interrupted by an I/O failure: $failure")
+                    break
+                }
                 if (failure !is ServiceConfigurationError && failure !is LinkageError) throw failure
                 printError("akki: ignoring a broken backend service declaration: $failure")
             }

@@ -1,5 +1,6 @@
 plugins {
     id("akki.kotlin-multiplatform")
+    id("akki.publishing")
     id("org.jetbrains.kotlinx.kover")
 }
 

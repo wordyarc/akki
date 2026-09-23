@@ -7,6 +7,8 @@ import java.lang.ref.ReferenceQueue
 import java.lang.ref.WeakReference
 import kotlin.test.Test
 import kotlin.test.assertSame
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 @OptIn(DelicateAkkiApi::class)
 class JvmBackendReleaseTest {
@@ -22,8 +24,13 @@ class JvmBackendReleaseTest {
     private fun releasedAfterClose(failure: Failure) {
         val collected = ReferenceQueue<LogBackend>()
         val reference = cachedBackend(failure, collected)
-        System.gc()
-        assertSame(reference, collected.remove(10_000), "the closed backend is still reachable")
+        val started = TimeSource.Monotonic.markNow()
+        var released = collected.poll()
+        while (released == null && started.elapsedNow() < 10.seconds) {
+            System.gc()
+            released = collected.remove(100)
+        }
+        assertSame(reference, released, "the closed backend is still reachable")
     }
 
     private fun cachedBackend(failure: Failure, collected: ReferenceQueue<LogBackend>): WeakReference<LogBackend> {

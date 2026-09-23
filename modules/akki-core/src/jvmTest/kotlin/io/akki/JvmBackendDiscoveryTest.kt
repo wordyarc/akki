@@ -6,20 +6,25 @@ import io.akki.backend.Sink
 import io.akki.internal.DefaultBackend
 import io.akki.internal.chooseBackend
 import io.akki.internal.discover
+import java.io.IOException
 import java.net.URLClassLoader
 import java.net.URL
 import java.nio.file.Path
+import java.time.Duration
+import java.util.Collections
 import java.util.Enumeration
 import kotlin.io.path.createDirectories
 import kotlin.io.path.writeText
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertIsNot
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import org.junit.jupiter.api.assertTimeoutPreemptively
 
 class JvmBackendDiscoveryTest {
     @Test
@@ -125,10 +130,48 @@ class JvmBackendDiscoveryTest {
         assertContains(output, "IllegalStateException: broken resources")
     }
 
-    private fun Path.declareBackends(vararg names: String) {
+    @Test
+    fun `an I O failure interrupts service enumeration without retrying`(): Unit {
+        var attempts = 0
+        val loader = object : ClassLoader(LogBackend::class.java.classLoader) {
+            override fun getResources(name: String): Enumeration<URL> {
+                check(!Thread.currentThread().isInterrupted) { "discovery was interrupted" }
+                attempts++
+                throw IOException("broken resources")
+            }
+        }
+
+        val output = assertTimeoutPreemptively(Duration.ofSeconds(5)) {
+            captureStderr { assertIs<DefaultBackend>(discover(loader)) }
+        }
+
+        assertEquals(1, attempts)
+        assertContains(output, "akki: backend service enumeration interrupted by an I/O failure")
+        assertFalse(output.contains("ignoring a broken backend service declaration"), output)
+    }
+
+    @Test
+    fun `an I O failure keeps the providers already loaded`(@TempDir directory: Path): Unit {
+        val valid = directory.declareBackends(DeclaredBackend::class.java.name)
+        val missing = directory.resolve("missing-services").toUri().toURL()
+        val loader = object : ClassLoader(LogBackend::class.java.classLoader) {
+            override fun getResources(name: String): Enumeration<URL> =
+                Collections.enumeration(listOf(valid, missing))
+        }
+
+        val output = assertTimeoutPreemptively(Duration.ofSeconds(5)) {
+            captureStderr { assertIs<DeclaredBackend>(discover(loader)) }
+        }
+
+        assertContains(output, "akki: backend service enumeration interrupted by an I/O failure")
+        assertFalse(output.contains("ignoring a broken backend service declaration"), output)
+    }
+
+    private fun Path.declareBackends(vararg names: String): URL {
         val declarations = resolve("META-INF/services/${LogBackend::class.java.name}")
         declarations.parent.createDirectories()
         declarations.writeText(names.joinToString("\n"))
+        return declarations.toUri().toURL()
     }
 
     private class UnlinkedProviderLoader(directory: Path) : URLClassLoader(

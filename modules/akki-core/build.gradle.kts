@@ -3,6 +3,7 @@ import org.gradle.api.tasks.testing.Test
 
 plugins {
     id("akki.kotlin-multiplatform")
+    id("akki.publishing")
     id("org.jetbrains.kotlinx.kover")
 }
 
@@ -39,21 +40,43 @@ kotlin {
         jvmTest.dependencies {
             implementation(libs.kotlin.test.junit5)
             implementation(libs.junit.jupiter)
+            implementation(libs.lincheck)
             runtimeOnly(libs.junit.platform.launcher)
         }
     }
 }
 
-val jvmTest = tasks.named<Test>("jvmTest")
+val lincheckPattern = "*JvmBackendLincheckTest"
+val jvmTest = tasks.named<Test>("jvmTest") {
+    filter { excludeTestsMatching(lincheckPattern) }
+}
 val jvmClassTest = tasks.register<Test>("jvmClassTest") {
     group = "verification"
     description = "Runs JVM tests with JVM_CLASS logger names"
     testClassesDirs = jvmTest.get().testClassesDirs
     classpath = jvmTest.get().classpath
     systemProperty("io.akki.loggerNameStyle", "jvm-class")
+    filter { excludeTestsMatching(lincheckPattern) }
     shouldRunAfter(jvmTest)
 }
 
+val lincheckTest = tasks.register<Test>("lincheckTest") {
+    group = "verification"
+    description = "Checks concurrent backend replacement and logger binding with Lincheck"
+    testClassesDirs = jvmTest.get().testClassesDirs
+    classpath = jvmTest.get().classpath
+    filter { includeTestsMatching(lincheckPattern) }
+    shouldRunAfter(jvmClassTest)
+}
+
+kover {
+    currentProject {
+        instrumentation {
+            disabledForTestTasks.addAll("lincheckTest", "lincheckTestOnJdk17")
+        }
+    }
+}
+
 tasks.named("check") {
-    dependsOn(jvmClassTest)
+    dependsOn(jvmClassTest, lincheckTest)
 }

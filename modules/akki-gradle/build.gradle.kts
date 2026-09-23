@@ -2,7 +2,20 @@ import akki.buildlogic.ClasspathSystemProperty
 
 plugins {
     id("akki.kotlin-jvm")
+    id("akki.publishing")
     `java-gradle-plugin`
+}
+
+java {
+    withSourcesJar()
+}
+
+val prepareTestRepository = tasks.register<Sync>("prepareTestRepository") {
+    into(layout.buildDirectory.dir("test-repository"))
+    listOf("akki-core", "akki-slf4j", "akki-compiler", "akki-gradle", "akki-test").forEach { module ->
+        dependsOn(":$module:publishAllPublicationsToTestRepository")
+        from(project(":$module").layout.buildDirectory.dir("publications/test-repository"))
+    }
 }
 
 fun artifactConfiguration(name: String): Configuration = configurations.create(name) {
@@ -11,14 +24,12 @@ fun artifactConfiguration(name: String): Configuration = configurations.create(n
     isTransitive = false
 }
 
-val akkiCompilerJar: Configuration = artifactConfiguration("akkiCompilerJar")
 val akkiCoreJar: Configuration = artifactConfiguration("akkiCoreJar")
 val akkiSlf4jJar: Configuration = artifactConfiguration("akkiSlf4jJar")
 val akkiTestJar: Configuration = artifactConfiguration("akkiTestJar")
 
 dependencies {
     compileOnly(libs.kotlin.gradle.plugin.api)
-    akkiCompilerJar(project(":akki-compiler"))
     akkiCoreJar(project(":akki-core"))
     akkiSlf4jJar(project(":akki-slf4j"))
     akkiTestJar(project(":akki-test"))
@@ -44,11 +55,10 @@ sourceSets.test {
 }
 
 tasks.test {
-    jvmArgumentProviders.add(ClasspathSystemProperty("akki.compiler.plugin.jar", akkiCompilerJar))
+    jvmArgumentProviders.add(ClasspathSystemProperty("akki.test.repository", files(prepareTestRepository)))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.core.jar", akkiCoreJar))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.slf4j.jar", akkiSlf4jJar))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.test.jar", akkiTestJar))
-    jvmArgumentProviders.add(ClasspathSystemProperty("akki.gradle.plugin.jar", files(tasks.jar)))
     systemProperty("akki.version", project.version.toString())
     systemProperty("akki.kotlin.version", libs.versions.kotlin.get())
     systemProperty("akki.slf4j.version", libs.versions.slf4j.get())
