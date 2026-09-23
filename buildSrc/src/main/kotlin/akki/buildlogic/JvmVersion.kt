@@ -22,21 +22,3 @@ internal val Project.jvmToolchainVersion: Int
 
 internal val Project.jvmTargetVersion: Int
     get() = version("jvm-target").toInt()
-
-//internal val Project.jvmToolchainVersion: Int
-//    get() = extensions
-//        .getByType<VersionCatalogsExtension>()
-//        .named("libs")
-//        .findVersion("jvm-toolchain")
-//        .get()
-//        .requiredVersion
-//        .toInt()
-//
-//internal val Project.jvmTargetVersion: Int
-//    get() = extensions
-//        .getByType<VersionCatalogsExtension>()
-//        .named("libs")
-//        .findVersion("jvm-target")
-//        .get()
-//        .requiredVersion
-//        .toInt()

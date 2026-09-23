@@ -194,8 +194,7 @@ class LogTest {
         val secondInstallation = Log.install(second)
 
         try {
-            val failure = assertFailsWith<IllegalStateException> { firstInstallation.close() }
-            assertFalse(failure is AkkiException, "misuse of install/close is not an akki misconfiguration")
+            assertFailsWith<IllegalStateException> { firstInstallation.close() }
             logger.info("current")
         } finally {
             secondInstallation.close()

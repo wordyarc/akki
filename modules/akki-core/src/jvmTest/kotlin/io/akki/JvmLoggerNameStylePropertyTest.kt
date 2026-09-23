@@ -14,7 +14,7 @@ class JvmLoggerNameStylePropertyTest {
         assertNotEquals(0, exit, output)
         assertContains(
             output,
-            "io.akki.AkkiException: akki: invalid $LOGGER_NAME_STYLE_PROPERTY_NAME value 'binary': " +
+            "java.lang.IllegalStateException: akki: invalid $LOGGER_NAME_STYLE_PROPERTY_NAME value 'binary': " +
                 "expected '$LOGGER_NAME_STYLE_VALUE_SOURCE' or '$LOGGER_NAME_STYLE_VALUE_JVM_CLASS'",
         )
         assertFalse(output.contains("name="), output)

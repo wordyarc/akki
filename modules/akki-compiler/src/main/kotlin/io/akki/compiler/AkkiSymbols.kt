@@ -8,7 +8,6 @@ import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrEnumEntry
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
-import org.jetbrains.kotlin.ir.expressions.IrConst
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.symbols.IrEnumEntrySymbol
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
@@ -195,12 +194,8 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
             return null
         }
 
-        private fun IrClass.declaredVersion(): String? = properties
-            .singleOrNull { it.name == AkkiNames.VERSION && it.isConst }
-            ?.backingField
-            ?.initializer
-            ?.expression
-            .let { (it as? IrConst)?.value as? String }
+        private fun IrClass.declaredVersion(): String? =
+            properties.singleOrNull { it.name == AkkiNames.VERSION }?.constantString()
     }
 }
 

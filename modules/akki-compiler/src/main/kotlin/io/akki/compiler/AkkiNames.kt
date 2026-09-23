@@ -30,6 +30,8 @@ internal object AkkiNames {
     val SINK: Name = Name.identifier("sink")
     val EMIT: Name = Name.identifier("emit")
 
+    val NAMED_ID: CallableId = CallableId(LOG_ID, NAMED)
+
     val VALUE: Name = Name.identifier("value")
     val VERSION: Name = Name.identifier("VERSION")
 

@@ -40,7 +40,7 @@ class JvmLoggerNamesTest {
         assertEquals(JvmLoggerNameStyle.SOURCE, parseJvmLoggerNameStyle(null))
         assertEquals(JvmLoggerNameStyle.SOURCE, parseJvmLoggerNameStyle("source"))
         assertEquals(JvmLoggerNameStyle.JVM_CLASS, parseJvmLoggerNameStyle("jvm-class"))
-        assertFailsWith<AkkiException> {
+        assertFailsWith<IllegalStateException> {
             parseJvmLoggerNameStyle("binary")
         }
     }
@@ -75,6 +75,22 @@ class JvmLoggerNamesTest {
     }
 
     @Test
+    fun `derives names of Java classes without Kotlin metadata`(): Unit {
+        assertEquals("java.lang.Thread", Log.of<Thread>().name)
+        assertEquals(byStyle("java.lang.Thread.State", "java.lang.Thread\$State"), Log.of<Thread.State>().name)
+    }
+
+    @Test
+    fun `a blank LogName on the runtime type is rejected`(): Unit {
+        val failure = assertFailsWith<IllegalArgumentException> { Log.of<BlankNamed>() }
+
+        assertEquals(
+            "akki: @LogName on ${BlankNamed::class.java.name} has a blank value, a logger name must not be blank",
+            failure.message,
+        )
+    }
+
+    @Test
     fun `configured JVM logger name style is applied`(): Unit {
         val expected = byStyle(StyleOwner.Nested::class.qualifiedName, StyleOwner.Nested::class.java.name)
 
@@ -89,6 +105,9 @@ class JvmLoggerNamesTest {
     private class AuditProcessor : Processor()
 
     private class PlainProcessor : Processor()
+
+    @LogName(" ")
+    private class BlankNamed
 
     private class FactoryOwner {
         companion object Factory

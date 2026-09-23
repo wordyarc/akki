@@ -12,6 +12,8 @@ internal object AkkiDirectives : SimpleDirectivesContainer() {
 
     val WITHOUT_AKKI by directive("Leave akki-core, akki-slf4j, akki-test and logback off the classpath")
 
+    val WITH_LOGBACK by directive("Compile testData/helpers/Logback.kt into the module")
+
     val CHECK_SOURCELESS_DIAGNOSTICS by directive(
         "Compare the diagnostics reported without a source element against the .sourceless.txt file",
     )

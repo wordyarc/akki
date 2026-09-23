@@ -1,8 +1,8 @@
 // CHECK_BYTECODE_TEXT
 // 4 io/akki/internal/LogRegistry\.forDeclaration
-// 1 io/akki/internal/LogRegistry\.of
-// 2 io/akki/Log\.of \(
-// 1 io/akki/Log\.named \(
+// 2 io/akki/internal/LogRegistry\.of
+// 3 io/akki/Log\.of \(
+// 2 io/akki/Log\.named \(
 package fixture
 
 import io.akki.*
@@ -20,6 +20,8 @@ class Renamed
 
 object Standalone
 
+private const val CONSTANT_AUDIT = "constant-audit"
+
 class Site {
     fun reified(): Logger = Log.of<Service>()
 
@@ -33,7 +35,11 @@ class Site {
 
     fun audit(): Logger = Log.named("audit")
 
+    fun constant(): Logger = Log.named(CONSTANT_AUDIT)
+
     fun builtin(): Logger = Log.of<String>()
+
+    fun array(): Logger = Log.of<IntArray>()
 }
 
 private fun runtime(type: KClass<*>): Logger = Log.of(type)
@@ -51,7 +57,9 @@ fun box(): String {
             "renamed=class-audit",
             "standalone=fixture.Standalone",
             "named=audit",
+            "constant=constant-audit",
             "builtin=kotlin.String",
+            "array=kotlin.IntArray",
         ),
         listOf(
             agrees("reified", site.reified(), runtime(Service::class)),
@@ -60,7 +68,9 @@ fun box(): String {
             agrees("renamed", site.renamed(), runtime(Renamed::class)),
             agrees("standalone", site.standalone(), runtime(Standalone::class)),
             agrees("named", site.audit(), Log.named(StringBuilder("audit").toString())),
+            agrees("constant", site.constant(), Log.named(StringBuilder("constant-audit").toString())),
             agrees("builtin", site.builtin(), runtime(String::class)),
+            agrees("array", site.array(), runtime(IntArray::class)),
         ),
     )
     return "OK"

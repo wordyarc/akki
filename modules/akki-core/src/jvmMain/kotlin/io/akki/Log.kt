@@ -5,6 +5,7 @@ package io.akki
 import io.akki.backend.LogBackend
 import io.akki.internal.CallSite
 import io.akki.internal.LogRegistry
+import io.akki.internal.akkiError
 import io.akki.internal.installPlatformBackend
 import io.akki.internal.platformTypeName
 import java.util.concurrent.atomic.AtomicBoolean
@@ -44,7 +45,7 @@ public actual object Log {
             if (!active.compareAndSet(true, false)) return
             if (restore()) return
             active.set(true)
-            throw IllegalStateException("akki: backend installations must be uninstalled in reverse order")
+            akkiError("backend installations must be uninstalled in reverse order")
         }
 
         override fun toString(): String =

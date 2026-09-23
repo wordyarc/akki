@@ -20,16 +20,20 @@ import org.jetbrains.kotlin.test.directives.ConfigurationDirectives
 import org.jetbrains.kotlin.test.directives.JvmEnvironmentConfigurationDirectives
 import org.jetbrains.kotlin.test.directives.model.DirectivesContainer
 import org.jetbrains.kotlin.test.directives.model.RegisteredDirectives
+import org.jetbrains.kotlin.test.model.TestFile
 import org.jetbrains.kotlin.test.model.TestModule
+import org.jetbrains.kotlin.test.services.AdditionalSourceProvider
 import org.jetbrains.kotlin.test.services.DirectiveToConfigurationKeyExtractor
 import org.jetbrains.kotlin.test.services.EnvironmentConfigurator
 import org.jetbrains.kotlin.test.services.RuntimeClasspathProvider
+import org.jetbrains.kotlin.test.services.TestModuleStructure
 import org.jetbrains.kotlin.test.services.TestServices
 
 internal fun TestConfigurationBuilder.configureAkki() {
     useDirectives(AkkiDirectives)
     useConfigurators(::AkkiEnvironmentConfigurator)
     useCustomRuntimeClasspathProviders(::AkkiRuntimeClasspathProvider)
+    useAdditionalSourceProviders(::LogbackHelperProvider)
     defaultDirectives {
         +ConfigurationDirectives.WITH_STDLIB
         +JvmEnvironmentConfigurationDirectives.FULL_JDK
@@ -76,6 +80,21 @@ private class AkkiEnvironmentConfigurator(testServices: TestServices) : Environm
     ) {
         if (AkkiDirectives.WITHOUT_PLUGIN in module.directives) return
         with(AkkiCompilerPluginRegistrar()) { registerExtensions(configuration) }
+    }
+}
+
+private class LogbackHelperProvider(testServices: TestServices) : AdditionalSourceProvider(testServices) {
+    override val directiveContainers: List<DirectivesContainer>
+        get() = listOf(AkkiDirectives)
+
+    override fun produceAdditionalFiles(
+        globalDirectives: RegisteredDirectives,
+        module: TestModule,
+        testModuleStructure: TestModuleStructure,
+    ): List<TestFile> {
+        if (!containsDirective(globalDirectives, module, AkkiDirectives.WITH_LOGBACK)) return emptyList()
+        val testData = testModuleStructure.originalTestDataFiles.first().parentFile.parentFile
+        return listOf(testData.resolve("helpers/Logback.kt").toTestFile())
     }
 }
 

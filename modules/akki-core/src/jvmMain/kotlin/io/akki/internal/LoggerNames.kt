@@ -1,6 +1,5 @@
 package io.akki.internal
 
-import io.akki.AkkiException
 import io.akki.LOGGER_NAME_STYLE_PROPERTY_NAME
 import io.akki.LOGGER_NAME_STYLE_VALUE_JVM_CLASS
 import io.akki.LOGGER_NAME_STYLE_VALUE_SOURCE
@@ -40,13 +39,13 @@ internal fun platformTypeName(type: Class<*>, style: JvmLoggerNameStyle): String
     }
 }
 
-private fun LogName.logName(owner: Class<*>): String =
-    value.ifBlank {
-        throw AkkiException("akki: @LogName on ${owner.name} has a blank value, a logger name must not be blank")
-    }
+private fun LogName.logName(owner: Class<*>): String {
+    require(value.isNotBlank()) { "akki: @LogName on ${owner.name} has a blank value, a logger name must not be blank" }
+    return value
+}
 
 internal fun parseJvmLoggerNameStyle(value: String?): JvmLoggerNameStyle =
-    jvmLoggerNameStyleOrNull(value) ?: throw AkkiException(invalidLoggerNameStyle(value))
+    jvmLoggerNameStyleOrNull(value) ?: akkiError(invalidLoggerNameStyle(value))
 
 private fun jvmLoggerNameStyleOrNull(value: String?): JvmLoggerNameStyle? =
     when (value?.trim()?.lowercase()?.replace('_', '-')?.ifEmpty { null }) {
@@ -56,7 +55,7 @@ private fun jvmLoggerNameStyleOrNull(value: String?): JvmLoggerNameStyle? =
     }
 
 private fun invalidLoggerNameStyle(value: String?): String =
-    "akki: invalid $LOGGER_NAME_STYLE_PROPERTY_NAME value '$value': " +
+    "invalid $LOGGER_NAME_STYLE_PROPERTY_NAME value '$value': " +
         "expected '$LOGGER_NAME_STYLE_VALUE_SOURCE' or '$LOGGER_NAME_STYLE_VALUE_JVM_CLASS'"
 
 private fun loggerNameStyleProperty(): String? =

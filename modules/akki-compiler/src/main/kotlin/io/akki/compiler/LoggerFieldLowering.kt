@@ -27,7 +27,6 @@ import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrClassReference
-import org.jetbrains.kotlin.ir.expressions.IrConst
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrGetObjectValue
 import org.jetbrains.kotlin.ir.expressions.impl.IrBlockImpl
@@ -40,6 +39,7 @@ import org.jetbrains.kotlin.ir.util.classId
 import org.jetbrains.kotlin.ir.util.createThisReceiverParameter
 import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.isAnnotationClass
+import org.jetbrains.kotlin.ir.util.isArrayOrPrimitiveArray
 import org.jetbrains.kotlin.ir.util.isEnumClass
 import org.jetbrains.kotlin.ir.util.isEnumEntry
 import org.jetbrains.kotlin.ir.util.isInterface
@@ -97,7 +97,7 @@ internal class LoggerFieldLowering(
         fieldOwner().declarationField(namingOwner().declarationName(isJvm), contextual = true)
 
     private fun IrCall.namedField(): IrField? {
-        val name = (arguments.lastOrNull() as? IrConst)?.value as? String ?: return null
+        val name = arguments.lastOrNull()?.stringConstant()?.takeIf { it.isNotBlank() } ?: return null
         return fieldOwner().loggerField("named:$name", contextual = false) {
             irCall(symbols.registryOf).apply {
                 arguments[0] = irGetObject(symbols.logRegistry)
@@ -108,7 +108,7 @@ internal class LoggerFieldLowering(
 
     private fun IrCall.typeField(): IrField? {
         val referenced = referencedClass() ?: return null
-        if (isJvm && referenced.isMappedToJava()) return null
+        if (isJvm && referenced.isJvmMapped()) return null
         val named = referenced.namingDeclaration() ?: return null
         return fieldOwner().declarationField(named.declarationName(isJvm), contextual = false)
     }
@@ -121,8 +121,9 @@ internal class LoggerFieldLowering(
         return type?.classOrNull?.owner
     }
 
-    private fun IrClass.isMappedToJava(): Boolean =
-        classId?.let { JavaToKotlinClassMap.mapKotlinToJava(it.asSingleFqName().toUnsafe()) } != null
+    private fun IrClass.isJvmMapped(): Boolean =
+        symbol.isArrayOrPrimitiveArray(context.irBuiltIns) ||
+            classId?.let { JavaToKotlinClassMap.mapKotlinToJava(it.asSingleFqName().toUnsafe()) } != null
 
     private fun IrClass.namingDeclaration(): IrDeclarationContainer? =
         (sequenceOf<IrDeclarationParent>(this) + parents)
