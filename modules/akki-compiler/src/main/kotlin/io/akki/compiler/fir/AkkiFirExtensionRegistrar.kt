@@ -5,7 +5,6 @@ import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.declaration.DeclarationCheckers
 import org.jetbrains.kotlin.fir.analysis.checkers.declaration.FirPropertyChecker
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.ExpressionCheckers
-import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirAnnotationChecker
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirExpressionChecker
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirFunctionCallChecker
 import org.jetbrains.kotlin.fir.analysis.extensions.FirAdditionalCheckersExtension
@@ -23,8 +22,6 @@ internal class AkkiFirCheckers(session: FirSession) : FirAdditionalCheckersExten
             setOf(LevelReferenceChecker, ContextualLoggerReferenceChecker)
 
         override val functionCallCheckers: Set<FirFunctionCallChecker> = setOf(NamedLoggerChecker)
-
-        override val annotationCheckers: Set<FirAnnotationChecker> = setOf(LogNameChecker)
     }
 
     override val declarationCheckers: DeclarationCheckers = object : DeclarationCheckers() {

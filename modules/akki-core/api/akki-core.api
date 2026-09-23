@@ -35,10 +35,6 @@ public final class io/akki/Log$Installation : java/lang/AutoCloseable {
 	public fun toString ()Ljava/lang/String;
 }
 
-public abstract interface annotation class io/akki/LogName : java/lang/annotation/Annotation {
-	public abstract fun value ()Ljava/lang/String;
-}
-
 public abstract class io/akki/Logger {
 	public fun <init> ()V
 	public final fun debug (Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V

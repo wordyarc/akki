@@ -3,15 +3,12 @@
 package io.akki.compiler
 
 import org.jetbrains.kotlin.backend.jvm.lower.getFileClassInfo
-import org.jetbrains.kotlin.ir.declarations.IrAnnotationContainer
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationContainer
 import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.name
-import org.jetbrains.kotlin.ir.expressions.IrConst
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.util.classId
-import org.jetbrains.kotlin.ir.util.getAnnotation
 import org.jetbrains.kotlin.ir.util.irError
 import org.jetbrains.kotlin.ir.util.kotlinFqName
 import org.jetbrains.kotlin.name.FqName
@@ -23,18 +20,10 @@ internal class DeclarationName(val source: String, val platform: String)
 
 private const val FACADE_SUFFIX: String = "Kt"
 
-private val LOG_NAME_FQ_NAME: FqName = AkkiNames.LOG_NAME_ID.asSingleFqName()
-
 internal fun IrDeclarationContainer.declarationName(isJvm: Boolean): DeclarationName = when (this) {
-    is IrClass -> logName() ?: className()
-    is IrFile -> logName() ?: if (isJvm) jvmFileName() else sourceFileName().let { DeclarationName(it, it) }
+    is IrClass -> className()
+    is IrFile -> if (isJvm) jvmFileName() else sourceFileName().let { DeclarationName(it, it) }
     else -> irError("unexpected logger field owner") { withIrEntry("owner", this@declarationName) }
-}
-
-private fun IrAnnotationContainer.logName(): DeclarationName? {
-    val value = getAnnotation(LOG_NAME_FQ_NAME)?.arguments?.firstOrNull()
-    val name = (value as? IrConst)?.value as? String ?: return null
-    return DeclarationName(name, name)
 }
 
 private fun IrClass.className(): DeclarationName {

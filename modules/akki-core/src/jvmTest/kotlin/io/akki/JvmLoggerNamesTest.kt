@@ -10,12 +10,7 @@ import kotlin.test.assertSame
 
 class JvmLoggerNamesTest {
     @Test
-    fun `runtime type factory uses LogName`(): Unit {
-        assertSame(Log.named("audit-processor"), AuditProcessor().log)
-    }
-
-    @Test
-    fun `LogName is not inherited`(): Unit {
+    fun `runtime type factory names the logger after the runtime type`(): Unit {
         val expected = byStyle(PlainProcessor::class.qualifiedName, PlainProcessor::class.java.name)
 
         assertEquals(expected, PlainProcessor().log.name)
@@ -81,16 +76,6 @@ class JvmLoggerNamesTest {
     }
 
     @Test
-    fun `a blank LogName on the runtime type is rejected`(): Unit {
-        val failure = assertFailsWith<IllegalArgumentException> { Log.of<BlankNamed>() }
-
-        assertEquals(
-            "akki: @LogName on ${BlankNamed::class.java.name} has a blank value, a logger name must not be blank",
-            failure.message,
-        )
-    }
-
-    @Test
     fun `configured JVM logger name style is applied`(): Unit {
         val expected = byStyle(StyleOwner.Nested::class.qualifiedName, StyleOwner.Nested::class.java.name)
 
@@ -101,13 +86,7 @@ class JvmLoggerNamesTest {
         val log: Logger = Log.of(javaClass)
     }
 
-    @LogName("audit-processor")
-    private class AuditProcessor : Processor()
-
     private class PlainProcessor : Processor()
-
-    @LogName(" ")
-    private class BlankNamed
 
     private class FactoryOwner {
         companion object Factory

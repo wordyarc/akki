@@ -20,14 +20,12 @@ class JvmLoggerNameProbeTest {
             InnerProbe().probe(),
             companionProbe(),
             NamedCompanionOwner.probe(),
-            AnnotatedCompanionOwner.probe(),
             NestedObjectProbe.probe(),
             StandaloneProbe.probe(),
             lambdaProbe(),
             samProbe(),
             objectExpressionProbe(),
             localClassProbe(),
-            annotatedLocalClassProbe(),
             EnumProbe.ENTRY.probe(),
             DefaultProbeImpl().probe(),
             runSuspendProbe(),
@@ -35,9 +33,6 @@ class JvmLoggerNameProbeTest {
             regularTopLevelProbe(),
             customJvmNameProbe(),
             multifileProbe(),
-            namedMultifileProbe(),
-            namedClassProbe(),
-            namedFileProbe(),
         )
 
         assertEquals(expectations.map { it.site }, probes.map { it.site })
@@ -79,15 +74,6 @@ class JvmLoggerNameProbeTest {
     private fun localClassProbe(): JvmLoggerNameProbe {
         class LocalProbe {
             fun probe(): JvmLoggerNameProbe = captureLoggerNames("local class")
-        }
-
-        return LocalProbe().probe()
-    }
-
-    private fun annotatedLocalClassProbe(): JvmLoggerNameProbe {
-        @LogName("named-local")
-        class LocalProbe {
-            fun probe(): JvmLoggerNameProbe = captureLoggerNames("@LogName local class")
         }
 
         return LocalProbe().probe()
@@ -140,26 +126,11 @@ private object StandaloneProbe {
     fun probe(): JvmLoggerNameProbe = captureLoggerNames("standalone object")
 }
 
-@LogName("named-companion-owner")
 private class NamedCompanionOwner {
     companion object Factory {
-        fun probe(): JvmLoggerNameProbe = captureLoggerNames("named companion owner")
+        fun probe(): JvmLoggerNameProbe = captureLoggerNames("named companion")
     }
 }
-
-private class AnnotatedCompanionOwner {
-    @LogName("named-companion")
-    companion object {
-        fun probe(): JvmLoggerNameProbe = captureLoggerNames("@LogName companion")
-    }
-}
-
-@LogName("named-probe")
-private class NamedProbe {
-    fun probe(): JvmLoggerNameProbe = captureLoggerNames("@LogName class")
-}
-
-private fun namedClassProbe(): JvmLoggerNameProbe = NamedProbe().probe()
 
 internal class JvmLoggerNameProbe(
     val site: String,
@@ -196,16 +167,10 @@ private val expectations: List<Expectation> = listOf(
     Expectation("inner class", "$TEST\$InnerProbe", source = "$TEST.InnerProbe"),
     Expectation("companion", "$TEST\$Companion", source = TEST, jvmClass = TEST),
     Expectation(
-        "named companion owner",
+        "named companion",
         "io.akki.NamedCompanionOwner\$Factory",
-        "named-companion-owner",
-        "named-companion-owner",
-    ),
-    Expectation(
-        "@LogName companion",
-        "io.akki.AnnotatedCompanionOwner\$Companion",
-        "named-companion",
-        "named-companion",
+        source = "io.akki.NamedCompanionOwner",
+        jvmClass = "io.akki.NamedCompanionOwner",
     ),
     Expectation("nested object", "$TEST\$NestedObjectProbe", source = "$TEST.NestedObjectProbe"),
     Expectation("standalone object", "io.akki.StandaloneProbe"),
@@ -213,7 +178,6 @@ private val expectations: List<Expectation> = listOf(
     Expectation("SAM", TEST),
     Expectation("object expression", "$TEST\$objectExpressionProbe\$1", source = TEST, jvmClass = TEST),
     Expectation("local class", "$TEST\$localClassProbe\$LocalProbe", source = TEST, jvmClass = TEST),
-    Expectation("@LogName local class", "$TEST\$annotatedLocalClassProbe\$LocalProbe", "named-local", "named-local"),
     Expectation("enum entry", "$TEST\$EnumProbe\$ENTRY", source = "$TEST.EnumProbe", jvmClass = "$TEST\$EnumProbe"),
     Expectation("interface default", "$TEST\$DefaultProbe", source = "$TEST.DefaultProbe"),
     Expectation("suspend function", "$TEST\$runSuspendProbe\$1", source = TEST, jvmClass = TEST),
@@ -221,12 +185,4 @@ private val expectations: List<Expectation> = listOf(
     Expectation("top-level function", "${TEST}Kt", source = TEST),
     Expectation("@file:JvmName", "io.akki.CustomProbeFacade"),
     Expectation("multifile", "io.akki.SharedProbeFacade__MultifileProbeSiteKt", source = "io.akki.MultifileProbeSite"),
-    Expectation(
-        "@LogName multifile",
-        "io.akki.SharedProbeFacade__NamedMultifileProbeSiteKt",
-        "named-multifile-probe",
-        "named-multifile-probe",
-    ),
-    Expectation("@LogName class", "io.akki.NamedProbe", "named-probe", "named-probe"),
-    Expectation("@LogName file", "io.akki.NamedFileProbeSiteKt", "named-file-probe", "named-file-probe"),
 )

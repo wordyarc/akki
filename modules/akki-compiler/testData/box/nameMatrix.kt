@@ -52,13 +52,6 @@ class Service {
     }
 }
 
-class NamedCompanionHost {
-    @LogName("companion-audit")
-    companion object {
-        fun probe(): Logger = log
-    }
-}
-
 object Standalone {
     fun probe(): Logger = log
 }
@@ -69,18 +62,6 @@ enum class Colour {
     };
 
     abstract fun probe(): Logger
-}
-
-@LogName("class-audit")
-class Renamed {
-    fun probe(): Logger = log
-}
-
-private const val CONSTANT_NAME = "constant-audit"
-
-@LogName(CONSTANT_NAME)
-class RenamedByConstant {
-    fun probe(): Logger = log
 }
 
 interface Contract {
@@ -104,7 +85,6 @@ fun box(): String {
             "nested=fixture.Service.Nested",
             "inner=fixture.Service.Inner",
             "companion=fixture.Service",
-            "namedCompanion=companion-audit",
             "standaloneObject=fixture.Standalone",
             "nestedObject=fixture.Service.NestedObject",
             "lambda=fixture.Service",
@@ -112,8 +92,6 @@ fun box(): String {
             "innerOfLocalClass=fixture.Service",
             "objectExpression=fixture.Service",
             "enumEntry=fixture.Colour",
-            "renamedClass=class-audit",
-            "renamedByConstant=constant-audit",
             "interfaceMethod=fixture.Contract",
         ),
         listOf(
@@ -122,7 +100,6 @@ fun box(): String {
             agrees("nested", Service.Nested().probe(), factory(Service.Nested::class)),
             agrees("inner", Service().Inner().probe(), factory(Service.Inner::class)),
             agrees("companion", Service.probe(), factory(Service::class)),
-            agrees("namedCompanion", NamedCompanionHost.probe(), Log.of(NamedCompanionHost.Companion::class.java)),
             agrees("standaloneObject", Standalone.probe(), factory(Standalone::class)),
             agrees("nestedObject", Service.NestedObject.probe(), factory(Service.NestedObject::class)),
             agrees("lambda", Service().lambda(), factory(Service::class)),
@@ -130,8 +107,6 @@ fun box(): String {
             agrees("innerOfLocalClass", Service().innerOfLocalClass(), factory(Service::class)),
             agrees("objectExpression", Service().objectExpression(), factory(Service::class)),
             agrees("enumEntry", Colour.RED.probe(), factory(Colour::class)),
-            agrees("renamedClass", Renamed().probe(), factory(Renamed::class)),
-            agrees("renamedByConstant", RenamedByConstant().probe(), factory(RenamedByConstant::class)),
             agrees("interfaceMethod", ContractImpl().probe(), factory(Contract::class)),
         ),
     )

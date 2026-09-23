@@ -23,6 +23,6 @@ internal object NamedLoggerChecker : FirFunctionCallChecker(MppCheckerKind.Commo
         val argument = expression.arguments.singleOrNull()?.unwrapArgument() ?: return
         val name = FirExpressionEvaluator.evaluateExpression(argument, context.session).stringValue() ?: return
         if (name.isNotBlank()) return
-        reporter.reportOn(argument.source, AkkiErrors.BLANK_LOG_NAME, "Log.named")
+        reporter.reportOn(argument.source, AkkiErrors.BLANK_LOG_NAME)
     }
 }

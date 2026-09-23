@@ -1,5 +1,3 @@
-@file:LogName("file-audit")
-
 package io.akki
 
 internal fun fileIntrinsic(): Logger = log

@@ -3,10 +3,8 @@ package fixture
 import io.akki.*
 import kotlin.test.assertEquals
 
-@LogName("host")
 class Host {
     fun probe(): String {
-        @LogName("local-audit")
         class Local {
             fun probe(): List<String> = listOf(
                 log.name,
@@ -21,6 +19,6 @@ class Host {
 }
 
 fun box(): String {
-    assertEquals("local-audit,local-audit,local-audit,local-audit,local-audit", Host().probe())
+    assertEquals("fixture.Host,fixture.Host,fixture.Host,fixture.Host,fixture.Host", Host().probe())
     return "OK"
 }

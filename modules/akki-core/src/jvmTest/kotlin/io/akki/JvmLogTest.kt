@@ -33,23 +33,10 @@ class JvmLogTest {
         }
     }
 
-    @Test
-    fun `factories use the class LogName`(): Unit {
-        val expected = Log.named("audit")
-
-        assertSame(expected, Log.of<NamedCaller>())
-        assertSame(expected, Log.of(NamedCaller::class))
-        assertSame(expected, Log.of(NamedCaller::class.java))
-    }
-
     private class Caller {
         fun intrinsic(): Logger = log
 
         fun functionAnchor(): Logger = logger()
 
         fun factoryAnchor(): Logger = Log.forCaller()
-    }
-
-    @LogName("audit")
-    private class NamedCaller
-}
+    }}

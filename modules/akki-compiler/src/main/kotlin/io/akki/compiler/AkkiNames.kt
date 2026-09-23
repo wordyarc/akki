@@ -16,7 +16,6 @@ internal object AkkiNames {
     val LOGGER_ID: ClassId = PACKAGE.classId("Logger")
     val LEVEL_ID: ClassId = PACKAGE.classId("Level")
     val SINK_ID: ClassId = BACKEND_PACKAGE.classId("Sink")
-    val LOG_NAME_ID: ClassId = PACKAGE.classId("LogName")
     val CALL_SITE_ID: ClassId = INTERNAL_PACKAGE.classId("CallSite")
     val LOG_ID: ClassId = PACKAGE.classId("Log")
     val LOG_REGISTRY_ID: ClassId = INTERNAL_PACKAGE.classId("LogRegistry")
@@ -32,7 +31,6 @@ internal object AkkiNames {
 
     val NAMED_ID: CallableId = CallableId(LOG_ID, NAMED)
 
-    val VALUE: Name = Name.identifier("value")
     val VERSION: Name = Name.identifier("VERSION")
 
     val MESSAGE: Name = Name.identifier("message")

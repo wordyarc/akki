@@ -37,7 +37,6 @@ import org.jetbrains.kotlin.ir.types.classOrNull
 import org.jetbrains.kotlin.ir.util.SYNTHETIC_OFFSET
 import org.jetbrains.kotlin.ir.util.classId
 import org.jetbrains.kotlin.ir.util.createThisReceiverParameter
-import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.isAnnotationClass
 import org.jetbrains.kotlin.ir.util.isArrayOrPrimitiveArray
 import org.jetbrains.kotlin.ir.util.isEnumClass
@@ -129,7 +128,7 @@ internal class LoggerFieldLowering(
         (sequenceOf<IrDeclarationParent>(this) + parents)
             .filterIsInstance<IrDeclarationContainer>()
             .firstOrNull { it !is IrClass || !it.isHoisted() }
-            ?.takeIf { it !is IrClass || it.classId != null || it.hasAnnotation(AkkiNames.LOG_NAME_ID) }
+            ?.takeIf { it !is IrClass || it.classId != null }
 
     private fun DeclarationIrBuilder.declarationLogger(name: DeclarationName): IrExpression =
         irCall(symbols.forDeclaration).apply {
@@ -178,8 +177,7 @@ internal class LoggerFieldLowering(
         createThisReceiverParameter()
     }
 
-    private fun IrClass.isHoisted(): Boolean =
-        !hasAnnotation(AkkiNames.LOG_NAME_ID) && (isLocal || isCompanion || isEnumEntry)
+    private fun IrClass.isHoisted(): Boolean = isLocal || isCompanion || isEnumEntry
 
     private fun IrDeclarationContainer.loggerField(
         key: String,

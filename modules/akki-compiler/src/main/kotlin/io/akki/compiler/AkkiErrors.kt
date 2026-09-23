@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.diagnostics.errorWithoutSource
 import org.jetbrains.kotlin.diagnostics.rendering.BaseDiagnosticRendererFactory
 import org.jetbrains.kotlin.diagnostics.rendering.BaseSourcelessDiagnosticRendererFactory.Companion.MESSAGE_PLACEHOLDER
 import org.jetbrains.kotlin.diagnostics.rendering.CommonRenderers
+import org.jetbrains.kotlin.diagnostics.error0
 import org.jetbrains.kotlin.diagnostics.error1
 import org.jetbrains.kotlin.diagnostics.error2
 import org.jetbrains.kotlin.psi.KtElement
@@ -34,7 +35,7 @@ internal object AkkiErrors : KtDiagnosticsContainer() {
         this,
     )
 
-    val BLANK_LOG_NAME by error1<KtElement, String>()
+    val BLANK_LOG_NAME by error0<KtElement>()
 
     val INCOMPATIBLE_AKKI_CORE by errorWithoutSource()
 
@@ -83,8 +84,7 @@ internal object AkkiDefaultErrorMessages : BaseDiagnosticRendererFactory() {
         )
         map.put(
             AkkiErrors.BLANK_LOG_NAME,
-            "''{0}'' is given a blank logger name, which no backend can route or filter. Use a non-blank name.",
-            CommonRenderers.STRING,
+            "'Log.named' is given a blank logger name, which no backend can route or filter. Use a non-blank name.",
         )
         map.put(AkkiErrors.INCOMPATIBLE_AKKI_CORE, MESSAGE_PLACEHOLDER)
     }

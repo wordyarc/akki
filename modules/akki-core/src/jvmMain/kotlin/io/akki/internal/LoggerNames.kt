@@ -3,7 +3,6 @@ package io.akki.internal
 import io.akki.LOGGER_NAME_STYLE_PROPERTY_NAME
 import io.akki.LOGGER_NAME_STYLE_VALUE_JVM_CLASS
 import io.akki.LOGGER_NAME_STYLE_VALUE_SOURCE
-import io.akki.LogName
 import kotlin.metadata.ClassKind
 import kotlin.metadata.jvm.KotlinClassMetadata
 import kotlin.metadata.kind
@@ -28,20 +27,11 @@ internal actual fun platformTypeName(type: KClass<*>): String = platformTypeName
 internal fun platformTypeName(type: Class<*>): String = typeNames.get(type)
 
 internal fun platformTypeName(type: Class<*>, style: JvmLoggerNameStyle): String {
-    var owner = type
-    while (true) {
-        owner.getDeclaredAnnotation(LogName::class.java)?.let { return it.logName(owner) }
-        owner = owner.logicalEnclosingOwner() ?: break
-    }
+    val owner = generateSequence(type) { it.logicalEnclosingOwner() }.last()
     return when (style) {
         JvmLoggerNameStyle.SOURCE -> owner.sourceName()
         JvmLoggerNameStyle.JVM_CLASS -> owner.name
     }
-}
-
-private fun LogName.logName(owner: Class<*>): String {
-    require(value.isNotBlank()) { "akki: @LogName on ${owner.name} has a blank value, a logger name must not be blank" }
-    return value
 }
 
 internal fun parseJvmLoggerNameStyle(value: String?): JvmLoggerNameStyle =

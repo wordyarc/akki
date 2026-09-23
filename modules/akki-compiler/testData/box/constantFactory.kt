@@ -1,5 +1,5 @@
 // CHECK_BYTECODE_TEXT
-// 4 io/akki/internal/LogRegistry\.forDeclaration
+// 3 io/akki/internal/LogRegistry\.forDeclaration
 // 2 io/akki/internal/LogRegistry\.of
 // 3 io/akki/Log\.of \(
 // 2 io/akki/Log\.named \(
@@ -15,9 +15,6 @@ class Service {
     companion object
 }
 
-@LogName("class-audit")
-class Renamed
-
 object Standalone
 
 private const val CONSTANT_AUDIT = "constant-audit"
@@ -28,8 +25,6 @@ class Site {
     fun literal(): Logger = Log.of(Service.Nested::class)
 
     fun companionType(): Logger = Log.of(Service.Companion::class)
-
-    fun renamed(): Logger = Log.of<Renamed>()
 
     fun standalone(): Logger = Log.of<Standalone>()
 
@@ -54,7 +49,6 @@ fun box(): String {
             "reified=fixture.Service",
             "literal=fixture.Service.Nested",
             "companion=fixture.Service",
-            "renamed=class-audit",
             "standalone=fixture.Standalone",
             "named=audit",
             "constant=constant-audit",
@@ -65,7 +59,6 @@ fun box(): String {
             agrees("reified", site.reified(), runtime(Service::class)),
             agrees("literal", site.literal(), runtime(Service.Nested::class)),
             agrees("companion", site.companionType(), runtime(Service.Companion::class)),
-            agrees("renamed", site.renamed(), runtime(Renamed::class)),
             agrees("standalone", site.standalone(), runtime(Standalone::class)),
             agrees("named", site.audit(), Log.named(StringBuilder("audit").toString())),
             agrees("constant", site.constant(), Log.named(StringBuilder("constant-audit").toString())),

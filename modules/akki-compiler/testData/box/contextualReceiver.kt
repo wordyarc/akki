@@ -1,5 +1,3 @@
-@file:LogName("receiver-audit")
-
 package fixture
 
 import io.akki.*
@@ -26,6 +24,6 @@ fun box(): String {
     } catch (caught: IllegalStateException) {
         events += "caught=" + (caught === failure)
     }
-    assertEquals("selected,logger=receiver-audit,throwing,caught=true", events.joinToString(","))
+    assertEquals("selected,logger=fixture.ContextualReceiver,throwing,caught=true", events.joinToString(","))
     return "OK"
 }
