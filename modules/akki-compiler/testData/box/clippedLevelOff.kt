@@ -32,7 +32,7 @@ fun box(): String {
     }
 
     assertEquals("", backend.records.joinToString(",") { it.message })
-    assertEquals("receiver", effects.joinToString(","))
+    assertEquals("trace,receiver,receiver-message,info,error", effects.joinToString(","))
     assertEquals("enabled=true,sink=true", gate)
     return "OK"
 }

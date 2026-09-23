@@ -60,16 +60,9 @@ private fun Class<*>.logicalEnclosingOwner(): Class<*>? = ignoringMalformedClass
 private fun Class<*>.enclosingOwner(): Class<*>? {
     superclass?.takeIf(Class<*>::isEnum)?.let { return it }
     declaringClass?.takeIf { isCompanionObject() }?.let { return it }
-    if (!isGeneratedClass()) return null
+    if (canonicalName != null) return null
     return enclosingClass ?: indyHost()
 }
-
-private fun Class<*>.isGeneratedClass(): Boolean =
-    isLocalClass ||
-        isAnonymousClass ||
-        isSynthetic ||
-        isHidden ||
-        kotlinMetadata?.kind == KotlinClassMetadata.SYNTHETIC_CLASS_KIND
 
 private fun Class<*>.isCompanionObject(): Boolean {
     val metadata = kotlinMetadata?.takeIf { it.kind == KotlinClassMetadata.CLASS_KIND } ?: return false

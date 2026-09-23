@@ -5,7 +5,7 @@ import io.akki.backend.*
 
 class OrderService {
     fun handle(id: String) {
-        log.debug("debug $id")
+        log.debug { "debug $id" }
         log.info("info $id")
     }
 }

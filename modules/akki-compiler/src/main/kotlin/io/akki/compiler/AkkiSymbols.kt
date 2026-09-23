@@ -37,7 +37,6 @@ internal class EmitArgument(
     val slot: EmitSlot,
     val source: IrValueParameter,
     val destination: IrValueParameter,
-    val mustFreeze: Boolean,
 )
 
 internal class LoggerCall(
@@ -145,17 +144,11 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
         fields: IrValueParameter,
     ): List<EmitArgument> {
         val (toMessage, toCause, toFields) = emitFunction.nonDispatchParameters
-        val ordered = listOf(
-            Triple(EmitSlot.MESSAGE, message, toMessage),
-            Triple(EmitSlot.CAUSE, cause, toCause),
-            Triple(EmitSlot.FIELDS, fields, toFields),
-        ).sortedBy { (_, source, _) -> source.indexInParameters }
-        val reordered = ordered.map { (_, _, destination) -> destination.indexInParameters }
-            .zipWithNext()
-            .any { (previous, next) -> previous > next }
-        return ordered.mapIndexed { position, (slot, source, destination) ->
-            EmitArgument(slot, source, destination, mustFreeze = reordered && position < ordered.lastIndex)
-        }
+        return listOf(
+            EmitArgument(EmitSlot.MESSAGE, message, toMessage),
+            EmitArgument(EmitSlot.CAUSE, cause, toCause),
+            EmitArgument(EmitSlot.FIELDS, fields, toFields),
+        ).sortedBy { it.source.indexInParameters }
     }
 
     companion object {

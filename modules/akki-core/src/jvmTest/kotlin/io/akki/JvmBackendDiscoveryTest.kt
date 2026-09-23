@@ -7,7 +7,9 @@ import io.akki.internal.DefaultBackend
 import io.akki.internal.chooseBackend
 import io.akki.internal.discover
 import java.net.URLClassLoader
+import java.net.URL
 import java.nio.file.Path
+import java.util.Enumeration
 import kotlin.io.path.createDirectories
 import kotlin.io.path.writeText
 import kotlin.test.Test
@@ -84,12 +86,12 @@ class JvmBackendDiscoveryTest {
             captureStderr { assertIs<DefaultBackend>(discover(loader)) }
         }
 
-        assertContains(output, "akki: failed to discover backends")
+        assertContains(output, "akki: ignoring a broken backend service declaration")
         assertContains(output, "NoClassDefFoundError: provider/AbsentBase")
     }
 
     @Test
-    fun `keeps an already loaded backend when discovery fails`(@TempDir directory: Path): Unit {
+    fun `keeps an already loaded backend when a provider cannot be linked`(@TempDir directory: Path): Unit {
         directory.declareBackends(DeclaredBackend::class.java.name, UNLINKED_BACKEND)
 
         val output = UnlinkedProviderLoader(directory).use { loader ->
@@ -97,6 +99,30 @@ class JvmBackendDiscoveryTest {
         }
 
         assertContains(output, "NoClassDefFoundError: provider/AbsentBase")
+    }
+
+    @Test
+    fun `continues to a valid backend after a provider cannot be linked`(@TempDir directory: Path): Unit {
+        directory.declareBackends(UNLINKED_BACKEND, DeclaredBackend::class.java.name)
+
+        val output = UnlinkedProviderLoader(directory).use { loader ->
+            captureStderr { assertIs<DeclaredBackend>(discover(loader)) }
+        }
+
+        assertContains(output, "NoClassDefFoundError: provider/AbsentBase")
+        assertEquals(1, output.lines().count { it.contains("ignoring a broken backend service declaration") }, output)
+    }
+
+    @Test
+    fun `falls back when the service resources cannot be enumerated`(): Unit {
+        val loader = object : ClassLoader(LogBackend::class.java.classLoader) {
+            override fun getResources(name: String): Enumeration<URL> = error("broken resources")
+        }
+
+        val output = captureStderr { assertIs<DefaultBackend>(discover(loader)) }
+
+        assertContains(output, "akki: failed to discover backends")
+        assertContains(output, "IllegalStateException: broken resources")
     }
 
     private fun Path.declareBackends(vararg names: String) {

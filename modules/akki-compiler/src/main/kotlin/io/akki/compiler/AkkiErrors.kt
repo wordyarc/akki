@@ -62,8 +62,8 @@ internal object AkkiDefaultErrorMessages : BaseDiagnosticRendererFactory() {
         )
         map.put(
             AkkiErrors.LOGGING_CALL_REFERENCE,
-            "''{0}'' cannot be taken as a callable reference: a reference is not lowered, so the record skips the " +
-                "level check, reports Akki as the caller and survives the ''minLevel'' threshold. Wrap the call in " +
+            "''{0}'' cannot be taken as a callable reference: a reference is not lowered, so the record " +
+                "reports Akki as the caller and survives the ''minLevel'' threshold. Wrap the call in " +
                 "a lambda instead.",
             CommonRenderers.STRING,
         )
@@ -77,8 +77,8 @@ internal object AkkiDefaultErrorMessages : BaseDiagnosticRendererFactory() {
         map.put(
             AkkiErrors.LOGGING_CALL_REMOVED,
             "This ''{0}'' record is removed at compile time: the Akki compiler plugin runs with " +
-                "minLevel={1}. The call, its arguments and its message are not in the bytecode, so no logging " +
-                "configuration can bring the record back. Lower ''minLevel'' to keep it.",
+                "minLevel={1}. Ordinary arguments are still evaluated, but the lazy message is not invoked. " +
+                "No logging configuration can bring the record back. Lower ''minLevel'' to keep it.",
             CommonRenderers.STRING,
             CommonRenderers.STRING,
         )

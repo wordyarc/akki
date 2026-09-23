@@ -1,6 +1,5 @@
 // MIN_LEVEL: INFO
 // CHECK_BYTECODE_TEXT
-// 0 trace-\\u0001
 // 0 debug-\\u0001
 // 1 info-\\u0001
 // 2 io/akki/backend/Sink\.emit
@@ -44,7 +43,7 @@ fun box(): String {
     }
 
     assertEquals("info-info,warn-warn", backend.records.joinToString(",") { it.message })
-    assertEquals("receiver,info,warn", effects.joinToString(","))
+    assertEquals("trace,receiver,receiver-message,debug-fields,info,warn", effects.joinToString(","))
     assertEquals("enabled=true,sink=true", gate)
     return "OK"
 }

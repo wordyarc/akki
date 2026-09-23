@@ -6,18 +6,22 @@ import io.akki.backend.*
 class OrderService {
     fun handle(): String = log.name
 
-    fun suppressed(counter: () -> Int): Unit = log.debug("value=${counter()}")
+    fun eager(counter: () -> Int): Unit = log.debug("value=${counter()}")
+
+    fun lazy(counter: () -> Int): Unit = log.debug { "value=${counter()}" }
 }
 
 @OptIn(DelicateAkkiApi::class)
 fun main() {
-    var evaluated = 0
+    var eager = 0
+    var lazy = 0
     val backend = LogBackend { _ ->
         LoggerBinding { level -> if (level == Level.DEBUG) null else Sink { _, _, _ -> } }
     }
     val service = OrderService()
     Log.install(backend).use {
-        service.suppressed { ++evaluated }
+        service.eager { ++eager }
+        service.lazy { ++lazy }
     }
-    println("AKKI name=${service.handle()} evaluated=$evaluated")
+    println("AKKI name=${service.handle()} eager=$eager lazy=$lazy")
 }

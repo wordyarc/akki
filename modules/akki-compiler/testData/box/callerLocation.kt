@@ -6,9 +6,24 @@ import io.akki.*
 import kotlin.test.assertEquals
 
 fun box(): String {
-    val anchor = Throwable().stackTrace[0].lineNumber
-    val caller = capturedCallers { Log.named("caller").info("located") }.single()
-    val located = "${caller.className}|${caller.methodName}|${caller.lineNumber}"
-    assertEquals("fixture.CallerLocationKt|box|${anchor + 1}", located)
+    val expected = mutableListOf<Int>()
+    val callers = capturedCallers {
+        expected += Throwable().stackTrace[0].lineNumber + 1
+        Log.named("caller").info("located")
+        expected += Throwable().stackTrace[0].lineNumber + 1
+        Log.named("caller").info {
+            val message = "lazy"
+            message
+        }
+        expected += Throwable().stackTrace[0].lineNumber + 1
+        Log.named("caller").info(
+            fields = mapOf("id" to 1),
+            message = "named",
+            cause = IllegalStateException("cause"),
+        )
+    }
+    assertEquals(expected.map { "fixture.CallerLocationKt|box|$it" }, callers.map {
+        "${it.className}|${it.methodName}|${it.lineNumber}"
+    })
     return "OK"
 }

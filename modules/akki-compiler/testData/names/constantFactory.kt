@@ -42,18 +42,21 @@ private fun runtime(type: KClass<*>): Logger = Log.of(type)
 private fun agrees(site: String, folded: Logger, runtime: Logger): String =
     if (folded === runtime) "$site=${folded.name}" else "$site=${folded.name}!=${runtime.name}"
 
+private fun byStyle(source: String, jvm: String): String =
+    if (System.getProperty(LOGGER_NAME_STYLE_PROPERTY_NAME) == LOGGER_NAME_STYLE_VALUE_JVM_CLASS) jvm else source
+
 fun box(): String {
     val site = Site()
     assertEquals(
         listOf(
             "reified=fixture.Service",
-            "literal=fixture.Service.Nested",
+            "literal=" + byStyle("fixture.Service.Nested", "fixture.Service\$Nested"),
             "companion=fixture.Service",
             "standalone=fixture.Standalone",
             "named=audit",
             "constant=constant-audit",
-            "builtin=kotlin.String",
-            "array=kotlin.IntArray",
+            "builtin=" + byStyle("kotlin.String", "java.lang.String"),
+            "array=" + byStyle("kotlin.IntArray", "[I"),
         ),
         listOf(
             agrees("reified", site.reified(), runtime(Service::class)),

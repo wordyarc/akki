@@ -1,6 +1,7 @@
 // MIN_LEVEL: INFO
 // CHECK_BYTECODE_TEXT
 // 0 discarded-
+// 1 LDC "retained-cause"
 package fixture
 
 import io.akki.*
@@ -34,13 +35,13 @@ fun box(): String {
     base.debug("discarded-base")
     generic(concrete)
     selected(concrete, effects).debug(
-        fields = mapOf("key" to "discarded-field").also { effects += "fields" },
-        cause = IllegalStateException("discarded-cause").also { effects += "cause" },
-        message = "discarded-named".also { effects += "message" },
+        fields = mapOf("key" to "retained-field").also { effects += "fields" },
+        cause = IllegalStateException("retained-cause").also { effects += "cause" },
+        message = "retained-named".also { effects += "message" },
     )
     concrete.info("kept")
 
-    assertEquals(listOf("receiver"), effects)
+    assertEquals(listOf("receiver", "fields", "cause", "message"), effects)
     assertEquals(listOf(LogRecord("clipped", Level.INFO, "kept")), recording.records)
     return "OK"
 }

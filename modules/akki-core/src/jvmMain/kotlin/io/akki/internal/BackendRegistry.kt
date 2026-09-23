@@ -25,11 +25,13 @@ internal fun discover(loader: ClassLoader): LogBackend {
     val declared = mutableListOf<LogBackend>()
     try {
         val providers = ServiceLoader.load(LogBackend::class.java, loader).iterator()
-        while (providers.hasNext()) {
+        while (true) {
             try {
+                if (!providers.hasNext()) break
                 declared += providers.next()
-            } catch (error: ServiceConfigurationError) {
-                printError("akki: ignoring a broken backend service declaration: ${error.message}")
+            } catch (failure: Throwable) {
+                if (failure !is ServiceConfigurationError && failure !is LinkageError) throw failure
+                printError("akki: ignoring a broken backend service declaration: $failure")
             }
         }
     } catch (failure: Throwable) {

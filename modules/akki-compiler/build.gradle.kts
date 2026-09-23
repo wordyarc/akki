@@ -78,8 +78,26 @@ tasks.test {
         jvmArgumentProviders.add(ClasspathSystemProperty("org.jetbrains.kotlin.test.$library", jar))
     }
     systemProperty("akki.jvm.target", libs.versions.jvm.target.get())
+    systemProperty("io.akki.loggerNameStyle", "source")
     systemProperty("idea.ignore.disabled.plugins", "true")
     systemProperty("idea.home.path", projectDir)
     val updateTestData = providers.gradleProperty("kotlin.test.update.test.data").orElse("false")
     systemProperty("kotlin.test.update.test.data", updateTestData.get())
+}
+
+val jvmClassTest = tasks.register<Test>("jvmClassTest") {
+    val source = tasks.test.get()
+    group = "verification"
+    description = "Runs the logger name matrix with JVM_CLASS categories"
+    testClassesDirs = source.testClassesDirs
+    classpath = source.classpath
+    jvmArgumentProviders.addAll(source.jvmArgumentProviders.filterIsInstance<ClasspathSystemProperty>())
+    systemProperties(source.systemProperties)
+    systemProperty("io.akki.loggerNameStyle", "jvm-class")
+    filter { includeTestsMatching("*AkkiBoxTestGenerated*Names*") }
+    shouldRunAfter(source)
+}
+
+tasks.named("check") {
+    dependsOn(jvmClassTest)
 }

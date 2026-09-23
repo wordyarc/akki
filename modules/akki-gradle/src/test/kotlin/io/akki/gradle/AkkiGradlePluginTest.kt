@@ -6,16 +6,19 @@ import kotlin.io.path.createDirectories
 import kotlin.io.path.writeText
 import kotlin.test.Test
 import kotlin.test.assertContains
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import org.gradle.testkit.runner.GradleRunner
+import org.gradle.testkit.runner.BuildResult
+import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.io.TempDir
 
 class AkkiGradlePluginTest {
     @Test
     fun `lowers logger calls in a consumer project`(@TempDir projectDirectory: Path) {
         val output = build(projectDirectory)
-        assertTrue(output.contains("AKKI name=consumer.OrderService evaluated=0"), output)
+        assertContains(output, "AKKI name=consumer.OrderService eager=1 lazy=0")
     }
 
     @Test
@@ -78,6 +81,70 @@ class AkkiGradlePluginTest {
 
         assertContains(output, "AKKI records=info A-1")
         assertContains(output, "akki: minLevel=info, records below it are removed from the bytecode")
+    }
+
+    @Test
+    fun `updates generated logger fields incrementally with the configuration cache`(@TempDir projectDirectory: Path) {
+        prepareConsumer(projectDirectory, Consumer.Incremental)
+        val service = projectDirectory.resolve("src/main/kotlin/consumer/ChangingService.kt")
+        val original = fixture("consumer/ChangingService.kt")
+        service.writeText(original)
+
+        val first = runConsumer(projectDirectory)
+        assertEquals(TaskOutcome.SUCCESS, first.task(":compileKotlin")?.outcome, first.output)
+        assertContains(first.output, "AKKI owner=before audit=audit.before retained=consumer.Unchanged")
+        val unchanged = projectDirectory.resolve("build/classes/kotlin/main/consumer/Unchanged.class")
+        val written = Files.getLastModifiedTime(unchanged)
+
+        val repeated = runConsumer(projectDirectory)
+        assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":compileKotlin")?.outcome, repeated.output)
+        assertContains(repeated.output, "Reusing configuration cache.")
+        assertContains(repeated.output, "AKKI owner=before audit=audit.before retained=consumer.Unchanged")
+
+        service.writeText(original.replace("\"before\"", "log.name").replace("audit.before", "audit.after"))
+        val added = runConsumer(projectDirectory)
+        assertEquals(TaskOutcome.SUCCESS, added.task(":compileKotlin")?.outcome, added.output)
+        assertContains(added.output, "Reusing configuration cache.")
+        assertContains(added.output, "AKKI owner=consumer.ChangingService audit=audit.after retained=consumer.Unchanged")
+        assertEquals(written, Files.getLastModifiedTime(unchanged), "an unchanged source was recompiled")
+
+        service.writeText(original.replace("\"before\"", "\"after\"").replace("audit.before", "audit.final"))
+        val removed = runConsumer(projectDirectory)
+        assertEquals(TaskOutcome.SUCCESS, removed.task(":compileKotlin")?.outcome, removed.output)
+        assertContains(removed.output, "AKKI owner=after audit=audit.final retained=consumer.Unchanged")
+        assertEquals(written, Files.getLastModifiedTime(unchanged), "an unchanged source was recompiled")
+    }
+
+    @Test
+    fun `recompiles when minLevel changes and reuses unchanged compilations`(@TempDir projectDirectory: Path) {
+        prepareConsumer(
+            projectDirectory,
+            Consumer.Clipped,
+            extra = """
+                akki {
+                    minLevel.set(providers.gradleProperty("testMinLevel").map { io.akki.gradle.MinLevel.valueOf(it) })
+                }
+            """.trimIndent(),
+        )
+
+        val full = runConsumer(projectDirectory, "-PtestMinLevel=TRACE")
+        assertEquals(TaskOutcome.SUCCESS, full.task(":compileKotlin")?.outcome, full.output)
+        assertContains(full.output, "AKKI records=debug A-1,info A-1")
+
+        val clipped = runConsumer(projectDirectory, "-PtestMinLevel=INFO")
+        assertEquals(TaskOutcome.SUCCESS, clipped.task(":compileKotlin")?.outcome, clipped.output)
+        assertContains(clipped.output, "akki: minLevel=info")
+        assertContains(clipped.output, "AKKI records=info A-1")
+
+        val repeated = runConsumer(projectDirectory, "-PtestMinLevel=INFO")
+        assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":compileKotlin")?.outcome, repeated.output)
+        assertContains(repeated.output, "Reusing configuration cache.")
+        assertContains(repeated.output, "AKKI records=info A-1")
+
+        val restored = runConsumer(projectDirectory, "-PtestMinLevel=TRACE")
+        assertEquals(TaskOutcome.SUCCESS, restored.task(":compileKotlin")?.outcome, restored.output)
+        assertContains(restored.output, "AKKI records=debug A-1,info A-1")
+        assertFalse(restored.output.contains("akki: minLevel"), restored.output)
     }
 
     @Test
@@ -210,6 +277,11 @@ class AkkiGradlePluginTest {
     }
 
     private fun build(projectDirectory: Path, consumer: Consumer = Consumer.Core, extra: String = ""): String {
+        prepareConsumer(projectDirectory, consumer, extra)
+        return runConsumer(projectDirectory).output
+    }
+
+    private fun prepareConsumer(projectDirectory: Path, consumer: Consumer, extra: String = "") {
         val repository = publishRepository(projectDirectory.resolve("repository"))
         projectDirectory.resolve("settings.gradle.kts").writeText(settings(repository))
         projectDirectory.resolve("build.gradle.kts").writeText(buildScript(repository, consumer) + "\n" + extra)
@@ -225,12 +297,13 @@ class AkkiGradlePluginTest {
                 .writeText("module consumer {\n    requires io.akki.core;\n}\n")
         }
 
-        return GradleRunner.create()
-            .withProjectDir(projectDirectory.toFile())
-            .withArguments("run", "--stacktrace", "--configuration-cache")
-            .build()
-            .output
     }
+
+    private fun runConsumer(projectDirectory: Path, vararg arguments: String): BuildResult =
+        GradleRunner.create()
+            .withProjectDir(projectDirectory.toFile())
+            .withArguments("run", "--stacktrace", "--configuration-cache", "--no-build-cache", "--console=plain", *arguments)
+            .build()
 
     private fun publishRepository(repository: Path): Path {
         publish(repository, "io.akki", "akki-compiler", path("akki.compiler.plugin.jar"))
@@ -341,7 +414,7 @@ class AkkiGradlePluginTest {
 
     private fun dependencies(consumer: Consumer): String = when (consumer) {
         Consumer.Bare -> emptyList()
-        Consumer.Core, Consumer.Clipped -> listOf("""implementation("io.akki:akki-core:$VERSION")""")
+        Consumer.Core, Consumer.Clipped, Consumer.Incremental -> listOf("""implementation("io.akki:akki-core:$VERSION")""")
         Consumer.Slf4j, Consumer.Modular -> listOf(
             """implementation("io.akki:akki-slf4j:$VERSION")""",
             """runtimeOnly("ch.qos.logback:logback-classic:${property("akki.logback.version")}")""",
@@ -368,6 +441,7 @@ class AkkiGradlePluginTest {
         Core("Main.kt", "consumer.MainKt", null),
         Slf4j("Slf4jMain.kt", "consumer.Slf4jMainKt", "logback.xml"),
         Clipped("ClippedMain.kt", "consumer.ClippedMainKt", null),
+        Incremental("IncrementalMain.kt", "consumer.IncrementalMainKt", null),
         Modular("ModularMain.kt", "consumer.ModularMainKt", "logback.xml", modular = true),
     }
 

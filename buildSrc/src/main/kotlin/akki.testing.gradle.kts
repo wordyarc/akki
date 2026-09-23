@@ -26,6 +26,10 @@ afterEvaluate {
             classpath = source.classpath
             jvmArgumentProviders.addAll(source.jvmArgumentProviders.filterIsInstance<ClasspathSystemProperty>())
             systemProperties(source.systemProperties)
+            filter {
+                setIncludePatterns(*source.filter.includePatterns.toTypedArray())
+                setExcludePatterns(*source.filter.excludePatterns.toTypedArray())
+            }
             shouldRunAfter(source)
         }
         tasks.named("check") { dependsOn(onTarget) }

@@ -10,11 +10,17 @@ fun main(args: Array<String>) {
             }
             testClass<AbstractAkkiBoxTest> {
                 model("box")
+                model("names")
                 model("transparent")
+                model("semantics")
             }
             testClass<AbstractAkkiPluginlessBoxTest> {
                 model("transparent")
                 model("pluginless")
+                model("semantics")
+            }
+            testClass<AbstractAkkiClippedBoxTest> {
+                model("semantics")
             }
         }
     }

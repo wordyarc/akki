@@ -8,7 +8,7 @@ class OrderService {
     }
 
     fun suppressed(counter: () -> Int) {
-        log.debug("counted ${counter()}")
+        log.debug { "counted ${counter()}" }
     }
 }
 

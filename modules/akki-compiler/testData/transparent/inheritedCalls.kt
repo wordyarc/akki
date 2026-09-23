@@ -12,9 +12,11 @@ private open class Forwarding(private val delegate: Logger) : Logger() {
 
 private class Derived(delegate: Logger) : Forwarding(delegate)
 
-private fun message(): String = error("disabled message evaluated")
-private fun cause(): Throwable = error("disabled cause evaluated")
-private fun fields(): Map<String, Any?> = error("disabled fields evaluated")
+private val disabledEffects = mutableListOf<String>()
+
+private fun message(): String = "disabled".also { disabledEffects += "message" }
+private fun cause(): Throwable = IllegalStateException().also { disabledEffects += "cause" }
+private fun fields(): Map<String, Any?> = emptyMap<String, Any?>().also { disabledEffects += "fields" }
 
 private fun <T : Forwarding> generic(logger: T) {
     logger.debug(message(), cause(), fields())
@@ -34,6 +36,19 @@ fun box(): String {
     base.debug(message(), cause(), fields())
     anonymous.debug(message(), cause(), fields())
     generic(derived)
+
+    assertEquals(
+        listOf(
+            "message", "cause", "fields",
+            "message", "cause", "fields",
+            "cause", "fields",
+            "fields", "message", "cause",
+            "message", "cause", "fields",
+            "message", "cause", "fields",
+            "message", "cause", "fields",
+        ),
+        disabledEffects,
+    )
 
     val failure = IllegalStateException("cause")
     val data = mapOf("id" to 42)

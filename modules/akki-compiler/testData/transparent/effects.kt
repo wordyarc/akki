@@ -32,9 +32,9 @@ fun box(): String {
 
     assertEquals("DEBUG,TRACE,INFO,WARN,ERROR,ERROR", backend.resolutions.joinToString(",") { it.level.name })
     assertEquals(
-        "receiver,eager-message,cause,fields,cause,fields,lazy-message,variable-message",
+        "receiver,disabled-message,cause,fields,cause,fields,eager-message,cause,fields,cause,fields,lazy-message,variable-message",
         effects.joinToString(","),
     )
-    assertEquals("enabled-1,lazy-6,constant,variable-7", backend.records.joinToString(",") { it.message })
+    assertEquals("enabled-6,lazy-11,constant,variable-12", backend.records.joinToString(",") { it.message })
     return "OK"
 }

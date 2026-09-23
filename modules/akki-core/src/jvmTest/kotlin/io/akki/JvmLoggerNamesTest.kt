@@ -31,6 +31,21 @@ class JvmLoggerNamesTest {
     }
 
     @Test
+    fun `a member of a declaration without a qualified name inherits its enclosing category`(): Unit {
+        class Local {
+            inner class Inner {
+                inner class Deep
+            }
+        }
+
+        val member = Local().Inner().Deep()
+        val expected = Log.of<JvmLoggerNamesTest>()
+
+        assertSame(expected, Log.of(member::class))
+        assertSame(expected, Log.of(member.javaClass))
+    }
+
+    @Test
     fun `parses JVM logger name styles`(): Unit {
         assertEquals(JvmLoggerNameStyle.SOURCE, parseJvmLoggerNameStyle(null))
         assertEquals(JvmLoggerNameStyle.SOURCE, parseJvmLoggerNameStyle("source"))

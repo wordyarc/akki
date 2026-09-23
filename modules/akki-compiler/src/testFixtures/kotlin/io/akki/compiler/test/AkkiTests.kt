@@ -1,5 +1,6 @@
 package io.akki.compiler.test
 
+import io.akki.compiler.MinLevel
 import org.jetbrains.kotlin.test.FirParser
 import org.jetbrains.kotlin.test.backend.handlers.UpdateTestDataHandler
 import org.jetbrains.kotlin.test.builders.TestConfigurationBuilder
@@ -33,6 +34,15 @@ abstract class AbstractAkkiPluginlessBoxTest : AbstractAkkiBoxTest() {
         super.configure(builder)
         builder.defaultDirectives {
             +AkkiDirectives.WITHOUT_PLUGIN
+        }
+    }
+}
+
+abstract class AbstractAkkiClippedBoxTest : AbstractAkkiBoxTest() {
+    override fun configure(builder: TestConfigurationBuilder) {
+        super.configure(builder)
+        builder.defaultDirectives {
+            AkkiDirectives.MIN_LEVEL with MinLevel.INFO
         }
     }
 }

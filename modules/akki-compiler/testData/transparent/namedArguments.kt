@@ -20,7 +20,7 @@ fun box(): String {
     }
 
     assertEquals("DEBUG", backend.resolutions.joinToString(",") { it.level.name })
-    assertEquals("", effects.joinToString(","))
+    assertEquals(listOf("fields"), effects)
     assertEquals("", backend.records.joinToString(",") { it.message })
     return "OK"
 }
