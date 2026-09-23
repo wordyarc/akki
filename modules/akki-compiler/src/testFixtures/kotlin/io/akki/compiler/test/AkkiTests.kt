@@ -9,12 +9,12 @@ import org.jetbrains.kotlin.test.builders.configureIrHandlersStep
 import org.jetbrains.kotlin.test.directives.DiagnosticsDirectives
 import org.jetbrains.kotlin.test.directives.FirDiagnosticsDirectives
 import org.jetbrains.kotlin.test.runners.AbstractFirPhasedDiagnosticTest
-import org.jetbrains.kotlin.test.runners.codegen.AbstractFirBlackBoxCodegenTestBase
+import org.jetbrains.kotlin.test.runners.codegen.AbstractJvmBlackBoxCodegenTestBase
 import org.jetbrains.kotlin.test.services.EnvironmentBasedStandardLibrariesPathProvider
 import org.jetbrains.kotlin.test.services.KotlinStandardLibrariesPathProvider
 import org.junit.jupiter.api.parallel.Isolated
 
-abstract class AbstractAkkiBoxTest : AbstractFirBlackBoxCodegenTestBase(FirParser.LightTree) {
+abstract class AbstractAkkiBoxTest : AbstractJvmBlackBoxCodegenTestBase(FirParser.LightTree) {
     override fun createKotlinStandardLibrariesPathProvider(): KotlinStandardLibrariesPathProvider =
         EnvironmentBasedStandardLibrariesPathProvider
 
@@ -25,7 +25,7 @@ abstract class AbstractAkkiBoxTest : AbstractFirBlackBoxCodegenTestBase(FirParse
             defaultDirectives {
                 DiagnosticsDirectives.DIAGNOSTICS with "-infos"
             }
-            useAfterAnalysisCheckers(::UpdateTestDataHandler)
+            useFailureSuppressors(::UpdateTestDataHandler)
         }
     }
 }
@@ -68,7 +68,8 @@ abstract class AbstractAkkiDiagnosticsTest : AbstractFirPhasedDiagnosticTest(Fir
             configureIrHandlersStep {
                 useHandlers(::IrSourcelessDiagnosticsHandler)
             }
-            useAfterAnalysisCheckers(::SourcelessDiagnosticsChecker, ::UpdateTestDataHandler)
+            useAfterAnalysisCheckers(::SourcelessDiagnosticsChecker)
+            useFailureSuppressors(::UpdateTestDataHandler)
         }
     }
 }

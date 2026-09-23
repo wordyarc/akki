@@ -3,7 +3,6 @@ package io.akki.compiler.test
 import io.akki.compiler.AKKI_VERSION
 import org.jetbrains.kotlin.cli.common.diagnosticsCollector
 import org.jetbrains.kotlin.diagnostics.impl.BaseDiagnosticsCollector
-import org.jetbrains.kotlin.test.WrappedException
 import org.jetbrains.kotlin.test.backend.handlers.AbstractIrHandler
 import org.jetbrains.kotlin.test.backend.handlers.assertFileDoesntExist
 import org.jetbrains.kotlin.test.backend.ir.IrBackendInput
@@ -66,7 +65,7 @@ internal class SourcelessDiagnosticsChecker(testServices: TestServices) : AfterA
     override val additionalServices: List<ServiceRegistrationData>
         get() = listOf(service(::SourcelessDiagnostics))
 
-    override fun check(failedAssertions: List<WrappedException>) {
+    override fun check(thereWereFailures: Boolean) {
         val expected = testServices.moduleStructure.originalTestDataFiles.first().withExtension("sourceless.txt")
         if (AkkiDirectives.CHECK_SOURCELESS_DIAGNOSTICS !in testServices.moduleStructure.allDirectives) {
             testServices.assertions.assertFileDoesntExist(expected, AkkiDirectives.CHECK_SOURCELESS_DIAGNOSTICS)

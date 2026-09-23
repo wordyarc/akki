@@ -1,0 +1,1 @@
+/raisedRemoval.kt:10:12: fixed_warning: This 'debug' record is removed at compile time: the Akki compiler plugin runs with minLevel=info. Ordinary arguments are still evaluated, but the lazy message is not invoked. No logging configuration can bring the record back. Lower 'minLevel' to keep it.
