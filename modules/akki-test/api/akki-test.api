@@ -22,10 +22,8 @@ public final class io/akki/test/RecordingBackend : io/akki/backend/LogBackend {
 }
 
 public final class io/akki/test/RecordingKt {
-	public static final field LOG_BACKEND_RESOURCE_NAME Ljava/lang/String;
 	public static final fun recordLogs (Lio/akki/Level;Lkotlin/jvm/functions/Function0;)Ljava/util/List;
 	public static synthetic fun recordLogs$default (Lio/akki/Level;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Ljava/util/List;
-	public static final fun withBackend (Lio/akki/backend/LogBackend;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 }
 
 public final class io/akki/test/RecordingLogger : io/akki/Logger {

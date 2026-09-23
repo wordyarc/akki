@@ -2,7 +2,6 @@ package io.akki
 
 import io.akki.backend.LogBackend
 import io.akki.test.RecordingBackend
-import io.akki.test.withBackend
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -15,7 +14,7 @@ class JvmBackendFailureTest {
         val logger = Log.named("failure.announced")
 
         val output = captureStderr {
-            withBackend(LogBackend { name -> error("backend is broken for $name") }) {
+            Log.install(LogBackend { name -> error("backend is broken for $name") }).use {
                 repeat(3) { logger.info("dropped") }
             }
         }
@@ -35,12 +34,12 @@ class JvmBackendFailureTest {
         val broken = LogBackend { name -> error("backend is broken for $name") }
 
         val output = captureStderr {
-            withBackend(broken) {
+            Log.install(broken).use {
                 logger.info("dropped")
-                withBackend(RecordingBackend()) { logger.info("recorded") }
+                Log.install(RecordingBackend()).use { logger.info("recorded") }
                 logger.info("dropped again")
             }
-            withBackend(LogBackend { name -> error("the next backend is broken for $name too") }) {
+            Log.install(LogBackend { name -> error("the next backend is broken for $name too") }).use {
                 logger.info("dropped elsewhere")
             }
         }
@@ -60,7 +59,7 @@ class JvmBackendFailureTest {
         val logger = Log.named("failure.linkage")
 
         val output = captureStderr {
-            withBackend(LogBackend { _ -> throw NoClassDefFoundError("org/slf4j/LoggerFactory") }) {
+            Log.install(LogBackend { _ -> throw NoClassDefFoundError("org/slf4j/LoggerFactory") }).use {
                 logger.info("dropped")
                 assertFalse(logger.isEnabled(Level.ERROR))
             }

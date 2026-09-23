@@ -1,13 +1,13 @@
 package io.akki
 
 import io.akki.test.RecordingBackend
-import io.akki.test.withBackend
 import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
 import org.jetbrains.lincheck.Lincheck
 
+@OptIn(DelicateAkkiApi::class)
 class JvmBackendLincheckTest {
     @Test
     fun `a cached logger follows concurrent backend installation and restoration`() {
@@ -16,10 +16,10 @@ class JvmBackendLincheckTest {
             val replacement = RecordingBackend()
             val logger = Log.named("lincheck.install")
 
-            withBackend(original) {
+            Log.install(original).use {
                 logger.info("before")
                 val installer = thread {
-                    withBackend(replacement) {
+                    Log.install(replacement).use {
                         logger.info("installed")
                     }
                 }

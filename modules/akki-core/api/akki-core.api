@@ -33,6 +33,23 @@ public final class io/akki/Log$Installation : java/lang/AutoCloseable {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class io/akki/LogScope {
+	public static final field Companion Lio/akki/LogScope$Companion;
+	public fun <init> (Lio/akki/backend/LogBackend;)V
+	public final fun enter ()Lio/akki/LogScope$Entry;
+	public final fun getBackend ()Lio/akki/backend/LogBackend;
+	public final fun run (Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/akki/LogScope$Companion {
+	public final fun current ()Lio/akki/LogScope;
+}
+
+public final class io/akki/LogScope$Entry : java/lang/AutoCloseable {
+	public fun close ()V
+}
+
 public abstract class io/akki/Logger {
 	public fun <init> ()V
 	public final fun debug (Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V

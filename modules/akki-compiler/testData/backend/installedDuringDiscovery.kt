@@ -7,7 +7,6 @@ import io.akki.Log
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import io.akki.test.RecordingBackend
-import io.akki.test.withBackend
 import kotlin.test.assertEquals
 
 private val transient = RecordingBackend()
@@ -17,7 +16,7 @@ private lateinit var installation: Log.Installation
 
 class InstallingBackend : LogBackend {
     init {
-        withBackend(transient) { Log.named("bootstrap").info("transient") }
+        Log.install(transient).use { Log.named("bootstrap").info("transient") }
         installation = Log.install(installed)
         Log.named("bootstrap").info("installed")
     }

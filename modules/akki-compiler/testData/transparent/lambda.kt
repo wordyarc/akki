@@ -7,11 +7,10 @@ import io.akki.*
 import io.akki.test.*
 import kotlin.test.assertEquals
 
-@OptIn(DelicateAkkiApi::class)
 fun box(): String {
     val backend = RecordingBackend(Level.INFO)
     var counter = 0
-    withBackend(backend) {
+    LogScope(backend).run {
         Log.named("fixture").info { "value=${++counter}" }
         Log.named("fixture").debug { "never=${++counter}" }
     }

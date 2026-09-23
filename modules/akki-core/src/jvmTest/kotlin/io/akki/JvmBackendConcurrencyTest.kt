@@ -3,7 +3,6 @@ package io.akki
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import io.akki.test.RecordingBackend
-import io.akki.test.withBackend
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
@@ -14,6 +13,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+@OptIn(DelicateAkkiApi::class)
 class JvmBackendConcurrencyTest {
     @Test
     fun `a late bind cannot revive a backend after a failed bind`(): Unit = lateBindAfterFailure(Lookup.BIND)
@@ -38,7 +38,7 @@ class JvmBackendConcurrencyTest {
                     }
                 }
             }
-            withBackend(backend) {
+            Log.install(backend).use {
                 paused.start { logger.info("in flight") }
                 captureStderr { logger.info("failure") }
                 paused.finish()
@@ -67,7 +67,7 @@ class JvmBackendConcurrencyTest {
                 }
                 recording.bind(name)
             }
-            withBackend(backend) {
+            Log.install(backend).use {
                 paused.start { logger.info("in flight") }
                 logger.info("before failure")
                 captureStderr { paused.finish() }
@@ -109,9 +109,9 @@ class JvmBackendConcurrencyTest {
                     }
                 }
             }
-            withBackend(backend) {
+            Log.install(backend).use {
                 paused.start { logger.info("in flight") }
-                withBackend(replacement) {
+                Log.install(replacement).use {
                     logger.info("before completion")
                     captureStderr { paused.finish() }
                     logger.info("after completion")

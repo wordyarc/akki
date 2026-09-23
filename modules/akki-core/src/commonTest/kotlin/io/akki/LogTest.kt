@@ -7,7 +7,6 @@ import io.akki.test.LogRecord
 import io.akki.test.RecordingBackend
 import io.akki.test.RecordingLogger
 import io.akki.test.Resolution
-import io.akki.test.withBackend
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -62,7 +61,7 @@ class LogTest {
         val backend = RecordingBackend()
         val logger = Log.named("checkout")
         val fields = mapOf("orderId" to 42)
-        withBackend(backend) {
+        Log.install(backend).use {
             logger.trace("trace", fields = fields)
             logger.debug("debug", fields = fields)
             logger.info("info", fields = fields)
@@ -82,7 +81,7 @@ class LogTest {
         val logger = Log.named("lazy-checkout")
         val fields = mapOf("orderId" to 42)
         val cause = IllegalStateException("failed")
-        withBackend(backend) {
+        Log.install(backend).use {
             logger.trace(fields = fields) { "trace" }
             logger.debug(fields = fields) { "debug" }
             logger.info(fields = fields) { "info" }
@@ -101,7 +100,7 @@ class LogTest {
         val backend = RecordingBackend(Level.ERROR)
         val logger = Log.named("lazy-filtered")
         val evaluatedLevels: MutableList<Level> = mutableListOf()
-        withBackend(backend) {
+        Log.install(backend).use {
             logger.info {
                 evaluatedLevels += Level.INFO
                 "ignored"
@@ -124,7 +123,7 @@ class LogTest {
     fun `backend controls level filtering`(): Unit {
         val backend = RecordingBackend(Level.ERROR)
         val logger = Log.named("filtered")
-        withBackend(backend) {
+        Log.install(backend).use {
             assertFalse(logger.isEnabled(Level.INFO))
             assertTrue(logger.isEnabled(Level.ERROR))
 
@@ -144,7 +143,7 @@ class LogTest {
         }
         val logger = Log.named("bound-once")
 
-        withBackend(backend) {
+        Log.install(backend).use {
             assertFalse(logger.isEnabled(Level.INFO))
             assertTrue(logger.isEnabled(Level.ERROR))
             logger.error("recorded")
@@ -158,7 +157,7 @@ class LogTest {
         val backend = RecordingBackend(Level.ERROR)
         val logger = Log.named("consistent-enabled")
 
-        withBackend(backend) {
+        Log.install(backend).use {
             assertFalse(logger.isEnabled(Level.INFO))
             assertTrue(logger.isEnabled(Level.ERROR))
         }
@@ -175,9 +174,9 @@ class LogTest {
         val first = RecordingBackend()
         val second = RecordingBackend()
 
-        withBackend(first) {
+        Log.install(first).use {
             logger.info("first")
-            withBackend(second) { logger.info("second") }
+            Log.install(second).use { logger.info("second") }
             logger.info("restored")
         }
 
@@ -233,7 +232,7 @@ class LogTest {
         val inner = RecordingBackend()
         val logger = Log.named("closeable")
 
-        withBackend(outer) {
+        Log.install(outer).use {
             Log.install(inner).use { logger.info("inside") }
             logger.info("outside")
         }
@@ -246,7 +245,7 @@ class LogTest {
     fun `cause is forwarded to the sink`(): Unit {
         val backend = RecordingBackend()
         val cause = IllegalStateException("failed")
-        withBackend(backend) {
+        Log.install(backend).use {
             Log.named("failure").error("operation failed", cause)
         }
 

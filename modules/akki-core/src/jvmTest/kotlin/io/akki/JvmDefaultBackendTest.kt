@@ -1,12 +1,12 @@
 package io.akki
 
 import io.akki.internal.DefaultBackend
-import io.akki.test.withBackend
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 
+@OptIn(DelicateAkkiApi::class)
 class JvmDefaultBackendTest {
     @Test
     fun `default backend writes to standard error`(): Unit {
@@ -48,5 +48,7 @@ class JvmDefaultBackendTest {
         assertEquals("java.lang.IllegalStateException: broken", lines[message + 1])
     }
 
-    private fun defaultBackendOutput(block: () -> Unit): String = captureStderr { withBackend(DefaultBackend(), block) }
+    private fun defaultBackendOutput(block: () -> Unit): String = captureStderr {
+        Log.install(DefaultBackend()).use { block() }
+    }
 }

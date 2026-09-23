@@ -1,6 +1,7 @@
 package io.akki.internal
 
 import io.akki.Level
+import io.akki.LogScope
 import io.akki.Logger
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
@@ -14,7 +15,10 @@ internal class LoggerImpl(override val name: String) : Logger() {
 
     private val reported = AtomicReference<LogBackend?>(null)
 
-    override fun sink(level: Level): Sink? = resolver().resolve(level)
+    override fun sink(level: Level): Sink? {
+        val scope = LogScope.current() ?: return resolver().resolve(level)
+        return scope.binding(name).resolve(level)
+    }
 
     override fun toString(): String = "Logger($name)"
 

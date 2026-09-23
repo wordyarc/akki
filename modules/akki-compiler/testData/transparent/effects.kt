@@ -4,7 +4,6 @@ import io.akki.*
 import io.akki.test.*
 import kotlin.test.assertEquals
 
-@OptIn(DelicateAkkiApi::class)
 fun box(): String {
     val backend = RecordingBackend(Level.INFO)
     val logger = Log.named("fixture")
@@ -21,7 +20,7 @@ fun box(): String {
     fun selectedLogger() = logger.also { effects += "receiver" }
     val variableMessage: () -> String = { "variable-${mark("variable-message")}" }
 
-    withBackend(backend) {
+    LogScope(backend).run {
         selectedLogger().debug("disabled-${mark("disabled-message")}", cause(), fields())
         logger.trace(cause(), fields()) { "disabled-${mark("disabled-lazy-message")}" }
         logger.info("enabled-${mark("eager-message")}", cause(), fields())

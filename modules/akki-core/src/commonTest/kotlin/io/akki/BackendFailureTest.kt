@@ -4,7 +4,6 @@ import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import io.akki.backend.Sink
 import io.akki.test.RecordingBackend
-import io.akki.test.withBackend
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -16,7 +15,7 @@ class BackendFailureTest {
     fun `a backend that fails to resolve drops the record`(): Unit {
         val logger = Log.named("failure.resolving")
 
-        withBackend(FailingBackend()) {
+        Log.install(FailingBackend()).use {
             logger.info("dropped")
             logger.error("dropped too")
 
@@ -28,7 +27,7 @@ class BackendFailureTest {
     fun `a backend that fails to bind drops the record`(): Unit {
         val logger = Log.named("failure.binding")
 
-        withBackend(FailingBackend(failing = Failing.BIND)) {
+        Log.install(FailingBackend(failing = Failing.BIND)).use {
             logger.warn("dropped")
 
             assertNull(logger.sink(Level.WARN))
@@ -39,7 +38,7 @@ class BackendFailureTest {
     fun `a level is disabled when the backend fails to answer`(): Unit {
         val logger = Log.named("failure.asking")
 
-        withBackend(FailingBackend()) {
+        Log.install(FailingBackend()).use {
             assertFalse(logger.isEnabled(Level.ERROR))
         }
     }
@@ -49,10 +48,10 @@ class BackendFailureTest {
         val logger = Log.named("failure.recovering")
         val working = RecordingBackend()
 
-        withBackend(FailingBackend(failing = Failing.BIND)) {
+        Log.install(FailingBackend(failing = Failing.BIND)).use {
             logger.info("dropped")
         }
-        withBackend(working) {
+        Log.install(working).use {
             logger.info("recorded")
         }
 
@@ -65,10 +64,10 @@ class BackendFailureTest {
         val backend = FailingBackend()
         val working = RecordingBackend()
 
-        withBackend(backend) {
+        Log.install(backend).use {
             repeat(3) { logger.info("dropped") }
         }
-        withBackend(working) {
+        Log.install(working).use {
             logger.info("recorded")
         }
 

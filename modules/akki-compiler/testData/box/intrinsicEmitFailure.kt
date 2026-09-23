@@ -1,17 +1,17 @@
 package fixture
 
-import io.akki.log
+import io.akki.LogScope
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import io.akki.backend.Sink
-import io.akki.test.withBackend
+import io.akki.log
 import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
 
 fun box(): String {
     val failure = UnsupportedOperationException("emit failed")
     val backend = LogBackend { LoggerBinding { Sink { _, _, _ -> throw failure } } }
-    withBackend(backend) {
+    LogScope(backend).run {
         assertSame(failure, assertFailsWith<UnsupportedOperationException> { log.info("eager") })
         assertSame(failure, assertFailsWith<UnsupportedOperationException> { log.info { "lazy" } })
     }

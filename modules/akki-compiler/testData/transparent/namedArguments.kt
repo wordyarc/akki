@@ -4,7 +4,6 @@ import io.akki.*
 import io.akki.test.*
 import kotlin.test.assertEquals
 
-@OptIn(DelicateAkkiApi::class)
 fun box(): String {
     val backend = RecordingBackend(Level.INFO)
     val logger = Log.named("fixture")
@@ -15,7 +14,7 @@ fun box(): String {
         return mapOf("k" to 1)
     }
 
-    withBackend(backend) {
+    LogScope(backend).run {
         logger.debug(fields = fields(), message = "constant")
     }
 

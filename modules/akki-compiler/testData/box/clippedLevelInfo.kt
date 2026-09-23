@@ -26,12 +26,11 @@ private fun suppressed(logger: Logger) {
     logger.debug("suppressed")
 }
 
-@OptIn(DelicateAkkiApi::class)
 fun box(): String {
     val backend = RecordingBackend()
     val logger = Log.named("fixture")
 
-    val gate = withBackend(backend) {
+    val gate = LogScope(backend).run {
         logger.trace("trace-${mark("trace")}")
         logger.debug { "debug-${mark("debug-lazy")}" }
         selectLog(logger).debug("receiver-${mark("receiver-message")}")
