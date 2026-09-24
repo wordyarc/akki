@@ -12,5 +12,5 @@ public fun logger(): Logger = pluginNotApplied()
 
 private fun pluginNotApplied(): Nothing = akkiError(
     "the compiler plugin is not applied to this source set, so `log` and `logger()` cannot resolve " +
-        "a name. Apply the io.akki Gradle plugin, or use Log.of<T>() / Log.named(\"...\") instead.",
+        "a name. Apply the akki Gradle plugin, or use Log.of<T>() / Log.named(\"...\") instead.",
 )

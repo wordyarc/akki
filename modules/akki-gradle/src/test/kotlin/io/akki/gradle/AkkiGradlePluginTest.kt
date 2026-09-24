@@ -241,7 +241,7 @@ class AkkiGradlePluginTest {
             """
             plugins {
                 kotlin("multiplatform") version "${property("akki.kotlin.version")}"
-                id("io.akki") version "$VERSION"
+                id("$PLUGIN_ID") version "$VERSION"
             }
 
             repositories {
@@ -257,7 +257,7 @@ class AkkiGradlePluginTest {
             tasks.register("akkiDependencies") {
                 doLast {
                     for (name in listOf("jvmCompileClasspath", "jsCompileClasspath")) {
-                        val akki = configurations.getByName(name).allDependencies.filter { it.group == "io.akki" }
+                        val akki = configurations.getByName(name).allDependencies.filter { it.group == "$GROUP" }
                         println("AKKI " + name + " " + akki.map { it.name })
                     }
                 }
@@ -294,7 +294,7 @@ class AkkiGradlePluginTest {
             """
             plugins {
                 kotlin("multiplatform") version "${property("akki.kotlin.version")}"
-                id("io.akki") version "$VERSION"
+                id("$PLUGIN_ID") version "$VERSION"
             }
 
             repositories {
@@ -306,11 +306,11 @@ class AkkiGradlePluginTest {
                 jvm()
                 sourceSets {
                     commonMain.dependencies {
-                        implementation("io.akki:akki-core:$VERSION")
+                        implementation("$GROUP:akki-core:$VERSION")
                     }
                     commonTest.dependencies {
                         implementation(kotlin("test"))
-                        implementation("io.akki:akki-test:$VERSION")
+                        implementation("$GROUP:akki-test:$VERSION")
                     }
                 }
             }
@@ -343,14 +343,14 @@ class AkkiGradlePluginTest {
     fun `leaves the core version of a published library open to its consumers`(@TempDir projectDirectory: Path) {
         val repository = publishRepository(projectDirectory.resolve("repository"))
         val newerVersion = "999.0.0"
-        publish(repository, "io.akki", "akki-core", path("akki.core.jar"), version = newerVersion)
+        publish(repository, GROUP, "akki-core", path("akki.core.jar"), version = newerVersion)
         val library = projectDirectory.resolve("library").createDirectories()
         library.resolve("settings.gradle.kts").writeText(settings(repository, name = "library"))
         library.resolve("build.gradle.kts").writeText(
             """
             plugins {
                 kotlin("jvm") version "${property("akki.kotlin.version")}"
-                id("io.akki") version "$VERSION"
+                id("$PLUGIN_ID") version "$VERSION"
                 `maven-publish`
             }
 
@@ -389,7 +389,7 @@ class AkkiGradlePluginTest {
 
             dependencies {
                 implementation("consumer:library:$VERSION")
-                implementation("io.akki:akki-core:$newerVersion")
+                implementation("$GROUP:akki-core:$newerVersion")
             }
 
             tasks.register("resolveCore") {
@@ -397,7 +397,7 @@ class AkkiGradlePluginTest {
                 doLast {
                     val core = runtimeClasspath.get().incoming.resolutionResult.allComponents
                         .mapNotNull { it.moduleVersion }
-                        .single { it.group == "io.akki" && it.name == "akki-core" }
+                        .single { it.group == "$GROUP" && it.name == "akki-core" }
                     println("AKKI core=" + core.version)
                 }
             }
@@ -416,15 +416,15 @@ class AkkiGradlePluginTest {
     private fun checkCoreVersionLock(projectDirectory: Path, transitive: Boolean) {
         val repository = publishRepository(projectDirectory.resolve("repository"))
         val newerVersion = "999.0.0"
-        publish(repository, "io.akki", "akki-core", path("akki.core.jar"), version = newerVersion)
+        publish(repository, GROUP, "akki-core", path("akki.core.jar"), version = newerVersion)
         publish(
             repository,
             "consumer",
             "library",
             path("akki.slf4j.jar"),
-            dependencies = listOf(Triple("io.akki", "akki-core", newerVersion)),
+            dependencies = listOf(Triple(GROUP, "akki-core", newerVersion)),
         )
-        val dependency = if (transitive) "consumer:library:$VERSION" else "io.akki:akki-core:$newerVersion"
+        val dependency = if (transitive) "consumer:library:$VERSION" else "$GROUP:akki-core:$newerVersion"
         projectDirectory.resolve("settings.gradle.kts").writeText(settings(repository))
         projectDirectory.resolve("build.gradle.kts").writeText(
             buildScript(repository, consumer = Consumer.Bare) + "\n" +
@@ -437,7 +437,7 @@ class AkkiGradlePluginTest {
                     doLast {
                         for (name in listOf("compileClasspath", "runtimeClasspath")) {
                             val core = configurations.getByName(name).resolvedConfiguration.resolvedArtifacts
-                                .single { it.moduleVersion.id.group == "io.akki" && it.name == "akki-core-jvm" }
+                                .single { it.moduleVersion.id.group == "$GROUP" && it.name == "akki-core-jvm" }
                             check(core.file.isFile)
                             println("AKKI " + name + " core=" + core.moduleVersion.id.version)
                         }
@@ -454,9 +454,9 @@ class AkkiGradlePluginTest {
             assertContains(output, "AKKI compileClasspath core=$VERSION\n")
             assertContains(output, "AKKI runtimeClasspath core=$VERSION\n")
         } else {
-            assertContains(output, "Cannot find a version of 'io.akki:akki-core'")
+            assertContains(output, "Cannot find a version of '$GROUP:akki-core'")
             assertContains(output, "strictly $VERSION")
-            assertContains(output, "io.akki:akki-core:$newerVersion")
+            assertContains(output, "$GROUP:akki-core:$newerVersion")
             assertContains(output, "Akki core and compiler plugin versions must match")
         }
     }
@@ -574,7 +574,7 @@ class AkkiGradlePluginTest {
         plugins {
             application
             kotlin("jvm") version "$kotlinVersion"
-            id("io.akki") version "$VERSION"
+            id("$PLUGIN_ID") version "$VERSION"
         }
 
         repositories {
@@ -599,13 +599,13 @@ class AkkiGradlePluginTest {
     private fun dependencies(consumer: Consumer): String = when (consumer) {
         Consumer.Bare -> emptyList()
         Consumer.Core, Consumer.Clipped, Consumer.Incremental, Consumer.Bootstrap ->
-            listOf("""implementation("io.akki:akki-core:$VERSION")""")
+            listOf("""implementation("$GROUP:akki-core:$VERSION")""")
         Consumer.SimpleSlf4j -> listOf(
-            """implementation("io.akki:akki-slf4j:$VERSION")""",
+            """implementation("$GROUP:akki-slf4j:$VERSION")""",
             """runtimeOnly("org.slf4j:slf4j-simple:${property("akki.slf4j.version")}")""",
         )
         Consumer.Slf4j, Consumer.Modular -> listOf(
-            """implementation("io.akki:akki-slf4j:$VERSION")""",
+            """implementation("$GROUP:akki-slf4j:$VERSION")""",
             """runtimeOnly("ch.qos.logback:logback-classic:${property("akki.logback.version")}")""",
         )
     }.joinToString("\n") { "    $it" }
@@ -637,6 +637,10 @@ class AkkiGradlePluginTest {
     }
 
     private companion object {
+        val GROUP: String = requireNotNull(System.getProperty("akki.maven.group"))
+
+        val PLUGIN_ID: String = requireNotNull(System.getProperty("akki.plugin.id"))
+
         val VERSION: String = requireNotNull(System.getProperty("akki.version"))
 
         const val OTHER_KOTLIN: String = "2.3.21"

@@ -4,6 +4,8 @@ plugins {
     id("org.jetbrains.kotlinx.kover")
 }
 
+description = "Log capture for tests of code that logs with akki"
+
 kotlin {
     explicitApi()
 

@@ -46,4 +46,4 @@ internal actual fun discoverPlatformBackend(): LogBackend = discover(LogBackend:
 
 private const val NO_BACKEND_NOTICE: String =
     "akki: no backend found on the classpath, writing to stderr at INFO. " +
-        "Add a backend such as io.akki:akki-slf4j to the runtime classpath."
+        "Add a backend such as akki-slf4j to the runtime classpath."

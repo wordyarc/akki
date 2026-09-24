@@ -14,11 +14,10 @@ tasks.withType<Test>().configureEach {
 val onTargetJdk = "OnJdk$jvmTargetVersion"
 
 afterEvaluate {
-    tasks.withType<Test>().names.filter { !it.endsWith(onTargetJdk) }.forEach { name ->
-        val onTarget = tasks.register<Test>(name + onTargetJdk) {
-            val source = tasks.named<Test>(name).get()
+    tasks.withType<Test>().filter { !it.name.endsWith(onTargetJdk) }.forEach { source ->
+        val onTarget = tasks.register<Test>(source.name + onTargetJdk) {
             group = "verification"
-            description = "Runs $name on JDK $jvmTargetVersion, the oldest runtime the library supports"
+            description = "Runs ${source.name} on JDK $jvmTargetVersion, the oldest runtime the library supports"
             javaLauncher = project.extensions.getByType<JavaToolchainService>().launcherFor {
                 languageVersion = JavaLanguageVersion.of(jvmTargetVersion)
             }
@@ -32,7 +31,7 @@ afterEvaluate {
             }
             shouldRunAfter(source)
         }
-        tasks.named("check") { dependsOn(onTarget) }
+        tasks.named(source.extra.properties["akki.lifecycle"] as String? ?: "check") { dependsOn(onTarget) }
     }
 }
 

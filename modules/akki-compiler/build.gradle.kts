@@ -1,5 +1,7 @@
 import akki.buildlogic.ClasspathSystemProperty
 import akki.buildlogic.WriteVersionConstant
+import com.vanniktech.maven.publish.JavadocJar
+import com.vanniktech.maven.publish.KotlinJvm
 
 plugins {
     id("akki.kotlin-jvm")
@@ -8,20 +10,15 @@ plugins {
     `java-test-fixtures`
 }
 
-java {
-    withSourcesJar()
+description = "Kotlin compiler plugin for akki: logger fields for the log intrinsic, direct backend calls and the compile-time level threshold"
+
+mavenPublishing {
+    configure(KotlinJvm(javadocJar = JavadocJar.Empty()))
 }
 
 (components["java"] as AdhocComponentWithVariants).apply {
-    withVariantsFromConfiguration(configurations["testFixturesApiElements"]) { skip() }
-    withVariantsFromConfiguration(configurations["testFixturesRuntimeElements"]) { skip() }
-}
-
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            from(components["java"])
-        }
+    listOf("testFixturesApiElements", "testFixturesRuntimeElements", "testFixturesSourcesElements").forEach { variant ->
+        withVariantsFromConfiguration(configurations[variant]) { skip() }
     }
 }
 

@@ -15,11 +15,11 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
     override fun apply(target: Project) {
         target.extensions.create(EXTENSION, AkkiExtension::class.java)
         val coreVersion = target.configurations.create(CORE_VERSION) {
-            it.description = "Pins $CORE to the compiler plugin version on the classpaths of the compilations it lowers"
+            it.description = "Pins $core to the compiler plugin version on the classpaths of the compilations it lowers"
             it.isCanBeConsumed = false
             it.isCanBeResolved = false
         }
-        target.dependencies.constraints.add(coreVersion.name, CORE) { constraint ->
+        target.dependencies.constraints.add(coreVersion.name, core) { constraint ->
             constraint.version { it.strictly(pluginVersion) }
             constraint.because("Akki core and compiler plugin versions must match")
         }
@@ -30,17 +30,17 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
         kotlinCompilation.platformType == KotlinPlatformType.jvm ||
             kotlinCompilation.platformType == KotlinPlatformType.androidJvm
 
-    override fun getCompilerPluginId(): String = PLUGIN_ID
+    override fun getCompilerPluginId(): String = COMPILER_PLUGIN_ID
 
     override fun getPluginArtifact(): SubpluginArtifact = SubpluginArtifact(
-        groupId = PLUGIN_GROUP,
+        groupId = group,
         artifactId = COMPILER_ARTIFACT,
         version = pluginVersion,
     )
 
     override fun applyToCompilation(kotlinCompilation: KotlinCompilation<*>): Provider<List<SubpluginOption>> {
         val project = kotlinCompilation.target.project
-        kotlinCompilation.defaultSourceSet.dependencies { implementation("$CORE:$pluginVersion") }
+        kotlinCompilation.defaultSourceSet.dependencies { implementation("$core:$pluginVersion") }
         val coreVersion = project.configurations.getByName(CORE_VERSION)
         listOfNotNull(kotlinCompilation.compileDependencyConfigurationName, kotlinCompilation.runtimeDependencyConfigurationName)
             .forEach { name -> project.configurations.named(name) { it.extendsFrom(coreVersion) } }
@@ -74,10 +74,8 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
 
         const val EXTENSION: String = "akki"
         const val MIN_LEVEL_OPTION: String = "minLevel"
-        const val PLUGIN_ID: String = "io.akki"
-        const val PLUGIN_GROUP: String = "io.akki"
+        const val COMPILER_PLUGIN_ID: String = "io.akki"
         const val COMPILER_ARTIFACT: String = "akki-compiler"
-        const val CORE: String = "$PLUGIN_GROUP:akki-core"
         const val CORE_VERSION: String = "akkiCoreVersion"
 
         val properties: Properties by lazy {
@@ -86,6 +84,10 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
             ) { "akki-gradle.properties is missing from the Akki Gradle plugin jar" }
             Properties().apply { resource.use(::load) }
         }
+
+        val group: String by lazy { property("group") }
+
+        val core: String by lazy { "$group:akki-core" }
 
         val pluginVersion: String by lazy { property("version") }
 

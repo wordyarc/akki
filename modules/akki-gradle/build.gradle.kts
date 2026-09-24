@@ -4,11 +4,10 @@ plugins {
     id("akki.kotlin-jvm")
     id("akki.publishing")
     `java-gradle-plugin`
+    id("com.gradle.plugin-publish")
 }
 
-java {
-    withSourcesJar()
-}
+description = "Gradle plugin that applies the akki compiler plugin and adds akki-core"
 
 val prepareTestRepository = tasks.register<Sync>("prepareTestRepository") {
     into(layout.buildDirectory.dir("test-repository"))
@@ -42,6 +41,7 @@ kotlin {
 
 val writeAkkiGradleProperties = tasks.register<WriteProperties>("writeAkkiGradleProperties") {
     destinationFile = layout.buildDirectory.file("generated/akki-gradle.properties")
+    property("group", providers.gradleProperty("akki.maven.group").get())
     property("version", project.version.toString())
     property("kotlin", libs.versions.kotlin.get())
 }
@@ -59,6 +59,8 @@ tasks.test {
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.core.jar", akkiCoreJar))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.slf4j.jar", akkiSlf4jJar))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.test.jar", akkiTestJar))
+    systemProperty("akki.maven.group", providers.gradleProperty("akki.maven.group").get())
+    systemProperty("akki.plugin.id", providers.gradleProperty("akki.plugin.id").get())
     systemProperty("akki.version", project.version.toString())
     systemProperty("akki.kotlin.version", libs.versions.kotlin.get())
     systemProperty("akki.slf4j.version", libs.versions.slf4j.get())
@@ -66,12 +68,15 @@ tasks.test {
 }
 
 gradlePlugin {
+    website = "https://github.com/wordyarc/akki"
+    vcsUrl = "https://github.com/wordyarc/akki"
     plugins {
         create("akki") {
             id = providers.gradleProperty("akki.plugin.id").get()
             displayName = "Akki"
             description = "Adds the Akki compiler plugin to Kotlin compilations"
             implementationClass = "io.akki.gradle.AkkiGradlePlugin"
+            tags = listOf("kotlin", "logging", "compiler-plugin")
         }
     }
 }

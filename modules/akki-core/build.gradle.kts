@@ -7,6 +7,8 @@ plugins {
     id("org.jetbrains.kotlinx.kover")
 }
 
+description = "Kotlin logging where the compiler names the logger: the log intrinsic, the Log factory and the backend SPI"
+
 val writeVersionConstant = tasks.register<WriteVersionConstant>("writeVersionConstant") {
     packageName = "io.akki.internal"
     version = project.version.toString()
@@ -60,13 +62,22 @@ val jvmClassTest = tasks.register<Test>("jvmClassTest") {
     shouldRunAfter(jvmTest)
 }
 
+val lincheck = tasks.register("lincheck") {
+    group = "verification"
+    description = "Runs the Lincheck tests outside check: a stall over 30 s on a loaded machine fails them"
+}
+
 val lincheckTest = tasks.register<Test>("lincheckTest") {
     group = "verification"
     description = "Checks concurrent backend replacement and logger binding with Lincheck"
     testClassesDirs = jvmTest.get().testClassesDirs
     classpath = jvmTest.get().classpath
     filter { includeTestsMatching(lincheckPattern) }
-    shouldRunAfter(jvmClassTest)
+    extra["akki.lifecycle"] = lincheck.name
+}
+
+lincheck {
+    dependsOn(lincheckTest)
 }
 
 kover {
@@ -78,5 +89,5 @@ kover {
 }
 
 tasks.named("check") {
-    dependsOn(jvmClassTest, lincheckTest)
+    dependsOn(jvmClassTest)
 }
