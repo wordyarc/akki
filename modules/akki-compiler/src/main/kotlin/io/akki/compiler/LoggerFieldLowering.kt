@@ -32,7 +32,6 @@ import org.jetbrains.kotlin.ir.expressions.IrGetObjectValue
 import org.jetbrains.kotlin.ir.expressions.impl.IrBlockImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetFieldImpl
 import org.jetbrains.kotlin.ir.expressions.isUnchanging
-import org.jetbrains.kotlin.ir.overrides.isEffectivelyPrivate
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.types.classOrNull
 import org.jetbrains.kotlin.ir.util.SYNTHETIC_OFFSET
@@ -74,7 +73,7 @@ internal class LoggerFieldLowering(
     override fun visitCall(expression: IrCall): IrExpression {
         expression.transformChildrenVoid()
         val entry = expression.entry() ?: return expression
-        if (isInlined()) return expression
+        if (isInlined()) return if (entry == Entry.CONTEXTUAL) expression.lookup() else expression
         val field = expression.loggerField(entry) ?: return expression
         return expression.reading(field)
     }
@@ -94,6 +93,10 @@ internal class LoggerFieldLowering(
 
     private fun contextualField(): IrField =
         fieldOwner().declarationField(namingOwner().declarationName(isJvm), contextual = true)
+
+    private fun IrCall.lookup(): IrExpression =
+        DeclarationIrBuilder(context, currentScope!!.scope.scopeOwnerSymbol, startOffset, endOffset)
+            .declarationLogger(namingOwner().declarationName(isJvm))
 
     private fun IrCall.namedField(): IrField? {
         val name = arguments.lastOrNull()?.stringConstant()?.takeIf { it.isNotBlank() } ?: return null
@@ -147,10 +150,7 @@ internal class LoggerFieldLowering(
         return IrBlockImpl(startOffset, endOffset, field.type, null, effects + read)
     }
 
-    private fun isInlined(): Boolean = allScopes.any { scope ->
-        val function = scope.irElement as? IrFunction
-        function != null && function.isInline && !function.isEffectivelyPrivate()
-    }
+    private fun isInlined(): Boolean = allScopes.any { (it.irElement as? IrFunction)?.isInline == true }
 
     private fun namingOwner(): IrDeclarationContainer =
         allScopes.asReversed().firstNotNullOfOrNull { scope ->

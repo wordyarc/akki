@@ -30,3 +30,8 @@ fun local(): String {
     val <!REDUNDANT_LOGGER_PROPERTY!>here<!> = logger()
     return here.name
 }
+
+<!NOTHING_TO_INLINE!>inline<!> fun cachedInInlineBody(): String {
+    val cached = logger()
+    return cached.name + cached.name
+}

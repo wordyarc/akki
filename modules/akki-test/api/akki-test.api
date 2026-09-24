@@ -17,7 +17,6 @@ public final class io/akki/test/RecordingBackend : io/akki/backend/LogBackend {
 	public synthetic fun <init> (Lio/akki/Level;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun bind (Ljava/lang/String;)Lio/akki/backend/LoggerBinding;
 	public final fun getRecords ()Ljava/util/List;
-	public final fun getResolutions ()Ljava/util/List;
 	public fun toString ()Ljava/lang/String;
 }
 
@@ -33,15 +32,6 @@ public final class io/akki/test/RecordingLogger : io/akki/Logger {
 	public fun getName ()Ljava/lang/String;
 	public final fun getRecords ()Ljava/util/List;
 	public fun sink (Lio/akki/Level;)Lio/akki/backend/Sink;
-	public fun toString ()Ljava/lang/String;
-}
-
-public final class io/akki/test/Resolution {
-	public fun <init> (Ljava/lang/String;Lio/akki/Level;)V
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getLevel ()Lio/akki/Level;
-	public final fun getName ()Ljava/lang/String;
-	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
 

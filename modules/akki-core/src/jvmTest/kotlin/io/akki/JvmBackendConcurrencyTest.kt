@@ -2,6 +2,7 @@ package io.akki
 
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
+import io.akki.backend.Sink
 import io.akki.test.RecordingBackend
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
@@ -23,14 +24,17 @@ class JvmBackendConcurrencyTest {
 
     private fun lateBindAfterFailure(failureAt: Lookup) {
         val logger = Log.named("race.late-bind.$failureAt")
-        val recording = RecordingBackend()
         val binds = AtomicInteger()
+        val lateResolutions = AtomicInteger()
 
         PausedCall().use { paused ->
-            val backend = LogBackend { name ->
+            val backend = LogBackend { _ ->
                 if (binds.incrementAndGet() == 1) {
                     paused.pause()
-                    recording.bind(name)
+                    LoggerBinding {
+                        lateResolutions.incrementAndGet()
+                        Sink { _, _, _ -> }
+                    }
                 } else {
                     when (failureAt) {
                         Lookup.BIND -> error("failed bind")
@@ -42,12 +46,12 @@ class JvmBackendConcurrencyTest {
                 paused.start { logger.info("in flight") }
                 captureStderr { logger.info("failure") }
                 paused.finish()
-                val resolutions = recording.resolutions
+                val resolved = lateResolutions.get()
 
                 logger.info("after failure")
 
                 assertFalse(logger.isEnabled(Level.INFO))
-                assertEquals(resolutions, recording.resolutions)
+                assertEquals(resolved, lateResolutions.get())
                 assertEquals(2, binds.get())
             }
         }

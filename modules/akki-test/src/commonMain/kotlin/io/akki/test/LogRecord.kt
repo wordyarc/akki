@@ -33,15 +33,3 @@ public class LogRecord(
     override fun toString(): String =
         "LogRecord(name=$name, level=$level, message=$message, cause=$cause, fields=$fields)"
 }
-
-public class Resolution(
-    public val name: String,
-    public val level: Level,
-) {
-    override fun equals(other: Any?): Boolean =
-        this === other || (other is Resolution && name == other.name && level == other.level)
-
-    override fun hashCode(): Int = 31 * name.hashCode() + level.hashCode()
-
-    override fun toString(): String = "Resolution(name=$name, level=$level)"
-}

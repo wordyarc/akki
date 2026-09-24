@@ -11,12 +11,11 @@ fun box(): String {
     val logger = Log.named("fixture")
     val effects = Effects()
 
-    withLogScope(LogScope(backend)) {
+    withLogScope(LogScope(effects.markingResolutions(backend))) {
         logger.debug(fields = effects.mark("fields", mapOf("k" to 1)), message = "constant")
     }
 
-    assertEquals("DEBUG", backend.resolutions.joinToString(",") { it.level.name })
-    assertEquals(listOf("fields"), effects.toList())
+    assertEquals(listOf("fields", "resolve DEBUG"), effects.toList())
     assertEquals("", backend.records.joinToString(",") { it.message })
     return "OK"
 }

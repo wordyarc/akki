@@ -11,12 +11,9 @@ import org.jetbrains.kotlin.diagnostics.rendering.BaseSourcelessDiagnosticRender
 import org.jetbrains.kotlin.diagnostics.rendering.CommonRenderers
 import org.jetbrains.kotlin.diagnostics.error0
 import org.jetbrains.kotlin.diagnostics.error1
-import org.jetbrains.kotlin.diagnostics.error2
 import org.jetbrains.kotlin.psi.KtElement
 
 internal object AkkiErrors : KtDiagnosticsContainer() {
-    val CONTEXTUAL_LOGGER_IN_INLINE_DECLARATION by error2<KtElement, String, String>()
-
     val REDUNDANT_LOGGER_PROPERTY by DiagnosticFactory2DelegateProvider<String, String>(
         Severity.INFO,
         SourceElementPositioningStrategies.DECLARATION_NAME,
@@ -44,14 +41,6 @@ internal object AkkiErrors : KtDiagnosticsContainer() {
 
 internal object AkkiDefaultErrorMessages : BaseDiagnosticRendererFactory() {
     override val MAP by KtDiagnosticFactoryToRendererMap("Akki") { map ->
-        map.put(
-            AkkiErrors.CONTEXTUAL_LOGGER_IN_INLINE_DECLARATION,
-            "''{0}'' is not available inside the non-private inline declaration ''{1}'': its body can be inlined " +
-                "into other packages, which cannot access the generated logger field. Make ''{1}'' private, or use " +
-                "''Log.of<T>()'' or ''Log.named(\"...\")'' here.",
-            CommonRenderers.STRING,
-            CommonRenderers.STRING,
-        )
         map.put(
             AkkiErrors.REDUNDANT_LOGGER_PROPERTY,
             "''{0}'' stores the logger resolved by ''{1}'' at its declaration, in addition to the static field " +

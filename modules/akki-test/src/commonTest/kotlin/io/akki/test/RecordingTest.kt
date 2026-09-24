@@ -50,22 +50,6 @@ class RecordingTest {
     }
 
     @Test
-    fun `disabled levels are resolved but not recorded`() {
-        val backend = RecordingBackend(Level.ERROR)
-
-        withLogScope(LogScope(backend)) {
-            Log.named("quiet").info("ignored")
-            Log.named("quiet").error("kept")
-        }
-
-        assertEquals(listOf("kept"), backend.records.map { it.message })
-        assertEquals(
-            listOf(Resolution("quiet", Level.INFO), Resolution("quiet", Level.ERROR)),
-            backend.resolutions,
-        )
-    }
-
-    @Test
     fun `records hands out a snapshot that later records do not change`() {
         val backend = RecordingBackend()
 

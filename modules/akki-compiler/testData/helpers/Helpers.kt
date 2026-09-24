@@ -4,6 +4,8 @@ import io.akki.LOGGER_NAME_STYLE_PROPERTY_NAME
 import io.akki.LOGGER_NAME_STYLE_VALUE_JVM_CLASS
 import io.akki.Log
 import io.akki.Logger
+import io.akki.backend.LogBackend
+import io.akki.backend.LoggerBinding
 import kotlin.reflect.KClass
 import kotlin.test.assertSame
 
@@ -37,6 +39,11 @@ class Effects {
     }
 
     fun mark(effect: String): String = mark(effect, effect)
+
+    fun markingResolutions(backend: LogBackend): LogBackend = LogBackend { name ->
+        val binding = backend.bind(name)
+        LoggerBinding { level -> mark("resolve $level", binding.resolve(level)) }
+    }
 
     fun toList(): List<String> = marks.toList()
 

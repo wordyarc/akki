@@ -9,14 +9,10 @@ import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirExpressionChecke
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirFunctionCallChecker
 import org.jetbrains.kotlin.fir.analysis.extensions.FirAdditionalCheckersExtension
 import org.jetbrains.kotlin.fir.expressions.FirCallableReferenceAccess
-import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccessExpression
 import org.jetbrains.kotlin.fir.extensions.FirExtensionRegistrar
 
 internal class AkkiFirCheckers(session: FirSession) : FirAdditionalCheckersExtension(session) {
     override val expressionCheckers: ExpressionCheckers = object : ExpressionCheckers() {
-        override val qualifiedAccessExpressionCheckers:
-            Set<FirExpressionChecker<FirQualifiedAccessExpression>> = setOf(ContextualLoggerChecker)
-
         override val callableReferenceAccessCheckers:
             Set<FirExpressionChecker<FirCallableReferenceAccess>> =
             setOf(LevelReferenceChecker, ContextualLoggerReferenceChecker)

@@ -18,7 +18,7 @@ fun box(): String {
     fun fields(): Map<String, Any?> = mapOf("value" to numbered("fields"))
     val variableMessage: () -> String = { "variable-${numbered("variable-message")}" }
 
-    withLogScope(LogScope(backend)) {
+    withLogScope(LogScope(effects.markingResolutions(backend))) {
         effects.mark("receiver", logger).debug("disabled-${numbered("disabled-message")}", cause(), fields())
         logger.trace(cause(), fields()) { "disabled-${numbered("disabled-lazy-message")}" }
         logger.info("enabled-${numbered("eager-message")}", cause(), fields())
@@ -27,9 +27,13 @@ fun box(): String {
         logger.error(message = variableMessage)
     }
 
-    assertEquals("DEBUG,TRACE,INFO,WARN,ERROR,ERROR", backend.resolutions.joinToString(",") { it.level.name })
     assertEquals(
-        "receiver,disabled-message,cause,fields,cause,fields,eager-message,cause,fields,cause,fields,lazy-message,variable-message",
+        "receiver,disabled-message,cause,fields,resolve DEBUG," +
+            "cause,fields,resolve TRACE," +
+            "eager-message,cause,fields,resolve INFO," +
+            "cause,fields,resolve WARN,lazy-message," +
+            "resolve ERROR," +
+            "resolve ERROR,variable-message",
         effects.toString(),
     )
     assertEquals("enabled-6,lazy-11,constant,variable-12", backend.records.joinToString(",") { it.message })

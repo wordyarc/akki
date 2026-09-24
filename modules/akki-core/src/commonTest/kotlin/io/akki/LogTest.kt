@@ -6,7 +6,6 @@ import io.akki.backend.Sink
 import io.akki.test.LogRecord
 import io.akki.test.RecordingBackend
 import io.akki.test.RecordingLogger
-import io.akki.test.Resolution
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -113,10 +112,6 @@ class LogTest {
 
         assertEquals(listOf(Level.ERROR), evaluatedLevels)
         assertEquals(listOf("recorded"), backend.records.map { it.message })
-        assertEquals(
-            listOf(Resolution("lazy-filtered", Level.INFO), Resolution("lazy-filtered", Level.ERROR)),
-            backend.resolutions,
-        )
     }
 
     @Test
@@ -154,7 +149,13 @@ class LogTest {
 
     @Test
     fun `isEnabled answers from the same binding as sink`(): Unit {
-        val backend = RecordingBackend(Level.ERROR)
+        val asked = mutableListOf<Level>()
+        val backend = LogBackend { _ ->
+            LoggerBinding { level ->
+                asked += level
+                if (level >= Level.ERROR) Sink { _, _, _ -> } else null
+            }
+        }
         val logger = Log.named("consistent-enabled")
 
         Log.install(backend).use {
@@ -162,10 +163,7 @@ class LogTest {
             assertTrue(logger.isEnabled(Level.ERROR))
         }
 
-        assertEquals(
-            listOf(Resolution("consistent-enabled", Level.INFO), Resolution("consistent-enabled", Level.ERROR)),
-            backend.resolutions,
-        )
+        assertEquals(listOf(Level.INFO, Level.ERROR), asked)
     }
 
     @Test
