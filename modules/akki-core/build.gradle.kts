@@ -46,7 +46,7 @@ kotlin {
     }
 }
 
-val lincheckPattern = "*JvmBackendLincheckTest"
+val lincheckPattern = "*LincheckTest"
 val jvmTest = tasks.named<Test>("jvmTest") {
     filter { excludeTestsMatching(lincheckPattern) }
 }

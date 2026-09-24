@@ -6,6 +6,7 @@ import io.akki.test.RecordingBackend
 import java.util.concurrent.Executors
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlinx.coroutines.CompletableDeferred
@@ -16,6 +17,7 @@ import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 
 class LogScopeElementTest {
     @Test
@@ -68,6 +70,22 @@ class LogScopeElementTest {
 
         assertEquals(listOf("before", "after"), outer.records.map { it.message })
         assertEquals(listOf("inside"), inner.records.map { it.message })
+    }
+
+    @Test
+    fun `a scope entered by hand does not outlive a suspension`(): Unit = runBlocking {
+        val scope = LogScope(RecordingBackend())
+        val manual = LogScope(RecordingBackend())
+
+        withContext(scope.asContextElement()) {
+            val entry = manual.enter()
+            assertSame(manual, LogScope.current())
+            yield()
+            assertSame(scope, LogScope.current())
+            assertFailsWith<IllegalStateException> { entry.close() }
+        }
+
+        assertNull(LogScope.current())
     }
 
     @Test

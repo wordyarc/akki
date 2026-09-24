@@ -4,6 +4,7 @@ import io.akki.compiler.AkkiNames
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.declarations.hasAnnotation
+import org.jetbrains.kotlin.fir.declarations.utils.effectiveVisibility
 import org.jetbrains.kotlin.fir.declarations.utils.isInline
 import org.jetbrains.kotlin.fir.expressions.FirExpression
 import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccessExpression
@@ -22,4 +23,4 @@ internal fun FirExpression.callSiteName(session: FirSession): Name? {
 internal fun CheckerContext.enclosingInlineFunction(): FirFunctionSymbol<*>? =
     containingDeclarations.asReversed()
         .filterIsInstance<FirFunctionSymbol<*>>()
-        .firstOrNull { it.isInline }
+        .firstOrNull { it.isInline && !it.effectiveVisibility.privateApi }

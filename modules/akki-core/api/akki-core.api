@@ -96,6 +96,10 @@ public abstract interface class io/akki/backend/Sink {
 	public abstract fun emit (Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
 }
 
+public final class io/akki/internal/CurrentScopeKt {
+	public static final fun exchangeCurrentScope (Lio/akki/LogScope;)Lio/akki/LogScope;
+}
+
 public final class io/akki/internal/LogRegistry {
 	public static final field INSTANCE Lio/akki/internal/LogRegistry;
 	public static final field VERSION Ljava/lang/String;

@@ -13,8 +13,6 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 internal class LoggerImpl(override val name: String) : Logger() {
     private val binding = AtomicReference<Binding?>(null)
 
-    private val reported = AtomicReference<LogBackend?>(null)
-
     override fun sink(level: Level): Sink? {
         val scope = LogScope.current() ?: return resolver().resolve(level)
         return scope.binding(name).resolve(level)
@@ -25,7 +23,6 @@ internal class LoggerImpl(override val name: String) : Logger() {
     fun release(backend: LogBackend) {
         val previous = binding.load()
         if (previous?.backend === backend) binding.compareAndSet(previous, null)
-        reported.compareAndSet(backend, null)
     }
 
     private fun resolver(): LoggerBinding {
@@ -51,11 +48,10 @@ internal class LoggerImpl(override val name: String) : Logger() {
     }
 
     private fun report(backend: LogBackend, failure: Throwable) {
-        val previous = reported.load()
-        if (previous === backend || !reported.compareAndSet(previous, backend)) return
+        if (!BackendRegistry.claimFailureReport(backend)) return
         printError(
-            "akki: the backend failed to resolve logger '$name', its records are dropped " +
-                "until another backend is installed\n" +
+            "akki: the backend failed to resolve logger '$name', records of every logger it fails to resolve " +
+                "are dropped until another backend is installed, and only this first failure is reported\n" +
                 failure.stackTraceToString().trimEnd(),
         )
     }

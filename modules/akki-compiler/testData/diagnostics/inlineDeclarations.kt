@@ -17,3 +17,23 @@ inline val viaInlineProperty: String get() = <!CONTEXTUAL_LOGGER_IN_INLINE_DECLA
 val viaInlineGetter: String inline get() = <!CONTEXTUAL_LOGGER_IN_INLINE_DECLARATION!>log<!>.name
 
 <!NOTHING_TO_INLINE!>inline<!> fun withNoinlineDefault(noinline probe: () -> String = { <!CONTEXTUAL_LOGGER_IN_INLINE_DECLARATION!>log<!>.name }): String = probe()
+
+internal inline fun <reified T> moduleWide(): String = <!CONTEXTUAL_LOGGER_IN_INLINE_DECLARATION!>log<!>.name + T::class.simpleName
+
+open class Base {
+    protected inline fun <reified T> forSubclasses(): String = <!CONTEXTUAL_LOGGER_IN_INLINE_DECLARATION!>log<!>.name + T::class.simpleName
+}
+
+private inline fun <reified T> fileLocal(): String = log.name + T::class.simpleName
+
+private inline val viaPrivateProperty: String get() = log.name
+
+class Service {
+    private inline fun <reified T> parse(): String = log.name + T::class.simpleName
+
+    fun handle(): String = parse<Int>() + fileLocal<Int>() + viaPrivateProperty
+}
+
+private class Hidden {
+    inline fun <reified T> exposed(): String = log.name + T::class.simpleName
+}

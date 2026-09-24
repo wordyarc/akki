@@ -30,7 +30,7 @@ public class LogScope(public val backend: LogBackend) {
         return entry
     }
 
-    public inline fun <T> run(block: () -> T): T {
+    public inline fun <T> run(crossinline block: () -> T): T {
         contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
         return enter().use { block() }
     }

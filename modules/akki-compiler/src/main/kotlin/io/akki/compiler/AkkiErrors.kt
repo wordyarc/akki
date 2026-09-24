@@ -46,9 +46,9 @@ internal object AkkiDefaultErrorMessages : BaseDiagnosticRendererFactory() {
     override val MAP by KtDiagnosticFactoryToRendererMap("Akki") { map ->
         map.put(
             AkkiErrors.CONTEXTUAL_LOGGER_IN_INLINE_DECLARATION,
-            "''{0}'' is not available inside the inline declaration ''{1}'': the body is inlined into every " +
-                "call site, so a generated logger field is read from another module and the plugin cannot " +
-                "lower it. Use ''Log.of<T>()'' or ''Log.named(\"...\")'' here.",
+            "''{0}'' is not available inside the non-private inline declaration ''{1}'': its body can be inlined " +
+                "into other packages, which cannot access the generated logger field. Make ''{1}'' private, or use " +
+                "''Log.of<T>()'' or ''Log.named(\"...\")'' here.",
             CommonRenderers.STRING,
             CommonRenderers.STRING,
         )

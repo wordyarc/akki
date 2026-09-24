@@ -12,22 +12,23 @@ import kotlin.test.assertFalse
 @OptIn(DelicateAkkiApi::class)
 class JvmBackendFailureTest {
     @Test
-    fun `a backend failure is announced once per logger`(): Unit {
-        val logger = Log.named("failure.announced")
+    fun `a backend failure is announced once for every logger it fails`(): Unit {
+        val backend = LogBackend { name ->
+            if (name.endsWith(".bind")) error("bind is broken for $name")
+            LoggerBinding { error("resolve is broken for $name") }
+        }
 
         val output = captureStderr {
-            Log.install(LogBackend { name -> error("backend is broken for $name") }).use {
-                repeat(3) { logger.info("dropped") }
+            Log.install(backend).use {
+                for (name in listOf("first.bind", "second.bind", "first.resolve", "second.resolve")) {
+                    repeat(2) { Log.named("failure.announced.$name").info("dropped") }
+                }
             }
         }
 
-        assertEquals(
-            1,
-            output.lineSequence().count {
-                it.startsWith("akki: the backend failed to resolve logger 'failure.announced'")
-            },
-        )
-        assertContains(output, "java.lang.IllegalStateException: backend is broken for failure.announced")
+        assertEquals(1, output.lineSequence().count { it.startsWith("akki: the backend failed to resolve logger") })
+        assertContains(output, "akki: the backend failed to resolve logger 'failure.announced.first.bind'")
+        assertContains(output, "java.lang.IllegalStateException: bind is broken for failure.announced.first.bind")
     }
 
     @Test

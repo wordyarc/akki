@@ -28,7 +28,7 @@ fun captureCallers(): CallerCapturingAppender {
     return appender
 }
 
-inline fun capturedCallers(block: () -> Unit): List<StackTraceElement> {
+inline fun capturedCallers(crossinline block: () -> Unit): List<StackTraceElement> {
     val appender = captureCallers()
     LogScope(Slf4jBackend()).run(block)
     return appender.callers

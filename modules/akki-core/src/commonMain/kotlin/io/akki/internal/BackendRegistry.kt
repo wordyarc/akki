@@ -12,6 +12,7 @@ internal object BackendRegistry {
     )
     private val current = AtomicReference(initial)
     private val discovery = AtomicReference<BackendState?>(null)
+    private val reported = AtomicReference<LogBackend?>(null)
 
     fun backend(): LogBackend {
         val previous = current.load()
@@ -33,9 +34,15 @@ internal object BackendRegistry {
                     discovery.load()?.let { current.compareAndSet(initial, it) }
                 }
                 releasePlatformBackend(backend)
+                reported.compareAndSet(backend, null)
                 true
             }
         }
+    }
+
+    fun claimFailureReport(backend: LogBackend): Boolean {
+        val previous = reported.load()
+        return previous !== backend && reported.compareAndSet(previous, backend)
     }
 
     private class BackendState(val backend: LogBackend)

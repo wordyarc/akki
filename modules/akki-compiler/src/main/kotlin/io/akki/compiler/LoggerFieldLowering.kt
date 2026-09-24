@@ -32,6 +32,7 @@ import org.jetbrains.kotlin.ir.expressions.IrGetObjectValue
 import org.jetbrains.kotlin.ir.expressions.impl.IrBlockImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetFieldImpl
 import org.jetbrains.kotlin.ir.expressions.isUnchanging
+import org.jetbrains.kotlin.ir.overrides.isEffectivelyPrivate
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.types.classOrNull
 import org.jetbrains.kotlin.ir.util.SYNTHETIC_OFFSET
@@ -146,7 +147,10 @@ internal class LoggerFieldLowering(
         return IrBlockImpl(startOffset, endOffset, field.type, null, effects + read)
     }
 
-    private fun isInlined(): Boolean = allScopes.any { (it.irElement as? IrFunction)?.isInline == true }
+    private fun isInlined(): Boolean = allScopes.any { scope ->
+        val function = scope.irElement as? IrFunction
+        function != null && function.isInline && !function.isEffectivelyPrivate()
+    }
 
     private fun namingOwner(): IrDeclarationContainer =
         allScopes.asReversed().firstNotNullOfOrNull { scope ->

@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 private val loggers: ConcurrentHashMap<String, LoggerImpl> = ConcurrentHashMap()
 
-internal actual fun platformLogger(name: String): Logger = loggers.computeIfAbsent(name, ::LoggerImpl)
+internal actual fun platformLogger(name: String): Logger = loggers.getOrPut(name) { LoggerImpl(name) }
 
 internal actual fun releasePlatformBackend(backend: LogBackend) {
     loggers.values.forEach { it.release(backend) }
