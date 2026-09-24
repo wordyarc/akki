@@ -3,6 +3,7 @@ package io.akki.test
 import io.akki.Level
 import io.akki.Log
 import io.akki.LogScope
+import io.akki.withLogScope
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -52,7 +53,7 @@ class RecordingTest {
     fun `disabled levels are resolved but not recorded`() {
         val backend = RecordingBackend(Level.ERROR)
 
-        LogScope(backend).run {
+        withLogScope(LogScope(backend)) {
             Log.named("quiet").info("ignored")
             Log.named("quiet").error("kept")
         }
@@ -68,7 +69,7 @@ class RecordingTest {
     fun `records hands out a snapshot that later records do not change`() {
         val backend = RecordingBackend()
 
-        LogScope(backend).run {
+        withLogScope(LogScope(backend)) {
             Log.named("snapshot").info("first")
             val taken = backend.records
             Log.named("snapshot").info("second")
@@ -81,7 +82,7 @@ class RecordingTest {
     @Test
     fun `records cannot be written through the list it returns`() {
         val backend = RecordingBackend()
-        LogScope(backend).run { Log.named("read-only").info("kept") }
+        withLogScope(LogScope(backend)) { Log.named("read-only").info("kept") }
 
         assertFalse(backend.records is MutableList<*>)
         assertFalse(RecordingLogger().records is MutableList<*>)

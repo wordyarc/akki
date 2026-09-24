@@ -31,6 +31,22 @@ class Service {
     companion object {
         fun viaCompanion(service: Service): String = service.parse<String>()
     }
+
+    fun viaObjectExpression(): String {
+        val probe = object {
+            @Suppress("NOTHING_TO_INLINE")
+            inline fun name(): String = log.name
+        }
+        return probe.name()
+    }
+
+    fun viaLocalClass(): String {
+        class Local {
+            @Suppress("NOTHING_TO_INLINE")
+            inline fun name(): String = log.name
+        }
+        return Local().name()
+    }
 }
 
 private inline fun <reified T> fileLocal(): String = log.name + ":" + T::class.simpleName
@@ -56,5 +72,7 @@ fun box(): String {
     assertEquals(listOf("parsing Int", "parsing Long", "parsing Short", "parsing String", "parsing Int"), records.map { it.message })
     assertEquals("fixture.Main:Byte", Other().call())
     assertEquals("fixture.Hidden", Hidden().exposed())
+    assertEquals("fixture.Service", Service().viaObjectExpression())
+    assertEquals("fixture.Service", Service().viaLocalClass())
     return "OK"
 }

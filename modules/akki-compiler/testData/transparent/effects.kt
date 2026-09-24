@@ -18,7 +18,7 @@ fun box(): String {
     fun fields(): Map<String, Any?> = mapOf("value" to numbered("fields"))
     val variableMessage: () -> String = { "variable-${numbered("variable-message")}" }
 
-    LogScope(backend).run {
+    withLogScope(LogScope(backend)) {
         effects.mark("receiver", logger).debug("disabled-${numbered("disabled-message")}", cause(), fields())
         logger.trace(cause(), fields()) { "disabled-${numbered("disabled-lazy-message")}" }
         logger.info("enabled-${numbered("eager-message")}", cause(), fields())

@@ -4,6 +4,7 @@ package io.akki.test
 
 import io.akki.Level
 import io.akki.LogScope
+import io.akki.withLogScope
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -14,6 +15,6 @@ public inline fun recordLogs(
 ): List<LogRecord> {
     contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
     val backend = RecordingBackend(minLevel)
-    LogScope(backend).run(block)
+    withLogScope(LogScope(backend), block)
     return backend.records
 }

@@ -11,7 +11,7 @@ fun box(): String {
     val logger = Log.named("fixture")
     val effects = Effects()
 
-    LogScope(backend).run {
+    withLogScope(LogScope(backend)) {
         logger.debug(fields = effects.mark("fields", mapOf("k" to 1)), message = "constant")
     }
 

@@ -8,7 +8,7 @@ import io.akki.test.recordLogs
 suspend fun pause() {}
 
 suspend fun scoped(): Int {
-    LogScope(RecordingBackend()).run { <!NON_LOCAL_SUSPENSION_POINT!>pause<!>() }
+    withLogScope(LogScope(RecordingBackend())) { <!NON_LOCAL_SUSPENSION_POINT!>pause<!>() }
     recordLogs { <!NON_LOCAL_SUSPENSION_POINT!>pause<!>() }
-    return LogScope(RecordingBackend()).run { 42 }
+    return withLogScope(LogScope(RecordingBackend())) { 42 }
 }

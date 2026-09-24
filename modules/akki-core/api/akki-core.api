@@ -39,7 +39,6 @@ public final class io/akki/LogScope {
 	public static final fun current ()Lio/akki/LogScope;
 	public final fun enter ()Lio/akki/LogScope$Entry;
 	public final fun getBackend ()Lio/akki/backend/LogBackend;
-	public final fun run (Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 	public fun toString ()Ljava/lang/String;
 }
 
@@ -49,6 +48,10 @@ public final class io/akki/LogScope$Companion {
 
 public final class io/akki/LogScope$Entry : java/lang/AutoCloseable {
 	public fun close ()V
+}
+
+public final class io/akki/LogScopeKt {
+	public static final fun withLogScope (Lio/akki/LogScope;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 }
 
 public abstract class io/akki/Logger {

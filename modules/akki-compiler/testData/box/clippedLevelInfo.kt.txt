@@ -5,7 +5,7 @@ fun box(): String {
   val backend: RecordingBackend = RecordingBackend()
   val logger: Logger = #$$log$0
   val effects: Effects = Effects()
-  val gate: String = LogScope(backend = backend).run<String>(block = local fun <anonymous>(): String {
+  val gate: String = withLogScope<String>(scope = LogScope(backend = backend), block = local fun <anonymous>(): String {
     { // BLOCK
       logger
       "trace-" + effects.mark(effect = "trace")

@@ -37,3 +37,24 @@ class Service {
 private class Hidden {
     inline fun <reified T> exposed(): String = log.name + T::class.simpleName
 }
+
+fun viaObjectExpression(): String {
+    val probe = object {
+        <!NOTHING_TO_INLINE!>inline<!> fun name(): String = log.name
+    }
+    return probe.name()
+}
+
+fun viaLocalClass(): String {
+    class Local {
+        <!NOTHING_TO_INLINE!>inline<!> fun name(): String = log.name
+    }
+    return Local().name()
+}
+
+<!NOTHING_TO_INLINE!>inline<!> fun objectInPublicInline(): String {
+    val probe = object {
+        <!NOTHING_TO_INLINE!>inline<!> fun name(): String = <!CONTEXTUAL_LOGGER_IN_INLINE_DECLARATION!>log<!>.name
+    }
+    return probe.name()
+}

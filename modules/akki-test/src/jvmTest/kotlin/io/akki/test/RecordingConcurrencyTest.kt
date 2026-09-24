@@ -2,6 +2,7 @@ package io.akki.test
 
 import io.akki.Log
 import io.akki.LogScope
+import io.akki.withLogScope
 import java.util.concurrent.Callable
 import java.util.concurrent.CyclicBarrier
 import java.util.concurrent.ExecutorService
@@ -43,7 +44,7 @@ class RecordingConcurrencyTest {
 
         withWriters { executor ->
             List(WRITERS) { writer ->
-                executor.submit { scope.run { repeat(RECORDS) { logger.info("$writer-$it") } } }
+                executor.submit { withLogScope(scope) { repeat(RECORDS) { logger.info("$writer-$it") } } }
             }.forEach { it.get(10, SECONDS) }
         }
 

@@ -11,7 +11,7 @@ fun box(): String {
     val logger = Log.named("fixture")
     val effects = Effects()
 
-    LogScope(backend).run {
+    withLogScope(LogScope(backend)) {
         logger.warn(
             effects.mark("cause", IllegalStateException("boom")),
             effects.mark("fields", mapOf("k" to 1)),

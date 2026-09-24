@@ -17,6 +17,11 @@ import kotlin.jvm.JvmStatic
 
 private val used = AtomicBoolean(false)
 
+public inline fun <T> withLogScope(scope: LogScope, crossinline block: () -> T): T {
+    contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
+    return scope.enter().use { block() }
+}
+
 public class LogScope(public val backend: LogBackend) {
     private val bindings = AtomicReference<Map<String, LoggerBinding>>(emptyMap())
 
@@ -30,9 +35,9 @@ public class LogScope(public val backend: LogBackend) {
         return entry
     }
 
-    public inline fun <T> run(crossinline block: () -> T): T {
+    internal inline fun <T> run(crossinline block: () -> T): T {
         contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
-        return enter().use { block() }
+        return withLogScope(this, block)
     }
 
     internal fun binding(name: String): LoggerBinding {

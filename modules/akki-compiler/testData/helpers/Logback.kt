@@ -6,6 +6,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.AppenderBase
 import io.akki.LogScope
 import io.akki.slf4j.Slf4jBackend
+import io.akki.withLogScope
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -30,6 +31,6 @@ fun captureCallers(): CallerCapturingAppender {
 
 inline fun capturedCallers(crossinline block: () -> Unit): List<StackTraceElement> {
     val appender = captureCallers()
-    LogScope(Slf4jBackend()).run(block)
+    withLogScope(LogScope(Slf4jBackend()), block)
     return appender.callers
 }

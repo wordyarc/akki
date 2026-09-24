@@ -11,7 +11,7 @@ fun box(): String {
     val logger = Log.named("fixture")
     val effects = Effects()
 
-    val gate = LogScope(backend).run {
+    val gate = withLogScope(LogScope(backend)) {
         logger.trace("trace-${effects.mark("trace")}")
         logger.debug { "debug-${effects.mark("debug-lazy")}" }
         effects.mark("receiver", logger).debug("receiver-${effects.mark("receiver-message")}")

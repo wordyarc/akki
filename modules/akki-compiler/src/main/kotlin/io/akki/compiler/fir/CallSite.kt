@@ -1,6 +1,7 @@
 package io.akki.compiler.fir
 
 import io.akki.compiler.AkkiNames
+import org.jetbrains.kotlin.descriptors.EffectiveVisibility
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.declarations.hasAnnotation
@@ -23,4 +24,7 @@ internal fun FirExpression.callSiteName(session: FirSession): Name? {
 internal fun CheckerContext.enclosingInlineFunction(): FirFunctionSymbol<*>? =
     containingDeclarations.asReversed()
         .filterIsInstance<FirFunctionSymbol<*>>()
-        .firstOrNull { it.isInline && !it.effectiveVisibility.privateApi }
+        .firstOrNull { it.isInline && !it.effectiveVisibility.isConfined }
+
+private val EffectiveVisibility.isConfined: Boolean
+    get() = privateApi || this == EffectiveVisibility.Local

@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 fun box(): String {
     val backend = RecordingBackend(Level.INFO)
     var counter = 0
-    LogScope(backend).run {
+    withLogScope(LogScope(backend)) {
         Log.named("fixture").info { "value=${++counter}" }
         Log.named("fixture").debug { "never=${++counter}" }
     }

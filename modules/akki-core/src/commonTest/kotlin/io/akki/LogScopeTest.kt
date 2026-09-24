@@ -42,8 +42,8 @@ class LogScopeTest {
     }
 
     @Test
-    fun `run returns the block result`(): Unit {
-        assertEquals(42, LogScope(RecordingBackend()).run { 42 })
+    fun `withLogScope returns the block result`(): Unit {
+        assertEquals(42, withLogScope(LogScope(RecordingBackend())) { 42 })
     }
 
     @Test
@@ -51,7 +51,7 @@ class LogScopeTest {
         val scope = LogScope(RecordingBackend())
 
         assertNull(LogScope.current())
-        scope.run { assertSame(scope, LogScope.current()) }
+        withLogScope(scope) { assertSame(scope, LogScope.current()) }
         assertNull(LogScope.current())
     }
 
@@ -59,7 +59,7 @@ class LogScopeTest {
     fun `the scope is exited when the block throws`(): Unit {
         val scope = LogScope(RecordingBackend())
 
-        assertFailsWith<IllegalStateException> { scope.run { error("failed") } }
+        assertFailsWith<IllegalStateException> { withLogScope(scope) { error("failed") } }
 
         assertNull(LogScope.current())
     }
