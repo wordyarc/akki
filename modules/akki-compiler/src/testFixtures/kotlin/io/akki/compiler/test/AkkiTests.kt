@@ -2,6 +2,7 @@ package io.akki.compiler.test
 
 import io.akki.compiler.MinLevel
 import org.jetbrains.kotlin.test.FirParser
+import org.jetbrains.kotlin.test.backend.handlers.IrPrettyKotlinDumpHandler
 import org.jetbrains.kotlin.test.backend.handlers.UpdateTestDataHandler
 import org.jetbrains.kotlin.test.builders.TestConfigurationBuilder
 import org.jetbrains.kotlin.test.builders.configureFirHandlersStep
@@ -24,6 +25,9 @@ abstract class AbstractAkkiBoxTest : AbstractJvmBlackBoxCodegenTestBase(FirParse
             configureAkki()
             defaultDirectives {
                 DiagnosticsDirectives.DIAGNOSTICS with "-infos"
+            }
+            configureIrHandlersStep {
+                useHandlers(::IrPrettyKotlinDumpHandler)
             }
             useFailureSuppressors(::UpdateTestDataHandler)
         }

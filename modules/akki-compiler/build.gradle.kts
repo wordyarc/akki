@@ -82,6 +82,10 @@ sourceSets.test {
     java.srcDir(generateTests)
 }
 
+tasks.withType<Test>().configureEach {
+    inputs.dir(testData).withPropertyName("testData").withPathSensitivity(PathSensitivity.RELATIVE)
+}
+
 tasks.test {
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.fixture.classpath", fixtureRuntime))
     val javacProperties = mapOf(

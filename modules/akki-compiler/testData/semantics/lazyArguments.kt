@@ -1,16 +1,18 @@
+// WITH_HELPERS
 package fixture
 
+import helpers.Effects
 import io.akki.*
 import io.akki.backend.Sink
 import io.akki.test.RecordingLogger
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-private val effects = mutableListOf<String>()
+private val effects = Effects()
 
 private object InitializedLogger : Logger() {
     init {
-        effects += "initialize"
+        effects.mark("initialize")
     }
 
     override val name = "initialized"
@@ -21,15 +23,12 @@ private class Message {
     fun text(): String = error("disabled message body")
 }
 
-private fun receiver(): Message = Message().also { effects += "bound receiver" }
-private fun cause(): Throwable = IllegalStateException().also { effects += "cause" }
-private fun fields(): Map<String, Any?> = emptyMap<String, Any?>().also { effects += "fields" }
-private fun supplier(): () -> String {
-    effects += "supplier"
-    return { error("disabled supplier body") }
-}
+private fun receiver(): Message = effects.mark("bound receiver", Message())
+private fun cause(): Throwable = effects.mark("cause", IllegalStateException())
+private fun fields(): Map<String, Any?> = effects.mark("fields", emptyMap())
+private fun supplier(): () -> String = effects.mark("supplier") { error("disabled supplier body") }
 
-private fun selected(logger: Logger): Logger = logger.also { effects += "logger" }
+private fun selected(logger: Logger): Logger = effects.mark("logger", logger)
 private fun failingSupplier(): () -> String = throw IllegalArgumentException("supplier expression")
 
 fun box(): String {
@@ -45,7 +44,7 @@ fun box(): String {
             "logger", "cause", "fields",
             "initialize",
         ),
-        effects,
+        effects.toList(),
     )
     assertFailsWith<IllegalArgumentException> {
         logger.debug(message = failingSupplier())

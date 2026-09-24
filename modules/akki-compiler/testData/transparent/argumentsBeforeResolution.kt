@@ -1,12 +1,14 @@
+// WITH_HELPERS
 package fixture
 
+import helpers.Effects
 import io.akki.*
 import io.akki.backend.Sink
 import io.akki.test.LogRecord
 import kotlin.test.assertEquals
 
 fun box(): String {
-    val events = mutableListOf<String>()
+    val events = Effects()
     val records = mutableListOf<LogRecord>()
     val originalCause = IllegalStateException("original")
     val originalFields = mapOf("value" to "original")
@@ -17,7 +19,7 @@ fun box(): String {
     val logger = object : Logger() {
         override val name = "freezing"
         override fun sink(level: Level): Sink {
-            events += "resolve"
+            events.mark("resolve")
             message = "changed"
             cause = IllegalStateException("changed")
             fields = emptyMap()
@@ -29,7 +31,7 @@ fun box(): String {
     logger.info(message, cause, fields)
     cause = originalCause
     fields = originalFields
-    supplier = { events += "message body"; "original" }
+    supplier = { events.mark("message body", "original") }
     logger.info(cause, fields, supplier)
     assertEquals(
         listOf(
@@ -38,6 +40,6 @@ fun box(): String {
         ),
         records,
     )
-    assertEquals(listOf("resolve", "resolve", "message body"), events)
+    assertEquals(listOf("resolve", "resolve", "message body"), events.toList())
     return "OK"
 }

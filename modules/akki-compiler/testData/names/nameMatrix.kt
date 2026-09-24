@@ -1,11 +1,14 @@
+// WITH_HELPERS
+// TREAT_AS_ONE_FILE
 // CHECK_BYTECODE_TEXT
 // 1 LDC "fixture\.Service\.Nested"
 // 1 LDC "fixture\.Service\$Nested"
 package fixture
 
+import helpers.agrees
+import helpers.byStyle
 import io.akki.*
 import java.lang.invoke.MethodHandles
-import kotlin.reflect.KClass
 import kotlin.test.assertEquals
 import kotlin.test.assertNotSame
 import kotlin.test.assertSame
@@ -105,16 +108,6 @@ fun topLevel(): Logger {
     assertSame(own, Local().Inner().probe())
     return own
 }
-
-private fun agrees(intrinsic: Logger, type: KClass<*>, vararg folded: Logger): Logger {
-    assertSame(intrinsic, Log.of(type), type.toString())
-    assertSame(intrinsic, Log.of(type.java), type.toString())
-    folded.forEach { assertSame(intrinsic, it, type.toString()) }
-    return intrinsic
-}
-
-private fun byStyle(source: String, jvm: String): String =
-    if (System.getProperty(LOGGER_NAME_STYLE_PROPERTY_NAME) == LOGGER_NAME_STYLE_VALUE_JVM_CLASS) jvm else source
 
 fun box(): String {
     assertEquals(

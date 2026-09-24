@@ -1,0 +1,35 @@
+package fixture
+
+class Both {
+  val viaOf: Logger
+    field = #$$log
+    get
+
+  package class $Log {
+    package /* static final field */ val $$log: Logger = LogRegistry.forDeclaration(source = "fixture.Both", platformName = "fixture.Both")
+  }
+
+  constructor() /* primary */ {
+    super/*Any*/()
+    /* <init>() */
+
+  }
+
+  fun same(): Boolean {
+    return EQEQEQ(arg0 = <this>.<get-viaOf>(), arg1 = #$$log)
+  }
+
+}
+
+fun box(): String {
+  assertEquals<List<String>>(expected = listOf<String>(element = "viaOf"), actual = map<@FlexibleNullability Field?, @FlexibleNullability String?>(/* <this> = <get-java><Both>(/* <this> = Both::class */).getDeclaredFields() /*!! @FlexibleArrayElementVariance Array<out @FlexibleNullability Field?> */, */ transform = local fun <anonymous>(it: @FlexibleNullability Field?): @FlexibleNullability String? {
+    return it /*!! Field */.getName()
+  }
+))
+  assertEquals<List<String>>(expected = listOf<String>(element = "$$log"), actual = map<@FlexibleNullability Field?, @FlexibleNullability String?>(/* <this> = forName(p0 = "fixture.Both$$Log") /*!! Class<*> */.getDeclaredFields() /*!! @FlexibleArrayElementVariance Array<out @FlexibleNullability Field?> */, */ transform = local fun <anonymous>(it: @FlexibleNullability Field?): @FlexibleNullability String? {
+    return it /*!! Field */.getName()
+  }
+))
+  assertTrue(actual = Both().same())
+  return "OK"
+}

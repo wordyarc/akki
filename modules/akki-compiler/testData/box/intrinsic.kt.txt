@@ -1,0 +1,23 @@
+package fixture
+
+class Service {
+  package class $Log {
+    package /* static final field */ val $$log: Logger = LogRegistry.forDeclaration(source = "fixture.Service", platformName = "fixture.Service")
+  }
+
+  constructor() /* primary */ {
+    super/*Any*/()
+    /* <init>() */
+
+  }
+
+  fun probe(): String {
+    return #$$log.<get-name>()
+  }
+
+}
+
+fun box(): String {
+  assertEquals<String>(expected = "fixture.Service", actual = Service().probe())
+  return "OK"
+}

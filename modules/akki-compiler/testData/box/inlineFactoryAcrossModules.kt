@@ -20,18 +20,13 @@ inline fun concrete(): Logger = Log.of<Owner.Nested>()
 inline fun <reified T : Any> typed(): Logger = Log.of<T>()
 
 // MODULE: main(library)
+// WITH_HELPERS
 // FILE: Main.kt
 package fixture.consumer
 
 import fixture.library.*
-import io.akki.Log
-import io.akki.Logger
-import kotlin.reflect.KClass
+import helpers.runtime
 import kotlin.test.assertSame
-
-private fun runtime(type: KClass<*>): Logger = Log.of(type)
-
-private fun runtime(name: String): Logger = Log.named(name)
 
 fun box(): String {
     assertSame(runtime("inline-audit"), named())

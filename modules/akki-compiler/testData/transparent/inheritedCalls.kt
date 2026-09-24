@@ -1,5 +1,7 @@
+// WITH_HELPERS
 package fixture
 
+import helpers.Effects
 import io.akki.*
 import io.akki.backend.Sink
 import io.akki.test.*
@@ -12,11 +14,11 @@ private open class Forwarding(private val delegate: Logger) : Logger() {
 
 private class Derived(delegate: Logger) : Forwarding(delegate)
 
-private val disabledEffects = mutableListOf<String>()
+private val disabledEffects = Effects()
 
-private fun message(): String = "disabled".also { disabledEffects += "message" }
-private fun cause(): Throwable = IllegalStateException().also { disabledEffects += "cause" }
-private fun fields(): Map<String, Any?> = emptyMap<String, Any?>().also { disabledEffects += "fields" }
+private fun message(): String = disabledEffects.mark("message", "disabled")
+private fun cause(): Throwable = disabledEffects.mark("cause", IllegalStateException())
+private fun fields(): Map<String, Any?> = disabledEffects.mark("fields", emptyMap())
 
 private fun <T : Forwarding> generic(logger: T) {
     logger.debug(message(), cause(), fields())
@@ -47,23 +49,23 @@ fun box(): String {
             "message", "cause", "fields",
             "message", "cause", "fields",
         ),
-        disabledEffects,
+        disabledEffects.toList(),
     )
 
     val failure = IllegalStateException("cause")
     val data = mapOf("id" to 42)
-    val effects = mutableListOf<String>()
+    val effects = Effects()
     derived.info(
-        fields = data.also { effects += "fields" },
-        message = "eager".also { effects += "message" },
-        cause = failure.also { effects += "cause" },
+        fields = effects.mark("fields", data),
+        message = effects.mark("message", "eager"),
+        cause = effects.mark("cause", failure),
     )
     concrete.warn(
-        failure.also { effects += "lazy-cause" },
-        data.also { effects += "lazy-fields" },
-    ) { effects += "lazy-message"; "lazy" }
+        effects.mark("lazy-cause", failure),
+        effects.mark("lazy-fields", data),
+    ) { effects.mark("lazy-message", "lazy") }
 
-    assertEquals(listOf("fields", "message", "cause", "lazy-cause", "lazy-fields", "lazy-message"), effects)
+    assertEquals(listOf("fields", "message", "cause", "lazy-cause", "lazy-fields", "lazy-message"), effects.toList())
     assertEquals(
         listOf(
             LogRecord("inherited", Level.INFO, "eager", failure, data),

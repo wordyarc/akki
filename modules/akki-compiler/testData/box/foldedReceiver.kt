@@ -1,32 +1,30 @@
+// WITH_HELPERS
+// TREAT_AS_ONE_FILE
 // CHECK_BYTECODE_TEXT
 // 0 io/akki/Log\.named \(
 // 1 io/akki/internal/LogRegistry\.of
 package fixture
 
+import helpers.Effects
 import io.akki.*
 import kotlin.test.assertEquals
 
-private val events = mutableListOf<String>()
+private val effects = Effects()
 private val failure = IllegalStateException("receiver failed")
 
-private fun selectLog(): Log {
-    events += "selected"
-    return Log
-}
-
 private fun throwingLog(): Log {
-    events += "throwing"
+    effects.mark("throwing")
     throw failure
 }
 
 fun box(): String {
-    events += "logger=" + selectLog().named("receiver-audit").name
+    effects.mark("logger=" + effects.mark("selected", Log).named("receiver-audit").name)
     try {
         throwingLog().named("receiver-audit")
-        events += "not-thrown"
+        effects.mark("not-thrown")
     } catch (caught: IllegalStateException) {
-        events += "caught=" + (caught === failure)
+        effects.mark("caught=" + (caught === failure))
     }
-    assertEquals("selected,logger=receiver-audit,throwing,caught=true", events.joinToString(","))
+    assertEquals("selected,logger=receiver-audit,throwing,caught=true", effects.toString())
     return "OK"
 }

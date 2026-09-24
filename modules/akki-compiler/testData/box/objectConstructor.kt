@@ -1,5 +1,7 @@
+// WITH_HELPERS
 package fixture
 
+import helpers.runtime
 import io.akki.*
 import kotlin.test.assertSame
 
@@ -24,6 +26,6 @@ fun box(): String {
     assertSame(expected, Site.anchored)
     assertSame(expected, Site.typed)
     assertSame(expected, Site.fromOverride)
-    assertSame(Log.named(StringBuilder("audit").toString()), Site.named)
+    assertSame(runtime("audit"), Site.named)
     return "OK"
 }

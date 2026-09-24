@@ -1,9 +1,12 @@
+// WITH_HELPERS
+// TREAT_AS_ONE_FILE
 // MIN_LEVEL: INFO
 // CHECK_BYTECODE_TEXT
 // 0 discarded-
 // 1 LDC "retained-cause"
 package fixture
 
+import helpers.Effects
 import io.akki.*
 import io.akki.backend.Sink
 import io.akki.test.*
@@ -14,11 +17,6 @@ private open class Forwarding(private val delegate: Logger) : Logger() {
     override fun sink(level: Level): Sink? = delegate.sink(level)
 }
 
-private fun <T : Logger> selected(logger: T, effects: MutableList<String>): T {
-    effects += "receiver"
-    return logger
-}
-
 private fun <T : Forwarding> generic(logger: T) {
     logger.debug("discarded-generic")
 }
@@ -27,21 +25,21 @@ fun box(): String {
     val recording = RecordingLogger("clipped")
     val concrete = Forwarding(recording)
     val base: Logger = concrete
-    val effects = mutableListOf<String>()
+    val effects = Effects()
 
     recording.debug("discarded-external")
     concrete.debug("discarded-eager")
-    concrete.trace { effects += "message"; "discarded-lazy" }
+    concrete.trace { effects.mark("message", "discarded-lazy") }
     base.debug("discarded-base")
     generic(concrete)
-    selected(concrete, effects).debug(
-        fields = mapOf("key" to "retained-field").also { effects += "fields" },
-        cause = IllegalStateException("retained-cause").also { effects += "cause" },
-        message = "retained-named".also { effects += "message" },
+    effects.mark("receiver", concrete).debug(
+        fields = effects.mark("fields", mapOf("key" to "retained-field")),
+        cause = effects.mark("cause", IllegalStateException("retained-cause")),
+        message = effects.mark("message", "retained-named"),
     )
     concrete.info("kept")
 
-    assertEquals(listOf("receiver", "fields", "cause", "message"), effects)
+    assertEquals(listOf("receiver", "fields", "cause", "message"), effects.toList())
     assertEquals(listOf(LogRecord("clipped", Level.INFO, "kept")), recording.records)
     return "OK"
 }

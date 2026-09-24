@@ -1,12 +1,16 @@
+// WITH_HELPERS
+// TREAT_AS_ONE_FILE
 // CHECK_BYTECODE_TEXT
 // 3 io/akki/internal/LogRegistry\.forDeclaration
 // 2 io/akki/internal/LogRegistry\.of
-// 3 io/akki/Log\.of \(
-// 2 io/akki/Log\.named \(
+// 2 io/akki/Log\.of \(
+// 0 io/akki/Log\.named \(
 package fixture
 
+import helpers.agrees
+import helpers.byStyle
+import helpers.runtime
 import io.akki.*
-import kotlin.reflect.KClass
 import kotlin.test.assertEquals
 
 class Service {
@@ -37,37 +41,29 @@ class Site {
     fun array(): Logger = Log.of<IntArray>()
 }
 
-private fun runtime(type: KClass<*>): Logger = Log.of(type)
-
-private fun agrees(site: String, folded: Logger, runtime: Logger): String =
-    if (folded === runtime) "$site=${folded.name}" else "$site=${folded.name}!=${runtime.name}"
-
-private fun byStyle(source: String, jvm: String): String =
-    if (System.getProperty(LOGGER_NAME_STYLE_PROPERTY_NAME) == LOGGER_NAME_STYLE_VALUE_JVM_CLASS) jvm else source
-
 fun box(): String {
     val site = Site()
     assertEquals(
         listOf(
-            "reified=fixture.Service",
-            "literal=" + byStyle("fixture.Service.Nested", "fixture.Service\$Nested"),
-            "companion=fixture.Service",
-            "standalone=fixture.Standalone",
-            "named=audit",
-            "constant=constant-audit",
-            "builtin=" + byStyle("kotlin.String", "java.lang.String"),
-            "array=" + byStyle("kotlin.IntArray", "[I"),
+            "fixture.Service",
+            byStyle("fixture.Service.Nested", "fixture.Service\$Nested"),
+            "fixture.Service",
+            "fixture.Standalone",
+            "audit",
+            "constant-audit",
+            byStyle("kotlin.String", "java.lang.String"),
+            byStyle("kotlin.IntArray", "[I"),
         ),
         listOf(
-            agrees("reified", site.reified(), runtime(Service::class)),
-            agrees("literal", site.literal(), runtime(Service.Nested::class)),
-            agrees("companion", site.companionType(), runtime(Service.Companion::class)),
-            agrees("standalone", site.standalone(), runtime(Standalone::class)),
-            agrees("named", site.audit(), Log.named(StringBuilder("audit").toString())),
-            agrees("constant", site.constant(), Log.named(StringBuilder("constant-audit").toString())),
-            agrees("builtin", site.builtin(), runtime(String::class)),
-            agrees("array", site.array(), runtime(IntArray::class)),
-        ),
+            agrees(site.reified(), Service::class),
+            agrees(site.literal(), Service.Nested::class),
+            agrees(site.companionType(), Service.Companion::class),
+            agrees(site.standalone(), Standalone::class),
+            agrees(site.audit(), runtime("audit")),
+            agrees(site.constant(), runtime("constant-audit")),
+            agrees(site.builtin(), String::class),
+            agrees(site.array(), IntArray::class),
+        ).map { it.name },
     )
     return "OK"
 }

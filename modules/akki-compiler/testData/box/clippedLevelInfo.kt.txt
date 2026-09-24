@@ -1,0 +1,72 @@
+package fixture
+
+package /* static final field */ val $$log$0: Logger = LogRegistry.of(name = "fixture")
+fun box(): String {
+  val backend: RecordingBackend = RecordingBackend()
+  val logger: Logger = #$$log$0
+  val effects: Effects = Effects()
+  val gate: String = LogScope(backend = backend).run<String>(block = local fun <anonymous>(): String {
+    { // BLOCK
+      logger
+      "trace-" + effects.mark(effect = "trace")
+      Unit
+    }
+    { // BLOCK
+      logger
+      Unit
+    }
+    { // BLOCK
+      effects.mark<Logger>(effect = "receiver", value = logger)
+      "receiver-" + effects.mark(effect = "receiver-message")
+      Unit
+    }
+    { // BLOCK
+      val tmp_0: Map<String, String> = mapOf<String, String>(pair = to<String, String>(/* <this> = "k", */ that = effects.mark(effect = "debug-fields")))
+      { // BLOCK
+        logger
+        "debug-named"
+        tmp_0
+        Unit
+      }
+    }
+    suppressed(logger = logger)
+    { // BLOCK
+      val tmp_1: String = "info-" + effects.mark(effect = "info")
+      val tmp_2: Map<String, Any?> = emptyMap<String, Any?>()
+      val tmp_3: Sink? = logger.sink(level = Level.INFO)
+      when {
+        EQEQ(arg0 = tmp_3, arg1 = null).not() -> { // BLOCK
+          tmp_3.emit(message = tmp_1, cause = null, fields = tmp_2)
+        }
+      }
+    }
+    { // BLOCK
+      val tmp_4: String = "warn-" + effects.mark(effect = "warn")
+      val tmp_5: Map<String, Any?> = emptyMap<String, Any?>()
+      val tmp_6: Sink? = logger.sink(level = Level.WARN)
+      when {
+        EQEQ(arg0 = tmp_6, arg1 = null).not() -> { // BLOCK
+          tmp_6.emit(message = tmp_4, cause = null, fields = tmp_5)
+        }
+      }
+    }
+    return "enabled=" + logger.isEnabled(level = Level.TRACE) + ",sink=" + EQEQ(arg0 = logger.sink(level = Level.DEBUG), arg1 = null).not()
+  }
+)
+  assertEquals<String>(expected = "info-info,warn-warn", actual = joinToString<LogRecord>(/* <this> = backend.<get-records>(), */ separator = ",", transform = local fun <anonymous>(it: LogRecord): CharSequence {
+    return it.<get-message>()
+  }
+))
+  assertEquals<String>(expected = "trace,receiver,receiver-message,debug-fields,info,warn", actual = effects.toString())
+  assertEquals<String>(expected = "enabled=true,sink=true", actual = gate)
+  return "OK"
+}
+
+@Suppress(names = ["LOGGING_CALL_REMOVED"])
+private fun suppressed(logger: Logger) {
+  { // BLOCK
+    logger
+    "suppressed"
+    Unit
+  }
+}

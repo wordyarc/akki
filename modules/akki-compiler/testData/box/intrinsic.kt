@@ -1,3 +1,4 @@
+// DUMP_KT_IR
 // CHECK_BYTECODE_TEXT
 // 2 fixture/Service\$\$Log\.\$\$log : Lio/akki/Logger;
 // 1 io/akki/internal/LogRegistry\.forDeclaration

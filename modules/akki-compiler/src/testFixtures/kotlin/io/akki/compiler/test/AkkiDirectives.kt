@@ -14,6 +14,11 @@ internal object AkkiDirectives : SimpleDirectivesContainer() {
 
     val WITH_LOGBACK by directive("Compile testData/helpers/Logback.kt into the module")
 
+    val WITH_HELPERS by directive(
+        "Compile testData/helpers/Helpers.kt into the module; with CHECK_BYTECODE_TEXT add TREAT_AS_ONE_FILE " +
+            "so that the helpers are not counted",
+    )
+
     val BACKEND_SERVICES by stringDirective("LogBackend providers on the runtime classpath instead of akki-slf4j")
 
     val CHECK_SOURCELESS_DIAGNOSTICS by directive(

@@ -1,5 +1,7 @@
+// WITH_HELPERS
 package fixture
 
+import helpers.Effects
 import io.akki.*
 import io.akki.test.*
 import kotlin.test.assertEquals
@@ -7,24 +9,20 @@ import kotlin.test.assertEquals
 fun box(): String {
     val backend = RecordingBackend(Level.INFO)
     val logger = Log.named("fixture")
-    val effects = mutableListOf<String>()
+    val effects = Effects()
     var sequence = 0
 
-    fun mark(effect: String): Int {
-        effects += effect
-        return ++sequence
-    }
+    fun numbered(effect: String): Int = effects.mark(effect, ++sequence)
 
-    fun cause(): Throwable = IllegalStateException("cause-${mark("cause")}")
-    fun fields(): Map<String, Any?> = mapOf("value" to mark("fields"))
-    fun selectedLogger() = logger.also { effects += "receiver" }
-    val variableMessage: () -> String = { "variable-${mark("variable-message")}" }
+    fun cause(): Throwable = IllegalStateException("cause-${numbered("cause")}")
+    fun fields(): Map<String, Any?> = mapOf("value" to numbered("fields"))
+    val variableMessage: () -> String = { "variable-${numbered("variable-message")}" }
 
     LogScope(backend).run {
-        selectedLogger().debug("disabled-${mark("disabled-message")}", cause(), fields())
-        logger.trace(cause(), fields()) { "disabled-${mark("disabled-lazy-message")}" }
-        logger.info("enabled-${mark("eager-message")}", cause(), fields())
-        logger.warn(cause(), fields()) { "lazy-${mark("lazy-message")}" }
+        effects.mark("receiver", logger).debug("disabled-${numbered("disabled-message")}", cause(), fields())
+        logger.trace(cause(), fields()) { "disabled-${numbered("disabled-lazy-message")}" }
+        logger.info("enabled-${numbered("eager-message")}", cause(), fields())
+        logger.warn(cause(), fields()) { "lazy-${numbered("lazy-message")}" }
         logger.error("constant")
         logger.error(message = variableMessage)
     }
@@ -32,7 +30,7 @@ fun box(): String {
     assertEquals("DEBUG,TRACE,INFO,WARN,ERROR,ERROR", backend.resolutions.joinToString(",") { it.level.name })
     assertEquals(
         "receiver,disabled-message,cause,fields,cause,fields,eager-message,cause,fields,cause,fields,lazy-message,variable-message",
-        effects.joinToString(","),
+        effects.toString(),
     )
     assertEquals("enabled-6,lazy-11,constant,variable-12", backend.records.joinToString(",") { it.message })
     return "OK"

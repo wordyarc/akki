@@ -1,0 +1,46 @@
+package fixture
+
+class OrderService {
+  package class $Log {
+    package /* static final field */ val $$log: Logger = LogRegistry.forDeclaration(source = "fixture.OrderService", platformName = "fixture.OrderService")
+  }
+
+  constructor() /* primary */ {
+    super/*Any*/()
+    /* <init>() */
+
+  }
+
+  fun handle(id: Int): String {
+    { // BLOCK
+      val tmp_0: Logger = #$$log
+      val tmp_1: String = "received " + id
+      val tmp_2: Map<String, Any?> = emptyMap<String, Any?>()
+      val tmp_3: Sink? = tmp_0.sink(level = Level.INFO)
+      when {
+        EQEQ(arg0 = tmp_3, arg1 = null).not() -> { // BLOCK
+          tmp_3.emit(message = tmp_1, cause = null, fields = tmp_2)
+        }
+      }
+    }
+    { // BLOCK
+      val tmp_4: Logger = #$$log
+      val tmp_5: Map<String, Any?> = emptyMap<String, Any?>()
+      val tmp_6: Sink? = tmp_4.sink(level = Level.DEBUG)
+      when {
+        EQEQ(arg0 = tmp_6, arg1 = null).not() -> { // BLOCK
+          tmp_6.emit(message = { // RETURNABLE BLOCK
+            return "handled " + id
+          }, cause = null, fields = tmp_5)
+        }
+      }
+    }
+    return #$$log.<get-name>()
+  }
+
+}
+
+fun box(): String {
+  assertEquals<String>(expected = "fixture.OrderService", actual = OrderService().handle(id = 1))
+  return "OK"
+}

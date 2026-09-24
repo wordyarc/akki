@@ -1,3 +1,4 @@
+// DUMP_KT_IR
 package fixture
 
 import io.akki.*

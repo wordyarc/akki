@@ -34,7 +34,7 @@ internal fun TestConfigurationBuilder.configureAkki() {
     useDirectives(AkkiDirectives)
     useConfigurators(::AkkiEnvironmentConfigurator)
     useCustomRuntimeClasspathProviders(::AkkiRuntimeClasspathProvider)
-    useAdditionalSourceProviders(::LogbackHelperProvider)
+    useAdditionalSourceProviders(::HelperSourceProvider)
     defaultDirectives {
         +ConfigurationDirectives.WITH_STDLIB
         +JvmEnvironmentConfigurationDirectives.FULL_JDK
@@ -84,7 +84,7 @@ private class AkkiEnvironmentConfigurator(testServices: TestServices) : Environm
     }
 }
 
-private class LogbackHelperProvider(testServices: TestServices) : AdditionalSourceProvider(testServices) {
+private class HelperSourceProvider(testServices: TestServices) : AdditionalSourceProvider(testServices) {
     override val directiveContainers: List<DirectivesContainer>
         get() = listOf(AkkiDirectives)
 
@@ -92,9 +92,15 @@ private class LogbackHelperProvider(testServices: TestServices) : AdditionalSour
         globalDirectives: RegisteredDirectives,
         module: TestModule,
         testModuleStructure: TestModuleStructure,
-    ): List<TestFile> {
-        if (!containsDirective(globalDirectives, module, AkkiDirectives.WITH_LOGBACK)) return emptyList()
-        return listOf(File("testData/helpers/Logback.kt").toTestFile())
+    ): List<TestFile> = helpers
+        .filter { (directive, _) -> containsDirective(globalDirectives, module, directive) }
+        .map { (_, path) -> File(path).toTestFile() }
+
+    private companion object {
+        val helpers = listOf(
+            AkkiDirectives.WITH_HELPERS to "testData/helpers/Helpers.kt",
+            AkkiDirectives.WITH_LOGBACK to "testData/helpers/Logback.kt",
+        )
     }
 }
 
