@@ -18,12 +18,10 @@ internal object AkkiNames {
     val SINK_ID: ClassId = BACKEND_PACKAGE.classId("Sink")
     val CALL_SITE_ID: ClassId = INTERNAL_PACKAGE.classId("CallSite")
     val LOG_ID: ClassId = PACKAGE.classId("Log")
-    val LOG_REGISTRY_ID: ClassId = INTERNAL_PACKAGE.classId("LogRegistry")
 
     val EMPTY_MAP_ID: CallableId =
         CallableId(StandardNames.COLLECTIONS_PACKAGE_FQ_NAME, Name.identifier("emptyMap"))
 
-    val FOR_DECLARATION: Name = Name.identifier("forDeclaration")
     val OF: Name = Name.identifier("of")
     val NAMED: Name = Name.identifier("named")
     val SINK: Name = Name.identifier("sink")
@@ -31,7 +29,8 @@ internal object AkkiNames {
 
     val NAMED_ID: CallableId = CallableId(LOG_ID, NAMED)
 
-    val VERSION: Name = Name.identifier("VERSION")
+    val DECLARATION_LOGGER_ID: CallableId = CallableId(INTERNAL_PACKAGE, Name.identifier("declarationLogger"))
+    val CORE_VERSION_ID: CallableId = CallableId(INTERNAL_PACKAGE, Name.identifier("AKKI_VERSION"))
 
     val MESSAGE: Name = Name.identifier("message")
     val CAUSE: Name = Name.identifier("cause")

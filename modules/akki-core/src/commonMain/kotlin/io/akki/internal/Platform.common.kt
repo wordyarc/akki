@@ -11,7 +11,7 @@ internal expect fun discoverPlatformBackend(): LogBackend
 
 internal expect fun releasePlatformBackend(backend: LogBackend)
 
-internal expect fun platformDeclarationName(source: String, platformName: String): String
+internal expect fun platformDeclarationName(sourceName: String, jvmClassName: String): String
 
 internal expect fun platformTypeName(type: KClass<*>): String
 

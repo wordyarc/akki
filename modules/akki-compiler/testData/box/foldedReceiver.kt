@@ -1,8 +1,8 @@
 // WITH_HELPERS
 // TREAT_AS_ONE_FILE
 // CHECK_BYTECODE_TEXT
-// 0 io/akki/Log\.named \(
-// 1 io/akki/internal/LogRegistry\.of
+// 1 io/akki/Log\.named \(
+// 2 GETSTATIC fixture/FoldedReceiverKt\.\$\$log\$0
 package fixture
 
 import helpers.Effects

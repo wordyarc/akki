@@ -117,8 +117,8 @@ private fun Metadata.readLenientOrNull(): KotlinClassMetadata? =
         null
     }
 
-internal actual fun platformDeclarationName(source: String, platformName: String): String =
+internal actual fun platformDeclarationName(sourceName: String, jvmClassName: String): String =
     when (configuredStyle) {
-        JvmLoggerNameStyle.SOURCE -> source
-        JvmLoggerNameStyle.JVM_CLASS -> platformName
+        JvmLoggerNameStyle.SOURCE -> sourceName
+        JvmLoggerNameStyle.JVM_CLASS -> jvmClassName
     }

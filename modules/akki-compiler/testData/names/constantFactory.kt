@@ -1,10 +1,10 @@
 // WITH_HELPERS
 // TREAT_AS_ONE_FILE
 // CHECK_BYTECODE_TEXT
-// 3 io/akki/internal/LogRegistry\.forDeclaration
-// 2 io/akki/internal/LogRegistry\.of
+// 3 io/akki/internal/DeclarationLoggers\.declarationLogger
+// 2 io/akki/Log\.named \(
+// 6 GETSTATIC fixture/Site\$\$Log\.
 // 2 io/akki/Log\.of \(
-// 0 io/akki/Log\.named \(
 package fixture
 
 import helpers.agrees

@@ -6,7 +6,7 @@ class Both {
     get
 
   package class $Log {
-    package /* static final field */ val $$log: Logger = LogRegistry.forDeclaration(source = "fixture.Both", platformName = "fixture.Both")
+    package /* static final field */ val $$log: Logger = declarationLogger(sourceName = "fixture.Both", jvmClassName = "fixture.Both")
   }
 
   constructor() /* primary */ {

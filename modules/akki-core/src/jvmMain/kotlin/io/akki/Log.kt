@@ -1,26 +1,24 @@
-@file:OptIn(InternalAkkiApi::class)
-
 package io.akki
 
 import io.akki.backend.LogBackend
 import io.akki.internal.BackendRegistry
-import io.akki.internal.LogRegistry
 import io.akki.internal.akkiError
+import io.akki.internal.namedLogger
 import io.akki.internal.platformTypeName
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.reflect.KClass
 
 public actual object Log {
     @JvmStatic
-    public actual fun of(type: KClass<*>): Logger = LogRegistry.of(platformTypeName(type))
+    public actual fun of(type: KClass<*>): Logger = namedLogger(platformTypeName(type))
 
     public actual inline fun <reified T : Any> of(): Logger = of(T::class)
 
     @JvmStatic
-    public fun of(type: Class<*>): Logger = LogRegistry.of(platformTypeName(type))
+    public fun of(type: Class<*>): Logger = namedLogger(platformTypeName(type))
 
     @JvmStatic
-    public actual fun named(name: String): Logger = LogRegistry.of(name)
+    public actual fun named(name: String): Logger = namedLogger(name)
 
     @JvmStatic
     @DelicateAkkiApi

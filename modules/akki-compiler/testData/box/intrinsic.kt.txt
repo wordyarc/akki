@@ -2,7 +2,7 @@ package fixture
 
 class Service {
   package class $Log {
-    package /* static final field */ val $$log: Logger = LogRegistry.forDeclaration(source = "fixture.Service", platformName = "fixture.Service")
+    package /* static final field */ val $$log: Logger = declarationLogger(sourceName = "fixture.Service", jvmClassName = "fixture.Service")
   }
 
   constructor() /* primary */ {

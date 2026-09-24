@@ -101,8 +101,8 @@ internal class LoggerFieldLowering(
     private fun IrCall.namedField(): IrField? {
         val name = arguments.lastOrNull()?.stringConstant()?.takeIf { it.isNotBlank() } ?: return null
         return fieldOwner().loggerField("named:$name", contextual = false) {
-            irCall(symbols.registryOf).apply {
-                arguments[0] = irGetObject(symbols.logRegistry)
+            irCall(symbols.named).apply {
+                arguments[0] = irGetObject(symbols.log)
                 arguments[1] = irString(name)
             }
         }
@@ -116,7 +116,7 @@ internal class LoggerFieldLowering(
     }
 
     private fun IrDeclarationContainer.declarationField(name: DeclarationName, contextual: Boolean): IrField =
-        loggerField("declaration:${name.source}|${name.platform}", contextual) { declarationLogger(name) }
+        loggerField("declaration:${name.sourceName}|${name.jvmClassName}", contextual) { declarationLogger(name) }
 
     private fun IrCall.referencedClass(): IrClass? {
         val type = typeArguments.firstOrNull() ?: (arguments.lastOrNull() as? IrClassReference)?.classType
@@ -137,10 +137,9 @@ internal class LoggerFieldLowering(
             .firstOrNull { it !is IrClass || !it.isHoisted() }
 
     private fun DeclarationIrBuilder.declarationLogger(name: DeclarationName): IrExpression =
-        irCall(symbols.forDeclaration).apply {
-            arguments[0] = irGetObject(symbols.logRegistry)
-            arguments[1] = irString(name.source)
-            arguments[2] = irString(name.platform)
+        irCall(symbols.declarationLogger).apply {
+            arguments[0] = irString(name.sourceName)
+            arguments[1] = irString(name.jvmClassName)
         }
 
     private fun IrCall.reading(field: IrField): IrExpression {

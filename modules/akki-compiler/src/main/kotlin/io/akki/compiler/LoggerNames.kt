@@ -15,7 +15,7 @@ import org.jetbrains.kotlin.name.JvmStandardClassIds.MULTIFILE_PART_NAME_DELIMIT
 import org.jetbrains.kotlin.name.NameUtils
 import org.jetbrains.kotlin.resolve.jvm.JvmClassName
 
-internal class DeclarationName(val source: String, val platform: String)
+internal class DeclarationName(val sourceName: String, val jvmClassName: String)
 
 private const val FACADE_SUFFIX: String = "Kt"
 

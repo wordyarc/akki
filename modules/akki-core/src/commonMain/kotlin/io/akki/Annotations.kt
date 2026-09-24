@@ -24,6 +24,6 @@ public annotation class DelicateAkkiApi
 )
 @RequiresOptIn(
     level = RequiresOptIn.Level.ERROR,
-    message = "This API is an entry point for the Akki compiler plugin and can change without notice.",
+    message = "This API is shared between Akki modules and can change without notice.",
 )
 public annotation class InternalAkkiApi

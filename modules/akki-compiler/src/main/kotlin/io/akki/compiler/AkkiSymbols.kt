@@ -4,7 +4,6 @@ package io.akki.compiler
 
 import org.jetbrains.kotlin.backend.common.extensions.DeclarationFinder
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
-import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrEnumEntry
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
@@ -21,7 +20,6 @@ import org.jetbrains.kotlin.ir.util.classId
 import org.jetbrains.kotlin.ir.util.hasShape
 import org.jetbrains.kotlin.ir.util.invokeFun
 import org.jetbrains.kotlin.ir.util.nonDispatchParameters
-import org.jetbrains.kotlin.ir.util.properties
 import org.jetbrains.kotlin.ir.util.resolveFakeOverride
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.StandardClassIds
@@ -50,9 +48,12 @@ internal class LoggerCall(
 internal class AkkiSymbols private constructor(context: IrPluginContext, finder: DeclarationFinder) {
     val logger: IrClassSymbol = finder.classOrFail(AkkiNames.LOGGER_ID)
     val loggerType: IrType = logger.owner.defaultType
-    val logRegistry: IrClassSymbol = finder.classOrFail(AkkiNames.LOG_REGISTRY_ID)
 
-    private val log: IrClassSymbol = finder.classOrFail(AkkiNames.LOG_ID)
+    val declarationLogger: IrSimpleFunctionSymbol = finder.findFunctions(AkkiNames.DECLARATION_LOGGER_ID)
+        .singleOrNull { it.owner.hasShape(regularParameters = 2) }
+        ?: incompatible(DECLARATION_LOGGER_SIGNATURE)
+
+    val log: IrClassSymbol = finder.classOrFail(AkkiNames.LOG_ID)
 
     private val level: IrClassSymbol = finder.classOrFail(AkkiNames.LEVEL_ID)
     private val sinkClass: IrClassSymbol = finder.classOrFail(AkkiNames.SINK_ID)
@@ -61,12 +62,6 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
 
     val sink: IrSimpleFunctionSymbol =
         logger.functionOrFail(AkkiNames.SINK, SINK_SIGNATURE, parameters = 1).symbol
-
-    val forDeclaration: IrSimpleFunctionSymbol =
-        logRegistry.functionOrFail(AkkiNames.FOR_DECLARATION, FOR_DECLARATION_SIGNATURE, parameters = 2).symbol
-
-    val registryOf: IrSimpleFunctionSymbol =
-        logRegistry.functionOrFail(AkkiNames.OF, REGISTRY_OF_SIGNATURE, parameters = 1).symbol
 
     val ofType: IrSimpleFunctionSymbol = log.owner.functions
         .singleOrNull {
@@ -153,9 +148,8 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
 
     companion object {
         private const val SINK_SIGNATURE: String = "Logger.sink(level: Level): Sink?"
-        private const val FOR_DECLARATION_SIGNATURE: String =
-            "LogRegistry.forDeclaration(source: String, platformName: String): Logger"
-        private const val REGISTRY_OF_SIGNATURE: String = "LogRegistry.of(name: String): Logger"
+        private const val DECLARATION_LOGGER_SIGNATURE: String =
+            "io.akki.internal.declarationLogger(sourceName: String, jvmClassName: String): Logger"
         private const val OF_TYPE_SIGNATURE: String = "Log.of(type: KClass<*>): Logger"
         private const val OF_REIFIED_SIGNATURE: String = "Log.of<T>(): Logger"
         private const val NAMED_SIGNATURE: String = "Log.named(name: String): Logger"
@@ -165,7 +159,7 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
         fun of(context: IrPluginContext): AkkiSymbols? {
             val finder = context.finderForBuiltins()
             finder.findClass(AkkiNames.LOGGER_ID) ?: return null
-            val coreVersion = finder.findClass(AkkiNames.LOG_REGISTRY_ID)?.owner?.declaredVersion()
+            val coreVersion = finder.findProperties(AkkiNames.CORE_VERSION_ID).singleOrNull()?.owner?.constantString()
             if (coreVersion != null && coreVersion != AKKI_VERSION) {
                 return context.incompatible(
                     "The Akki compiler plugin $AKKI_VERSION cannot use akki-core $coreVersion on the compile " +
@@ -187,9 +181,6 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
             diagnosticReporter.report(AkkiErrors.INCOMPATIBLE_AKKI_CORE, message)
             return null
         }
-
-        private fun IrClass.declaredVersion(): String? =
-            properties.singleOrNull { it.name == AkkiNames.VERSION }?.constantString()
     }
 }
 

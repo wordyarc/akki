@@ -1,6 +1,6 @@
 package fixture
 
-package /* static final field */ val $$log$0: Logger = LogRegistry.of(name = "fixture")
+package /* static final field */ val $$log$0: Logger = Log.named(name = "fixture")
 fun box(): String {
   val backend: RecordingBackend = RecordingBackend()
   val logger: Logger = #$$log$0

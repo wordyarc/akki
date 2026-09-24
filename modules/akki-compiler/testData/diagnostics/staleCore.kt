@@ -9,12 +9,10 @@ package io.akki
 
 interface Logger
 
-// FILE: LogRegistry.kt
+// FILE: AkkiVersion.kt
 package io.akki.internal
 
-object LogRegistry {
-    const val VERSION: String = "0.0.1"
-}
+internal const val AKKI_VERSION: String = "0.0.1"
 
 // MODULE: user(core)
 // FILE: User.kt

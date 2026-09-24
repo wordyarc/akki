@@ -1,6 +1,6 @@
 // CHECK_BYTECODE_TEXT
 // 1 io/akki/Log\.named \(
-// 0 io/akki/internal/LogRegistry\.of
+// 0 \$\$log
 package fixture
 
 import io.akki.*
