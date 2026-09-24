@@ -63,6 +63,16 @@ dependencies {
 }
 ```
 
+### Kotlin compatibility
+
+The compiler plugin requires the Kotlin minor version it was built with, but accepts any patch release in that series.
+If the project uses a different minor version, the Gradle plugin stops the build and reports both the required and
+actual Kotlin versions.
+
+| akki    | Kotlin  |
+|---------|---------|
+| `0.1.x` | `2.4.x` |
+
 ## Usage
 
 ```kotlin
