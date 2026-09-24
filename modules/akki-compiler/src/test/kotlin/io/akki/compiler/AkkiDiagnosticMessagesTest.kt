@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.test.utils.verifyDiagnostics
 
 internal class AkkiDiagnosticMessagesTest {
     @Test
-    fun `every diagnostic has a message in the compiler's style`() {
+    fun `diagnostic messages follow compiler conventions`() {
         verifyDiagnostics(AkkiErrors)
     }
 }

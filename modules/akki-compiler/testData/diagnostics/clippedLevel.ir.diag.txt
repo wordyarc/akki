@@ -1,7 +1,7 @@
-/clippedLevel.kt:17:12: info: This 'trace' record is removed at compile time by 'minLevel=info'.
+/clippedLevel.kt:17:12: info: The 'trace' record is below 'minLevel=info' and is removed at compile time.
 
-/clippedLevel.kt:18:12: info: This 'debug' record is removed at compile time by 'minLevel=info'.
+/clippedLevel.kt:18:12: info: The 'debug' record is below 'minLevel=info' and is removed at compile time.
 
-/clippedLevel.kt:19:12: info: This 'debug' record is removed at compile time by 'minLevel=info'.
+/clippedLevel.kt:19:12: info: The 'debug' record is below 'minLevel=info' and is removed at compile time.
 
-/clippedLevel.kt:25:12: info: This 'debug' record is removed at compile time by 'minLevel=info'.
+/clippedLevel.kt:25:12: info: The 'debug' record is below 'minLevel=info' and is removed at compile time.

@@ -162,17 +162,17 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
             val coreVersion = finder.findProperties(AkkiNames.CORE_VERSION_ID).singleOrNull()?.owner?.constantString()
             if (coreVersion != null && coreVersion != AKKI_VERSION) {
                 return context.incompatible(
-                    "The Akki compiler plugin $AKKI_VERSION cannot use akki-core $coreVersion on the compile " +
-                        "classpath: the plugin and akki-core must come from the same version.",
+                    "Akki compiler plugin $AKKI_VERSION requires akki-core $AKKI_VERSION, but the compile " +
+                        "classpath contains akki-core $coreVersion.",
                 )
             }
             return try {
                 AkkiSymbols(context, finder)
             } catch (failure: IncompatibleCore) {
                 context.incompatible(
-                    "The Akki compiler plugin $AKKI_VERSION cannot use the akki-core on the compile classpath: " +
-                        "it does not state its version and does not declare '${failure.signature}'. " +
-                        "The plugin and akki-core must come from the same version.",
+                    "Akki compiler plugin $AKKI_VERSION found an incompatible akki-core on the compile classpath: " +
+                        "its version is unknown and '${failure.signature}' is missing. " +
+                        "Use akki-core $AKKI_VERSION.",
                 )
             }
         }

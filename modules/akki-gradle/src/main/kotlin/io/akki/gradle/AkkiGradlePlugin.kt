@@ -15,7 +15,7 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
     override fun apply(target: Project) {
         target.extensions.create(EXTENSION, AkkiExtension::class.java)
         val coreVersion = target.configurations.create(CORE_VERSION) {
-            it.description = "Pins $core to the compiler plugin version on the classpaths of the compilations it lowers"
+            it.description = "Matches $core to the compiler plugin version for each compilation that uses the plugin"
             it.isCanBeConsumed = false
             it.isCanBeResolved = false
         }
@@ -60,17 +60,17 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
             val expected = kotlinVersion.minor()
             if (actual.minor() == expected) return
             throw GradleException(
-                "akki $pluginVersion is built for Kotlin $expected and cannot run with Kotlin $actual: the compiler " +
-                    "plugin API changes between Kotlin releases. Use an akki built for Kotlin ${actual.minor()} " +
-                    "or Kotlin $expected.x.",
+                "akki $pluginVersion requires Kotlin $expected.x, but this project uses Kotlin $actual. " +
+                    "The compiler plugin API differs between minor releases. Use Kotlin $expected.x " +
+                    "or an akki version built for Kotlin ${actual.minor()}.x.",
             )
         }
 
         fun String.minor(): String = split('.').take(2).joinToString(".")
 
         fun notice(level: MinLevel): String =
-            "akki: minLevel=${level.name.lowercase()}, records below it are removed from the bytecode and no " +
-                "logging configuration can bring them back"
+            "akki: minLevel=${level.name.lowercase()}, lower-level records are removed from the bytecode; " +
+                "runtime logging configuration cannot restore them"
 
         const val EXTENSION: String = "akki"
         const val MIN_LEVEL_OPTION: String = "minLevel"

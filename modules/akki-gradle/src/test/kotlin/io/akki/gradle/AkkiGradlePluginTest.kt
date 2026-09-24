@@ -22,7 +22,7 @@ class AkkiGradlePluginTest {
     }
 
     @Test
-    fun `logs through the slf4j backend it finds on the classpath`(@TempDir projectDirectory: Path) {
+    fun `discovers the slf4j backend on the classpath`(@TempDir projectDirectory: Path) {
         val output = build(projectDirectory, consumer = Consumer.Slf4j)
         val line = lineOf(Consumer.Slf4j, """log.info("received""")
 
@@ -102,7 +102,7 @@ class AkkiGradlePluginTest {
     }
 
     @Test
-    fun `survives an slf4j-api downgraded below the version it was built for`(@TempDir projectDirectory: Path) {
+    fun `reports a backend failure when slf4j-api is downgraded`(@TempDir projectDirectory: Path) {
         val output = build(
             projectDirectory,
             consumer = Consumer.Slf4j,
@@ -148,7 +148,7 @@ class AkkiGradlePluginTest {
         )
 
         assertContains(output, "AKKI records=info A-1")
-        assertContains(output, "akki: minLevel=info, records below it are removed from the bytecode")
+        assertContains(output, "akki: minLevel=info, lower-level records are removed from the bytecode")
     }
 
     @Test
@@ -216,7 +216,7 @@ class AkkiGradlePluginTest {
     }
 
     @Test
-    fun `rejects a Kotlin release it was not built for`(@TempDir projectDirectory: Path) {
+    fun `rejects an incompatible Kotlin minor version`(@TempDir projectDirectory: Path) {
         val expected = property("akki.kotlin.version").minor()
         require(OTHER_KOTLIN.minor() != expected)
         val repository = publishRepository(projectDirectory.resolve("repository"))
@@ -230,7 +230,7 @@ class AkkiGradlePluginTest {
             .buildAndFail()
             .output
 
-        assertContains(output, "akki $VERSION is built for Kotlin $expected and cannot run with Kotlin $OTHER_KOTLIN")
+        assertContains(output, "akki $VERSION requires Kotlin $expected.x, but this project uses Kotlin $OTHER_KOTLIN")
     }
 
     @Test
@@ -280,7 +280,7 @@ class AkkiGradlePluginTest {
     }
 
     @Test
-    fun `brings its own runtime to a consumer that declares none`(@TempDir projectDirectory: Path) {
+    fun `adds core when the consumer has no runtime dependency`(@TempDir projectDirectory: Path) {
         val output = build(projectDirectory, consumer = Consumer.Bare)
 
         assertTrue(output.contains("INFO  consumer.OrderService - received A-1"), output)

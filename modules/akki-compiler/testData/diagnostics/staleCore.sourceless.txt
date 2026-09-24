@@ -1,1 +1,1 @@
-user: error: [INCOMPATIBLE_AKKI_CORE] The Akki compiler plugin <version> cannot use akki-core 0.0.1 on the compile classpath: the plugin and akki-core must come from the same version.
+user: error: [INCOMPATIBLE_AKKI_CORE] Akki compiler plugin <version> requires akki-core <version>, but the compile classpath contains akki-core 0.0.1.

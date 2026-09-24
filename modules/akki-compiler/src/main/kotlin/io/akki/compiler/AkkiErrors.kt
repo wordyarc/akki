@@ -43,34 +43,33 @@ internal object AkkiDefaultErrorMessages : BaseDiagnosticRendererFactory() {
     override val MAP by KtDiagnosticFactoryToRendererMap("Akki") { map ->
         map.put(
             AkkiErrors.REDUNDANT_LOGGER_PROPERTY,
-            "''{0}'' stores the logger that ''{1}'' already resolves here; nested declarations with their own " +
-                "qualified name resolve a different one.",
+            "''{0}'' stores a logger already available through ''{1}'' here. Nested declarations with their own " +
+                "qualified name use a different logger.",
             CommonRenderers.STRING,
             CommonRenderers.STRING,
         )
         map.put(
             AkkiErrors.LOGGING_CALL_REFERENCE,
-            "''{0}'' cannot be taken as a callable reference: a reference is not lowered, so the record " +
-                "reports Akki as the caller and survives the ''minLevel'' threshold. Wrap the call in " +
-                "a lambda instead.",
+            "Callable references to ''{0}'' are not supported. They bypass the compiler plugin, report Akki as " +
+                "the caller, and ignore ''minLevel''. Use a lambda instead.",
             CommonRenderers.STRING,
         )
         map.put(
             AkkiErrors.CONTEXTUAL_LOGGER_REFERENCE,
-            "''{0}'' cannot be taken as a callable reference: a reference is not lowered, so invoking it has no " +
-                "declaration to name the logger after and fails at runtime as if the plugin were absent. Call " +
-                "''{0}'' directly, or use ''Log.of<T>()'' or ''Log.named(\"...\")''.",
+            "Callable references to ''{0}'' are not supported. The plugin cannot derive a logger name through " +
+                "a reference, and invoking it fails at runtime. Call ''{0}'' directly or use ''Log.of<T>()'' " +
+                "or ''Log.named(\"...\")''.",
             CommonRenderers.STRING,
         )
         map.put(
             AkkiErrors.LOGGING_CALL_REMOVED,
-            "This ''{0}'' record is removed at compile time by ''minLevel={1}''.",
+            "The ''{0}'' record is below ''minLevel={1}'' and is removed at compile time.",
             CommonRenderers.STRING,
             CommonRenderers.STRING,
         )
         map.put(
             AkkiErrors.BLANK_LOG_NAME,
-            "'Log.named' is given a blank logger name, which no backend can route or filter. Use a non-blank name.",
+            "'Log.named' requires a non-blank logger name.",
         )
         map.put(AkkiErrors.INCOMPATIBLE_AKKI_CORE, MESSAGE_PLACEHOLDER)
     }

@@ -23,7 +23,7 @@ internal class AkkiCommandLineProcessorTest {
     }
 
     @Test
-    fun `rejects an unknown threshold and names the accepted ones`() {
+    fun `rejects an unknown threshold and lists valid values`() {
         val failure = assertFailsWith<CliOptionProcessingException> {
             processor.processOption(processor.pluginOptions.single(), "verbose", CompilerConfiguration())
         }

@@ -52,10 +52,10 @@ internal class AkkiCommandLineProcessor : CommandLineProcessor {
         val MIN_LEVEL_OPTION: CliOption = CliOption(
             optionName = "minLevel",
             valueDescription = MinLevel.entries.joinToString("|") { it.option },
-            description = "Lowest level kept at compile time. Records below it are removed without invoking lazy " +
-                "messages; ordinary arguments are still evaluated. No runtime configuration can bring the records back. " +
-                "Every removed call is reported as an info; pass " +
-                "-Xwarning-level=LOGGING_CALL_REMOVED:warning to see the reports in a build log that hides infos.",
+            description = "Minimum level to retain in compiled code. Lower-level records are removed permanently. " +
+                "Ordinary arguments are still evaluated, but lazy messages are not invoked. " +
+                "Each removed call produces an INFO diagnostic. If the build log hides INFO diagnostics, use " +
+                "-Xwarning-level=LOGGING_CALL_REMOVED:warning to display them.",
             required = false,
         )
     }
