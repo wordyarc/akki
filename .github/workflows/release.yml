@@ -64,7 +64,8 @@ jobs:
           fetch-depth: 0
       - run: |
           previous=$(git describe --tags --abbrev=0 "$GITHUB_REF_NAME^" 2>/dev/null || true)
-          git log --format='- %s' ${previous:+$previous..}"$GITHUB_REF_NAME" > notes.md
+          git log --format='- %s' ${previous:+$previous..}"$GITHUB_REF_NAME" |
+            sed -E 's/@([[:alnum:]_-]+)/`@\1`/g' > notes.md
           gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md --verify-tag
         env:
           GH_TOKEN: ${{ github.token }}
