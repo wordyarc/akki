@@ -21,7 +21,7 @@ internal class AkkiFirCheckers(session: FirSession) : FirAdditionalCheckersExten
     }
 
     override val declarationCheckers: DeclarationCheckers = object : DeclarationCheckers() {
-        override val propertyCheckers: Set<FirPropertyChecker> = setOf(RedundantLoggerPropertyChecker)
+        override val propertyCheckers: Set<FirPropertyChecker> = setOf(LogInitializerChecker)
     }
 }
 

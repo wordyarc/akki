@@ -12,12 +12,13 @@ import org.jetbrains.kotlin.diagnostics.rendering.CommonRenderers
 import org.jetbrains.kotlin.diagnostics.error0
 import org.jetbrains.kotlin.diagnostics.error1
 import org.jetbrains.kotlin.psi.KtElement
+import org.jetbrains.kotlin.psi.KtExpression
 
 internal object AkkiErrors : KtDiagnosticsContainer() {
-    val REDUNDANT_LOGGER_PROPERTY by DiagnosticFactory2DelegateProvider<String, String>(
+    val LOG_AS_INITIALIZER by DiagnosticFactory2DelegateProvider<String, String>(
         Severity.INFO,
-        SourceElementPositioningStrategies.DECLARATION_NAME,
-        KtElement::class,
+        SourceElementPositioningStrategies.DEFAULT,
+        KtExpression::class,
         this,
     )
 
@@ -42,9 +43,8 @@ internal object AkkiErrors : KtDiagnosticsContainer() {
 internal object AkkiDefaultErrorMessages : BaseDiagnosticRendererFactory() {
     override val MAP by KtDiagnosticFactoryToRendererMap("Akki") { map ->
         map.put(
-            AkkiErrors.REDUNDANT_LOGGER_PROPERTY,
-            "''{0}'' stores a logger already available through ''{1}'' here. Nested declarations with their own " +
-                "qualified name use a different logger.",
+            AkkiErrors.LOG_AS_INITIALIZER,
+            "''{0}'' is initialized with ''{1}''. Use ''logger()'' to store the logger of the enclosing declaration.",
             CommonRenderers.STRING,
             CommonRenderers.STRING,
         )
