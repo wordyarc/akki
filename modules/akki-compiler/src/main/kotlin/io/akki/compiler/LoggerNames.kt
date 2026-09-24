@@ -10,7 +10,6 @@ import org.jetbrains.kotlin.ir.declarations.name
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.util.classId
 import org.jetbrains.kotlin.ir.util.irError
-import org.jetbrains.kotlin.ir.util.kotlinFqName
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.JvmStandardClassIds.MULTIFILE_PART_NAME_DELIMITER
 import org.jetbrains.kotlin.name.NameUtils
@@ -27,7 +26,7 @@ internal fun IrDeclarationContainer.declarationName(isJvm: Boolean): Declaration
 }
 
 private fun IrClass.className(): DeclarationName {
-    val classId = classId ?: return kotlinFqName.asString().let { DeclarationName(it, it) }
+    val classId = classId ?: irError("logger owner without a class id") { withIrEntry("owner", this@className) }
     val binaryName = JvmClassName.byClassId(classId).internalName.replace('/', '.')
     return DeclarationName(classId.asSingleFqName().asString(), binaryName)
 }

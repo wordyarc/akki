@@ -1,7 +1,7 @@
-/clippedLevel.kt:17:12: info: This 'trace' record is removed at compile time: the Akki compiler plugin runs with minLevel=info. Ordinary arguments are still evaluated, but the lazy message is not invoked. No logging configuration can bring the record back. Lower 'minLevel' to keep it.
+/clippedLevel.kt:17:12: info: This 'trace' record is removed at compile time by 'minLevel=info'.
 
-/clippedLevel.kt:18:12: info: This 'debug' record is removed at compile time: the Akki compiler plugin runs with minLevel=info. Ordinary arguments are still evaluated, but the lazy message is not invoked. No logging configuration can bring the record back. Lower 'minLevel' to keep it.
+/clippedLevel.kt:18:12: info: This 'debug' record is removed at compile time by 'minLevel=info'.
 
-/clippedLevel.kt:19:12: info: This 'debug' record is removed at compile time: the Akki compiler plugin runs with minLevel=info. Ordinary arguments are still evaluated, but the lazy message is not invoked. No logging configuration can bring the record back. Lower 'minLevel' to keep it.
+/clippedLevel.kt:19:12: info: This 'debug' record is removed at compile time by 'minLevel=info'.
 
-/clippedLevel.kt:25:12: info: This 'debug' record is removed at compile time: the Akki compiler plugin runs with minLevel=info. Ordinary arguments are still evaluated, but the lazy message is not invoked. No logging configuration can bring the record back. Lower 'minLevel' to keep it.
+/clippedLevel.kt:25:12: info: This 'debug' record is removed at compile time by 'minLevel=info'.

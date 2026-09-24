@@ -8,7 +8,7 @@ import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 @OptIn(ExperimentalAtomicApi::class)
-internal class DefaultBackend(private val notice: String = NOTICE) : LogBackend {
+internal class DefaultBackend(private val notice: String) : LogBackend {
     private val announced = AtomicBoolean(false)
 
     override fun bind(name: String): LoggerBinding {
@@ -48,9 +48,6 @@ internal class DefaultBackend(private val notice: String = NOTICE) : LogBackend 
 
     private companion object {
         val THRESHOLD: Level = Level.INFO
-
-        const val NOTICE: String =
-            "akki: no backend installed, writing to stderr at INFO. Install one with Log.install(backend)."
 
         val LABELS: List<String> = Level.entries.map { it.name.padEnd(5) }
     }

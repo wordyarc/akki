@@ -6,6 +6,7 @@ import io.akki.LogScope
 import io.akki.withLogScope
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -25,6 +26,19 @@ class RecordingTest {
             ),
             records,
         )
+    }
+
+    @Test
+    fun `records a failure asserted inside the capture`() {
+        val failure = IllegalStateException("boom")
+        val records = recordLogs {
+            assertFailsWith<IllegalStateException> {
+                Log.named("orders").error("failed", failure)
+                throw failure
+            }
+        }
+
+        assertEquals(listOf(LogRecord("orders", Level.ERROR, "failed", failure)), records)
     }
 
     @Test

@@ -14,6 +14,15 @@ import org.jetbrains.kotlin.gradle.plugin.SubpluginOption
 public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
     override fun apply(target: Project) {
         target.extensions.create(EXTENSION, AkkiExtension::class.java)
+        val coreVersion = target.configurations.create(CORE_VERSION) {
+            it.description = "Pins $CORE to the compiler plugin version on the classpaths of the compilations it lowers"
+            it.isCanBeConsumed = false
+            it.isCanBeResolved = false
+        }
+        target.dependencies.constraints.add(coreVersion.name, CORE) { constraint ->
+            constraint.version { it.strictly(pluginVersion) }
+            constraint.because("Akki core and compiler plugin versions must match")
+        }
         target.plugins.withType(KotlinBasePlugin::class.java) { kotlin -> checkKotlinVersion(kotlin.pluginVersion) }
     }
 
@@ -31,12 +40,10 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
 
     override fun applyToCompilation(kotlinCompilation: KotlinCompilation<*>): Provider<List<SubpluginOption>> {
         val project = kotlinCompilation.target.project
-        kotlinCompilation.defaultSourceSet.dependencies {
-            implementation("$PLUGIN_GROUP:$CORE_ARTIFACT:$pluginVersion") {
-                version { it.strictly(pluginVersion) }
-                because("Akki core and compiler plugin versions must match")
-            }
-        }
+        kotlinCompilation.defaultSourceSet.dependencies { implementation("$CORE:$pluginVersion") }
+        val coreVersion = project.configurations.getByName(CORE_VERSION)
+        listOfNotNull(kotlinCompilation.compileDependencyConfigurationName, kotlinCompilation.runtimeDependencyConfigurationName)
+            .forEach { name -> project.configurations.named(name) { it.extendsFrom(coreVersion) } }
         val minLevel = project.extensions.getByType(AkkiExtension::class.java).minLevel
         val notice = minLevel.map { if (it == MinLevel.TRACE) "" else notice(it) }.orElse("")
         kotlinCompilation.compileTaskProvider.configure { task ->
@@ -70,7 +77,8 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
         const val PLUGIN_ID: String = "io.akki"
         const val PLUGIN_GROUP: String = "io.akki"
         const val COMPILER_ARTIFACT: String = "akki-compiler"
-        const val CORE_ARTIFACT: String = "akki-core"
+        const val CORE: String = "$PLUGIN_GROUP:akki-core"
+        const val CORE_VERSION: String = "akkiCoreVersion"
 
         val properties: Properties by lazy {
             val resource = requireNotNull(

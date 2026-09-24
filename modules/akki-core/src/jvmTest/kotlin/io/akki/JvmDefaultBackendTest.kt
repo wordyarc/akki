@@ -1,6 +1,6 @@
 package io.akki
 
-import io.akki.internal.DefaultBackend
+import io.akki.internal.chooseBackend
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -18,13 +18,14 @@ class JvmDefaultBackendTest {
     }
 
     @Test
-    fun `default backend announces itself once`(): Unit {
+    fun `default backend announces once which backend to add`(): Unit {
         val output = defaultBackendOutput {
             Log.named("acme.Notice").error("first")
             Log.named("acme.Notice").error("second")
         }
 
-        assertEquals(1, output.lineSequence().count { it.startsWith("akki: no backend installed") })
+        assertEquals(1, output.lineSequence().count { it.startsWith("akki: no backend found on the classpath") })
+        assertContains(output, "Add a backend such as io.akki:akki-slf4j to the runtime classpath.")
     }
 
     @Test
@@ -49,6 +50,6 @@ class JvmDefaultBackendTest {
     }
 
     private fun defaultBackendOutput(block: () -> Unit): String = captureStderr {
-        Log.install(DefaultBackend()).use { block() }
+        Log.install(chooseBackend(emptyList())).use { block() }
     }
 }

@@ -29,7 +29,7 @@ internal fun discover(loader: ClassLoader): LogBackend {
 }
 
 internal fun chooseBackend(declared: List<LogBackend>): LogBackend {
-    if (declared.isEmpty()) return DefaultBackend()
+    if (declared.isEmpty()) return DefaultBackend(NO_BACKEND_NOTICE)
     val ordered = declared.sortedBy { it::class.java.name }
     val chosen = ordered.first()
     if (ordered.size > 1) {
@@ -43,3 +43,7 @@ internal fun chooseBackend(declared: List<LogBackend>): LogBackend {
 }
 
 internal actual fun discoverPlatformBackend(): LogBackend = discover(LogBackend::class.java.classLoader)
+
+private const val NO_BACKEND_NOTICE: String =
+    "akki: no backend found on the classpath, writing to stderr at INFO. " +
+        "Add a backend such as io.akki:akki-slf4j to the runtime classpath."

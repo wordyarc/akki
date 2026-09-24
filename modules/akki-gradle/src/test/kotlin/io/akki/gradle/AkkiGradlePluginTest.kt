@@ -339,6 +339,80 @@ class AkkiGradlePluginTest {
         checkCoreVersionLock(projectDirectory, transitive = true)
     }
 
+    @Test
+    fun `leaves the core version of a published library open to its consumers`(@TempDir projectDirectory: Path) {
+        val repository = publishRepository(projectDirectory.resolve("repository"))
+        val newerVersion = "999.0.0"
+        publish(repository, "io.akki", "akki-core", path("akki.core.jar"), version = newerVersion)
+        val library = projectDirectory.resolve("library").createDirectories()
+        library.resolve("settings.gradle.kts").writeText(settings(repository, name = "library"))
+        library.resolve("build.gradle.kts").writeText(
+            """
+            plugins {
+                kotlin("jvm") version "${property("akki.kotlin.version")}"
+                id("io.akki") version "$VERSION"
+                `maven-publish`
+            }
+
+            group = "consumer"
+            version = "$VERSION"
+
+            repositories {
+                mavenCentral()
+                maven { url = uri("${repository.toUri()}") }
+            }
+
+            publishing {
+                publications { create<MavenPublication>("library") { from(components["java"]) } }
+                repositories { maven { url = uri("${repository.toUri()}") } }
+            }
+            """.trimIndent()
+        )
+        library.resolve("src/main/kotlin/consumer").createDirectories()
+            .resolve("SharedService.kt").writeText(fixture("consumer/SharedService.kt"))
+        GradleRunner.create()
+            .withProjectDir(library.toFile())
+            .withArguments("publish", "--console=plain")
+            .build()
+        val application = projectDirectory.resolve("application").createDirectories()
+        application.resolve("settings.gradle.kts").writeText(settings(repository, name = "application"))
+        application.resolve("build.gradle.kts").writeText(
+            """
+            plugins {
+                kotlin("jvm") version "${property("akki.kotlin.version")}"
+            }
+
+            repositories {
+                mavenCentral()
+                maven { url = uri("${repository.toUri()}") }
+            }
+
+            dependencies {
+                implementation("consumer:library:$VERSION")
+                implementation("io.akki:akki-core:$newerVersion")
+            }
+
+            tasks.register("resolveCore") {
+                val runtimeClasspath = configurations.runtimeClasspath
+                doLast {
+                    val core = runtimeClasspath.get().incoming.resolutionResult.allComponents
+                        .mapNotNull { it.moduleVersion }
+                        .single { it.group == "io.akki" && it.name == "akki-core" }
+                    println("AKKI core=" + core.version)
+                }
+            }
+            """.trimIndent()
+        )
+
+        val output = GradleRunner.create()
+            .withProjectDir(application.toFile())
+            .withArguments("resolveCore", "--console=plain")
+            .build()
+            .output
+
+        assertContains(output, "AKKI core=$newerVersion\n")
+    }
+
     private fun checkCoreVersionLock(projectDirectory: Path, transitive: Boolean) {
         val repository = publishRepository(projectDirectory.resolve("repository"))
         val newerVersion = "999.0.0"
@@ -478,7 +552,7 @@ class AkkiGradlePluginTest {
         )
     }
 
-    private fun settings(repository: Path): String =
+    private fun settings(repository: Path, name: String = "consumer"): String =
         """
         pluginManagement {
             repositories {
@@ -487,7 +561,7 @@ class AkkiGradlePluginTest {
             }
         }
 
-        rootProject.name = "consumer"
+        rootProject.name = "$name"
         """.trimIndent()
 
     private fun buildScript(

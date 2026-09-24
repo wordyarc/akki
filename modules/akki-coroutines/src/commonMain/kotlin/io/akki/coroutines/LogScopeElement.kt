@@ -4,20 +4,23 @@ package io.akki.coroutines
 
 import io.akki.InternalAkkiApi
 import io.akki.LogScope
-import io.akki.internal.exchangeCurrentScope
+import io.akki.internal.detachedEntry
+import io.akki.internal.exchangeCurrentEntry
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.ThreadContextElement
 
-public fun LogScope.asContextElement(): ThreadContextElement<LogScope?> = LogScopeElement(this)
+public fun LogScope.asContextElement(): CoroutineContext.Element = LogScopeElement(this)
 
 private class LogScopeElement(private val scope: LogScope) :
-    ThreadContextElement<LogScope?>,
+    ThreadContextElement<LogScope.Entry?>,
     AbstractCoroutineContextElement(LogScopeElement) {
-    override fun updateThreadContext(context: CoroutineContext): LogScope? = exchangeCurrentScope(scope)
+    private val entry = scope.detachedEntry()
 
-    override fun restoreThreadContext(context: CoroutineContext, oldState: LogScope?) {
-        exchangeCurrentScope(oldState)
+    override fun updateThreadContext(context: CoroutineContext): LogScope.Entry? = exchangeCurrentEntry(entry)
+
+    override fun restoreThreadContext(context: CoroutineContext, oldState: LogScope.Entry?) {
+        exchangeCurrentEntry(oldState)
     }
 
     override fun toString(): String = "LogScopeElement($scope)"

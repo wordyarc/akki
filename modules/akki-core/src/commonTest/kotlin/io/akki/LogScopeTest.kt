@@ -81,6 +81,24 @@ class LogScopeTest {
     }
 
     @Test
+    fun `entries of the same scope are closed in reverse order`(): Unit {
+        val scope = LogScope(RecordingBackend())
+        val outer = scope.enter()
+        val inner = scope.enter()
+
+        try {
+            val failure = assertFailsWith<IllegalStateException> { outer.close() }
+            assertEquals("akki: logging scopes must be exited on their own thread in reverse order", failure.message)
+            assertSame(scope, LogScope.current())
+        } finally {
+            inner.close()
+            outer.close()
+        }
+
+        assertNull(LogScope.current())
+    }
+
+    @Test
     fun `an entry can be closed more than once`(): Unit {
         val entry = LogScope(RecordingBackend()).enter()
 

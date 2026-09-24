@@ -47,7 +47,7 @@ fun box(): String {
     assertContains(output, "INFO  bootstrap - same thread")
     assertContains(output, "INFO  bootstrap - background thread")
     assertEquals(1, output.lines().count { it.startsWith("akki: backend discovery is in progress") })
-    assertFalse(output.contains("no backend installed"), output)
+    assertFalse(output.contains("no backend found"), output)
     assertFalse(output.contains("broken backend service declaration"), output)
     return "OK"
 }

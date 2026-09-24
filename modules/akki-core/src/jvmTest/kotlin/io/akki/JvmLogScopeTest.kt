@@ -45,4 +45,28 @@ class JvmLogScopeTest {
         )
         assertNull(LogScope.current())
     }
+
+    @Test
+    fun `an entry cannot be closed from another thread in the same scope`(): Unit {
+        val scope = LogScope(RecordingBackend())
+        val entry = scope.enter()
+        var failure: Throwable? = null
+        var workerScope: LogScope? = scope
+
+        try {
+            thread {
+                scope.enter().use { runCatching { entry.close() }.onFailure { failure = it } }
+                workerScope = LogScope.current()
+            }.join()
+        } finally {
+            entry.close()
+        }
+
+        assertEquals(
+            "akki: logging scopes must be exited on their own thread in reverse order",
+            (failure as IllegalStateException).message,
+        )
+        assertNull(workerScope)
+        assertNull(LogScope.current())
+    }
 }

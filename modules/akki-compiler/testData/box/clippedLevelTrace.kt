@@ -1,3 +1,4 @@
+// MIN_LEVEL: TRACE
 // WITH_HELPERS
 package fixture
 

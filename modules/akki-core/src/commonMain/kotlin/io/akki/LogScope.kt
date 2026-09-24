@@ -5,8 +5,8 @@ package io.akki
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import io.akki.internal.akkiError
-import io.akki.internal.currentScope
-import io.akki.internal.setCurrentScope
+import io.akki.internal.currentEntry
+import io.akki.internal.setCurrentEntry
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.AtomicReference
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
@@ -29,11 +29,7 @@ public class LogScope(public val backend: LogBackend) {
         if (!used.load()) used.store(true)
     }
 
-    public fun enter(): Entry {
-        val entry = Entry(this, currentScope())
-        setCurrentScope(this)
-        return entry
-    }
+    public fun enter(): Entry = Entry(this, currentEntry()).also(::setCurrentEntry)
 
     internal inline fun <T> run(crossinline block: () -> T): T {
         contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
@@ -53,21 +49,21 @@ public class LogScope(public val backend: LogBackend) {
     override fun toString(): String = "LogScope($backend)"
 
     public class Entry internal constructor(
-        private val scope: LogScope,
-        private val previous: LogScope?,
+        internal val scope: LogScope,
+        private val previous: Entry?,
     ) : AutoCloseable {
         private var closed = false
 
         override fun close() {
             if (closed) return
-            if (currentScope() !== scope) akkiError("logging scopes must be exited on their own thread in reverse order")
+            if (currentEntry() !== this) akkiError("logging scopes must be exited on their own thread in reverse order")
             closed = true
-            setCurrentScope(previous)
+            setCurrentEntry(previous)
         }
     }
 
     public companion object {
         @JvmStatic
-        public fun current(): LogScope? = if (used.load()) currentScope() else null
+        public fun current(): LogScope? = if (used.load()) currentEntry()?.scope else null
     }
 }
