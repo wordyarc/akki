@@ -104,17 +104,26 @@ class AkkiGradlePluginTest {
     }
 
     @Test
-    fun `reports a backend failure when slf4j-api is downgraded`(@TempDir projectDirectory: Path) {
+    fun `writes to stderr after an slf4j-api downgrade`(@TempDir projectDirectory: Path) {
         val output = build(
             projectDirectory,
             consumer = Consumer.Slf4j,
             extra = """configurations.all { resolutionStrategy.force("org.slf4j:slf4j-api:1.7.36") }""",
         )
 
+        assertContains(output, "writing to stderr at INFO. $SLF4J_HINT")
+        assertContains(output, "INFO  consumer.OrderService - received A-1")
         assertContains(output, "AKKI evaluated=0")
-        assertContains(output, "akki: the backend failed to resolve logger 'consumer.OrderService'")
-        assertContains(output, "java.lang.NoSuchMethodError")
-        assertFalse(output.contains("AKKI INFO consumer.OrderService"), output)
+    }
+
+    @Test
+    fun `preserves the slf4j version of an slf4j 1 application`(@TempDir projectDirectory: Path) {
+        val output = build(projectDirectory, consumer = Consumer.LegacySlf4j)
+
+        assertContains(output, "writing to stderr at INFO. $SLF4J_HINT")
+        assertContains(output, "INFO  consumer.OrderService - received A-1")
+        assertContains(output, "INFO consumer.Application - application record")
+        assertContains(output, "AKKI slf4j-api=1.7.36")
     }
 
     @Test
@@ -297,9 +306,11 @@ class AkkiGradlePluginTest {
 
             tasks.register("akkiDependencies") {
                 doLast {
-                    for (name in listOf("jvmCompileClasspath", "jsCompileClasspath")) {
-                        val akki = configurations.getByName(name).allDependencies.filter { it.group == "$GROUP" }
-                        println("AKKI " + name + " " + akki.map { it.name })
+                    for (compilation in listOf("jvm", "js")) {
+                        for (name in listOf(compilation + "CompileClasspath", compilation + "RuntimeClasspath")) {
+                            val akki = configurations.getByName(name).allDependencies.filter { it.group == "$GROUP" }
+                            println("AKKI " + name + " " + akki.map { it.name }.sorted())
+                        }
                     }
                 }
             }
@@ -317,13 +328,16 @@ class AkkiGradlePluginTest {
             .output
 
         assertContains(output, "AKKI jvmCompileClasspath [akki-core]")
+        assertContains(output, "AKKI jvmRuntimeClasspath [akki-core, akki-slf4j]")
         assertContains(output, "AKKI jsCompileClasspath []")
+        assertContains(output, "AKKI jsRuntimeClasspath []")
     }
 
     @Test
-    fun `adds core when the consumer has no runtime dependency`(@TempDir projectDirectory: Path) {
+    fun `supplies core and the slf4j backend to consumers without runtime dependencies`(@TempDir projectDirectory: Path) {
         val output = build(projectDirectory, consumer = Consumer.Bare)
 
+        assertContains(output, "writing to stderr at INFO. $SLF4J_HINT")
         assertTrue(output.contains("INFO  consumer.OrderService - received A-1"), output)
     }
 
@@ -436,10 +450,11 @@ class AkkiGradlePluginTest {
             tasks.register("resolveCore") {
                 val runtimeClasspath = configurations.runtimeClasspath
                 doLast {
-                    val core = runtimeClasspath.get().incoming.resolutionResult.allComponents
+                    val akki = runtimeClasspath.get().incoming.resolutionResult.allComponents
                         .mapNotNull { it.moduleVersion }
-                        .single { it.group == "$GROUP" && it.name == "akki-core" }
-                    println("AKKI core=" + core.version)
+                        .filter { it.group == "$GROUP" }
+                    println("AKKI core=" + akki.single { it.name == "akki-core" }.version)
+                    println("AKKI slf4j=" + akki.single { it.name == "akki-slf4j" }.version)
                 }
             }
             """.trimIndent()
@@ -452,6 +467,41 @@ class AkkiGradlePluginTest {
             .output
 
         assertContains(output, "AKKI core=$newerVersion\n")
+        assertContains(output, "AKKI slf4j=$VERSION\n")
+    }
+
+    @Test
+    fun `pins the slf4j backend despite a newer transitive dependency`(@TempDir projectDirectory: Path) {
+        val repository = publishRepository(projectDirectory.resolve("repository"))
+        val newerVersion = "999.0.0"
+        publish(repository, GROUP, "akki-slf4j", path("akki.slf4j.jar"), version = newerVersion)
+        publish(repository, "consumer", "library", null, dependencies = listOf(Triple(GROUP, "akki-slf4j", newerVersion)))
+        projectDirectory.resolve("settings.gradle.kts").writeText(settings(repository))
+        projectDirectory.resolve("build.gradle.kts").writeText(
+            buildScript(repository, consumer = Consumer.Bare) + "\n" +
+                """
+                dependencies {
+                    implementation("consumer:library:$VERSION")
+                }
+
+                tasks.register("resolveSlf4j") {
+                    doLast {
+                        val slf4j = configurations.runtimeClasspath.get().resolvedConfiguration.resolvedArtifacts
+                            .single { it.moduleVersion.id.group == "$GROUP" && it.name == "akki-slf4j" }
+                        check(slf4j.file.isFile)
+                        println("AKKI runtimeClasspath slf4j=" + slf4j.moduleVersion.id.version)
+                    }
+                }
+                """.trimIndent()
+        )
+
+        val output = GradleRunner.create()
+            .withProjectDir(projectDirectory.toFile())
+            .withArguments("resolveSlf4j", "--console=plain")
+            .build()
+            .output
+
+        assertContains(output, "AKKI runtimeClasspath slf4j=$VERSION\n")
     }
 
     private fun checkCoreVersionLock(projectDirectory: Path, transitive: Boolean) {
@@ -498,7 +548,7 @@ class AkkiGradlePluginTest {
             assertContains(output, "Cannot find a version of '$GROUP:akki-core'")
             assertContains(output, "strictly $VERSION")
             assertContains(output, "$GROUP:akki-core:$newerVersion")
-            assertContains(output, "Akki core and compiler plugin versions must match")
+            assertContains(output, "Akki modules require the same version as the compiler plugin")
         }
     }
 
@@ -643,12 +693,18 @@ class AkkiGradlePluginTest {
         Consumer.Core, Consumer.Clipped, Consumer.Incremental, Consumer.Bootstrap ->
             listOf("""implementation("$GROUP:akki-core:$VERSION")""")
         Consumer.SimpleSlf4j -> listOf(
-            """implementation("$GROUP:akki-slf4j:$VERSION")""",
             """runtimeOnly("org.slf4j:slf4j-simple:${property("akki.slf4j.version")}")""",
         )
-        Consumer.Slf4j, Consumer.Modular -> listOf(
+        Consumer.Slf4j -> listOf(
             """implementation("$GROUP:akki-slf4j:$VERSION")""",
             """runtimeOnly("ch.qos.logback:logback-classic:${property("akki.logback.version")}")""",
+        )
+        Consumer.Modular -> listOf(
+            """runtimeOnly("ch.qos.logback:logback-classic:${property("akki.logback.version")}")""",
+        )
+        Consumer.LegacySlf4j -> listOf(
+            """implementation("org.slf4j:slf4j-api:1.7.36")""",
+            """runtimeOnly("ch.qos.logback:logback-classic:1.2.13")""",
         )
     }.joinToString("\n") { "    $it" }
 
@@ -677,6 +733,7 @@ class AkkiGradlePluginTest {
         Incremental("IncrementalMain.kt", "consumer.IncrementalMainKt", null),
         Modular("ModularMain.kt", "consumer.ModularMainKt", "logback.xml", modular = true),
         Compatibility("CompatibilityMain.kt", "consumer.CompatibilityMainKt", null),
+        LegacySlf4j("LegacySlf4jMain.kt", "consumer.LegacySlf4jMainKt", null),
     }
 
     private companion object {
@@ -687,6 +744,8 @@ class AkkiGradlePluginTest {
         val VERSION: String = requireNotNull(System.getProperty("akki.version"))
 
         const val OTHER_KOTLIN: String = "2.3.21"
+
+        const val SLF4J_HINT: String = "Add an SLF4J 2 provider to the runtime classpath, for example logback-classic."
 
         @JvmStatic
         fun testedKotlinVersions(): List<String> = requireNotNull(System.getProperty("akki.kotlin.tested")).split(',')

@@ -27,9 +27,9 @@ caller line. An optional compile-time threshold removes calls below the selected
   * `Log.of<T>()` and `Log.named("...")` work without the plugin. Java can use `Log.of(Class)` and `Log.named`.
   * `Logger` provides eager and lazy overloads of `trace`, `debug`, `info`, `warn`, and `error`.
   * `LogBackend` connects a backend; `LogScope` selects one for the current thread.
-* `akki-slf4j`: SLF4J 2 backend, loaded through `ServiceLoader`.
+* `akki-slf4j`: backend for SLF4J 2, enabled when an SLF4J 2 provider is available at runtime.
 * `akki-compiler-kotlin-<line>`: Kotlin compiler plugin, with a separate artifact for each supported Kotlin line.
-* `akki-gradle`: applies the compiler plugin and adds the matching version of `akki-core`.
+* `akki-gradle`: sets up the compiler plugin with `akki-core` and `akki-slf4j` of the same version.
 * `akki-test`: captures test logs with `recordLogs { }` or `RecordingBackend`.
 * `akki-coroutines`: carries a `LogScope` in a coroutine context via `LogScope.asContextElement()`.
 * `akki-test-coroutines`: provides suspending `recordLogs { }` for coroutine tests.
@@ -38,22 +38,24 @@ caller line. An optional compile-time threshold removes calls below the selected
 
 ### Gradle
 
-Apply the plugin and add a backend:
+Add the plugin to your build:
 
 ```kotlin
 plugins {
     kotlin("jvm") version "2.4.20"
     id("io.github.octofleet.akki") version "0.2.0"
 }
+```
 
+Both `akki-core` and `akki-slf4j` are added by the plugin. Logging uses the application's SLF4J 2 provider;
+Spring Boot, for example, includes logback-classic. If no provider is available, akki prints a one-time notice and
+sends records at `INFO` or above to stderr. You can add a provider explicitly:
+
+```kotlin
 dependencies {
-    runtimeOnly("io.github.octofleet:akki-slf4j:0.2.0")
     runtimeOnly("ch.qos.logback:logback-classic:1.5.20")
 }
 ```
-
-There is no need to add `akki-core` separately: the plugin adds it. If no backend is available on the classpath,
-akki writes `INFO` and higher levels to stderr and prints a notice once.
 
 To capture logs in tests:
 
@@ -116,8 +118,9 @@ the field used by `log`. `Log.of(javaClass)` always looks up the logger at runti
 
 ### Backends
 
-`akki-slf4j` forwards fields as SLF4J key-value pairs and attaches the exception as the cause.
-To replace the process-wide backend, use `Log.install(backend)`.
+`akki-slf4j` passes fields to SLF4J as key-value pairs and uses the exception as the cause. If a `LogBackend` is
+registered with `ServiceLoader`, akki chooses it over `akki-slf4j`. Calling `Log.install(backend)` replaces the
+backend for the whole process.
 
 ### Tests
 
@@ -148,9 +151,9 @@ The default value of this option is `source`.
 * Only JVM compilations are supported. Android needs minSdk 34 and has not been tested.
 * Supported Kotlin lines are listed by release in the compatibility table. Currently, only `2.4` is supported.
 * `log` and `logger()` compile without the plugin but throw when called. Use `Log.of` or `Log.named` in that case.
-* Gradle handles plugin setup and the core dependency. In Maven, configure `-Xplugin` manually with the
-  `akki-compiler-kotlin-<line>` artifact for the project's Kotlin line, and add `akki-core` at the same akki version.
-  The compiler plugin reports mismatched versions.
+* Plugin setup and akki dependencies are automatic in Gradle. With Maven, set `-Xplugin` to the
+  `akki-compiler-kotlin-<line>` artifact that matches the project's Kotlin line. Add `akki-core` and `akki-slf4j`
+  with the same akki version as the plugin; the compiler plugin reports version mismatches.
 * Accurate caller lines require the plugin. Inline wrappers around `log` produce synthetic line numbers. Java
   calls report `io.akki.Logger` unless that class is registered in logback's `frameworkPackages`.
 * Only a message passed as a lambda is lazy. Ordinary arguments, including fields, are evaluated even when the

@@ -19,6 +19,6 @@ mavenPublishing {
 
 dependencies {
     api(project(":akki-core"))
-    implementation(libs.slf4j.api)
+    compileOnly(libs.slf4j.api)
     testImplementation(libs.logback.classic)
 }

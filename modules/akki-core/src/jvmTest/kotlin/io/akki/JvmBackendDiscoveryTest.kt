@@ -1,9 +1,12 @@
+@file:OptIn(InternalAkkiApi::class)
+
 package io.akki
 
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import io.akki.backend.Sink
 import io.akki.internal.DefaultBackend
+import io.akki.internal.LogBackendFactory
 import io.akki.internal.chooseBackend
 import io.akki.internal.discover
 import java.io.File
@@ -122,6 +125,71 @@ class JvmBackendDiscoveryTest {
     }
 
     @Test
+    fun `uses a factory if no backend is declared`(@TempDir directory: Path): Unit {
+        directory.declareFactories(CreatingFactory::class.java.name)
+
+        val output = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
+            captureStderr { assertIs<DeclaredBackend>(discover(loader)) }
+        }
+
+        assertEquals("", output)
+    }
+
+    @Test
+    fun `skips factories if a backend is declared`(@TempDir directory: Path): Unit {
+        directory.declareBackends(DeclaredBackend::class.java.name)
+        directory.declareFactories(FailingFactory::class.java.name)
+
+        val output = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
+            captureStderr { assertIs<DeclaredBackend>(discover(loader)) }
+        }
+
+        assertEquals("", output)
+    }
+
+    @Test
+    fun `includes the factory hint when backend creation returns null`(@TempDir directory: Path): Unit {
+        directory.declareFactories(DecliningFactory::class.java.name)
+
+        val output = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
+            captureStderr { discover(loader).record("acme.Declined", "declined") }
+        }
+
+        assertContains(
+            output,
+            "akki: no backend found on the classpath, writing to stderr at INFO. Add the declining provider.\n" +
+                "INFO  acme.Declined - declined",
+        )
+    }
+
+    @Test
+    fun `prints the factory failure and its fallback hint`(@TempDir directory: Path): Unit {
+        directory.declareFactories(FailingFactory::class.java.name)
+
+        val output = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
+            captureStderr { discover(loader).record("acme.Failed", "failed") }
+        }
+
+        assertContains(
+            output,
+            "akki: skipping backend factory ${FailingFactory::class.java.name} after a failure: " +
+                "java.lang.IllegalStateException: broken factory",
+        )
+        assertContains(output, "writing to stderr at INFO. Add the failing provider.\nINFO  acme.Failed - failed")
+    }
+
+    @Test
+    fun `propagates fatal factory errors without reporting them`(@TempDir directory: Path): Unit {
+        directory.declareFactories(FatalFactory::class.java.name)
+
+        val output = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
+            captureStderr { assertFailsWith<StackOverflowError> { discover(loader) } }
+        }
+
+        assertEquals("", output)
+    }
+
+    @Test
     fun `falls back when the service resources cannot be enumerated`(): Unit {
         val loader = object : ClassLoader(LogBackend::class.java.classLoader) {
             override fun getResources(name: String): Enumeration<URL> = error("broken resources")
@@ -201,11 +269,19 @@ class JvmBackendDiscoveryTest {
         assertEquals(2, lookups)
     }
 
-    private fun Path.declareBackends(vararg names: String): URL {
-        val declarations = resolve("META-INF/services/${LogBackend::class.java.name}")
+    private fun Path.declareBackends(vararg names: String): URL = declare(LogBackend::class.java, names)
+
+    private fun Path.declareFactories(vararg names: String): URL = declare(LogBackendFactory::class.java, names)
+
+    private fun Path.declare(service: Class<*>, names: Array<out String>): URL {
+        val declarations = resolve("META-INF/services/${service.name}")
         declarations.parent.createDirectories()
         declarations.writeText(names.joinToString("\n"))
         return declarations.toUri().toURL()
+    }
+
+    private fun LogBackend.record(name: String, message: String) {
+        bind(name).resolve(Level.INFO)?.emit(message, null, emptyMap())
     }
 
     private class UnlinkedProviderLoader(directory: Path) : URLClassLoader(
@@ -258,4 +334,28 @@ class ThrowingBackend : LogBackend {
 
 class IsolatedLookup : BooleanSupplier {
     override fun getAsBoolean(): Boolean = Log.named("discovery.isolated").isEnabled(Level.INFO)
+}
+
+class CreatingFactory : LogBackendFactory {
+    override fun createBackend(): LogBackend = DeclaredBackend()
+
+    override fun hintOnMissing(): String = "Add the creating provider."
+}
+
+class DecliningFactory : LogBackendFactory {
+    override fun createBackend(): LogBackend? = null
+
+    override fun hintOnMissing(): String = "Add the declining provider."
+}
+
+class FailingFactory : LogBackendFactory {
+    override fun createBackend(): LogBackend? = error("broken factory")
+
+    override fun hintOnMissing(): String = "Add the failing provider."
+}
+
+class FatalFactory : LogBackendFactory {
+    override fun createBackend(): LogBackend? = throw StackOverflowError("fatal")
+
+    override fun hintOnMissing(): String = "Add the fatal provider."
 }

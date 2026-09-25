@@ -16,14 +16,17 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
 
     override fun apply(target: Project) {
         target.extensions.create(EXTENSION, AkkiExtension::class.java)
-        val coreVersion = target.configurations.create(CORE_VERSION) {
-            it.description = "Matches $core to the compiler plugin version for each compilation that uses the plugin"
+        val versions = target.configurations.create(VERSIONS) {
+            it.description =
+                "Pins $core and $slf4j to the compiler plugin version in compilations using the plugin"
             it.isCanBeConsumed = false
             it.isCanBeResolved = false
         }
-        target.dependencies.constraints.add(coreVersion.name, core) { constraint ->
-            constraint.version { it.strictly(pluginVersion) }
-            constraint.because("Akki core and compiler plugin versions must match")
+        listOf(core, slf4j).forEach { module ->
+            target.dependencies.constraints.add(versions.name, module) { constraint ->
+                constraint.version { it.strictly(pluginVersion) }
+                constraint.because("Akki modules require the same version as the compiler plugin")
+            }
         }
         target.plugins.withType(KotlinBasePlugin::class.java) { kotlin ->
             compilerArtifact = compilerArtifactFor(kotlin.pluginVersion)
@@ -44,10 +47,13 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
 
     override fun applyToCompilation(kotlinCompilation: KotlinCompilation<*>): Provider<List<SubpluginOption>> {
         val project = kotlinCompilation.target.project
-        kotlinCompilation.defaultSourceSet.dependencies { implementation("$core:$pluginVersion") }
-        val coreVersion = project.configurations.getByName(CORE_VERSION)
+        kotlinCompilation.defaultSourceSet.dependencies {
+            implementation("$core:$pluginVersion")
+            runtimeOnly("$slf4j:$pluginVersion")
+        }
+        val versions = project.configurations.getByName(VERSIONS)
         listOfNotNull(kotlinCompilation.compileDependencyConfigurationName, kotlinCompilation.runtimeDependencyConfigurationName)
-            .forEach { name -> project.configurations.named(name) { it.extendsFrom(coreVersion) } }
+            .forEach { name -> project.configurations.named(name) { it.extendsFrom(versions) } }
         val minLevel = project.extensions.getByType(AkkiExtension::class.java).minLevel
         val notice = minLevel.map { if (it == MinLevel.TRACE) "" else notice(it) }.orElse("")
         kotlinCompilation.compileTaskProvider.configure { task ->
@@ -79,7 +85,7 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
         const val MIN_LEVEL_OPTION: String = "minLevel"
         const val COMPILER_PLUGIN_ID: String = "io.akki"
         const val COMPILER_PREFIX: String = "compiler."
-        const val CORE_VERSION: String = "akkiCoreVersion"
+        const val VERSIONS: String = "akkiVersions"
 
         val properties: Properties by lazy {
             val resource = requireNotNull(
@@ -91,6 +97,8 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
         val group: String by lazy { property("group") }
 
         val core: String by lazy { "$group:akki-core" }
+
+        val slf4j: String by lazy { "$group:akki-slf4j" }
 
         val pluginVersion: String by lazy { property("version") }
 

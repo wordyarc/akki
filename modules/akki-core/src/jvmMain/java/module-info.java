@@ -7,4 +7,5 @@ module io.akki.core {
     exports io.akki.internal;
 
     uses io.akki.backend.LogBackend;
+    uses io.akki.internal.LogBackendFactory;
 }

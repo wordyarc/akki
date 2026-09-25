@@ -103,6 +103,11 @@ public final class io/akki/internal/DeclarationLoggers {
 	public static final fun declarationLogger (Ljava/lang/String;Ljava/lang/String;)Lio/akki/Logger;
 }
 
+public abstract interface class io/akki/internal/LogBackendFactory {
+	public abstract fun createBackend ()Lio/akki/backend/LogBackend;
+	public abstract fun hintOnMissing ()Ljava/lang/String;
+}
+
 public final class io/akki/internal/ThreadContextKt {
 	public static final fun detachedEntry (Lio/akki/LogScope;)Lio/akki/LogScope$Entry;
 	public static final fun exchangeCurrentEntry (Lio/akki/LogScope$Entry;)Lio/akki/LogScope$Entry;
