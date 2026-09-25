@@ -28,7 +28,7 @@ caller line. An optional compile-time threshold removes calls below the selected
   * `Logger` provides eager and lazy overloads of `trace`, `debug`, `info`, `warn`, and `error`.
   * `LogBackend` connects a backend; `LogScope` selects one for the current thread.
 * `akki-slf4j`: SLF4J 2 backend, loaded through `ServiceLoader`.
-* `akki-compiler`: Kotlin compiler plugin.
+* `akki-compiler-kotlin-<line>`: Kotlin compiler plugin, with a separate artifact for each supported Kotlin line.
 * `akki-gradle`: applies the compiler plugin and adds the matching version of `akki-core`.
 * `akki-test`: captures test logs with `recordLogs { }` or `RecordingBackend`.
 * `akki-coroutines`: carries a `LogScope` in a coroutine context via `LogScope.asContextElement()`.
@@ -43,11 +43,11 @@ Apply the plugin and add a backend:
 ```kotlin
 plugins {
     kotlin("jvm") version "2.4.20"
-    id("io.github.octofleet.akki") version "0.1.0"
+    id("io.github.octofleet.akki") version "0.2.0"
 }
 
 dependencies {
-    runtimeOnly("io.github.octofleet:akki-slf4j:0.1.0")
+    runtimeOnly("io.github.octofleet:akki-slf4j:0.2.0")
     runtimeOnly("ch.qos.logback:logback-classic:1.5.20")
 }
 ```
@@ -59,19 +59,24 @@ To capture logs in tests:
 
 ```kotlin
 dependencies {
-    testImplementation("io.github.octofleet:akki-test:0.1.0")
+    testImplementation("io.github.octofleet:akki-test:0.2.0")
 }
 ```
 
-### Kotlin compatibility
+### Versions and Kotlin compatibility
 
-The compiler plugin requires the Kotlin minor version it was built with, but accepts any patch release in that series.
-If the project uses a different minor version, the Gradle plugin stops the build and reports both the required and
-actual Kotlin versions.
+All akki artifacts use the same release version, following [semantic versioning](https://semver.org). Until `1.0`,
+minor releases may introduce breaking changes. Patch releases provide fixes and backward-compatible additions;
+these can include support for an additional Kotlin line.
 
-| akki    | Kotlin  |
-|---------|---------|
-| `0.1.x` | `2.4.x` |
+Because the plugin depends on the Kotlin compiler, each akki release provides a separate
+`akki-compiler-kotlin-<line>` artifact for every Kotlin line it supports. The Gradle plugin selects one based on the
+project's Kotlin version. If that line is unsupported by the akki release, the build fails.
+
+| akki    | Kotlin                      | Compiler plugin            |
+|---------|-----------------------------|----------------------------|
+| `0.2.x` | `2.4.0`, `2.4.10`, `2.4.20` | `akki-compiler-kotlin-2.4` |
+| `0.1.0` | `2.4.x`                     | `akki-compiler`            |
 
 ## Usage
 
@@ -141,10 +146,11 @@ The default value of this option is `source`.
 ## Limitations
 
 * Only JVM compilations are supported. Android needs minSdk 34 and has not been tested.
-* The plugin requires the Kotlin minor version it was built for, currently `2.4.x`.
+* Supported Kotlin lines are listed by release in the compatibility table. Currently, only `2.4` is supported.
 * `log` and `logger()` compile without the plugin but throw when called. Use `Log.of` or `Log.named` in that case.
-* Gradle handles plugin setup and the core dependency. Maven requires manual `-Xplugin` setup and a matching
-  `akki-core` dependency; the compiler plugin reports a version mismatch.
+* Gradle handles plugin setup and the core dependency. In Maven, configure `-Xplugin` manually with the
+  `akki-compiler-kotlin-<line>` artifact for the project's Kotlin line, and add `akki-core` at the same akki version.
+  The compiler plugin reports mismatched versions.
 * Accurate caller lines require the plugin. Inline wrappers around `log` produce synthetic line numbers. Java
   calls report `io.akki.Logger` unless that class is registered in logback's `frameworkPackages`.
 * Only a message passed as a lambda is lazy. Ordinary arguments, including fields, are evaluated even when the

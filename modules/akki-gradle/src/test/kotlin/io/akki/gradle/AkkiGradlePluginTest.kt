@@ -13,6 +13,8 @@ import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.io.TempDir
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.MethodSource
 
 class AkkiGradlePluginTest {
     @Test
@@ -216,9 +218,43 @@ class AkkiGradlePluginTest {
     }
 
     @Test
-    fun `rejects an incompatible Kotlin minor version`(@TempDir projectDirectory: Path) {
-        val expected = property("akki.kotlin.version").minor()
-        require(OTHER_KOTLIN.minor() != expected)
+    fun `adds the compiler plugin built for the Kotlin line of the project`(@TempDir projectDirectory: Path) {
+        prepareConsumer(projectDirectory, Consumer.Bare)
+
+        val output = GradleRunner.create()
+            .withProjectDir(projectDirectory.toFile())
+            .withArguments("dependencies", "--configuration", "kotlinCompilerPluginClasspathMain", "--console=plain")
+            .build()
+            .output
+
+        assertContains(output, "$GROUP:akki-compiler-kotlin-${property("akki.kotlin.version").line()}:$VERSION")
+    }
+
+    @ParameterizedTest(name = "Kotlin {0}")
+    @MethodSource("testedKotlinVersions")
+    fun `compiles and runs on every tested Kotlin release`(kotlinVersion: String, @TempDir projectDirectory: Path) {
+        prepareConsumer(
+            projectDirectory,
+            Consumer.Compatibility,
+            extra = "akki { minLevel = io.akki.gradle.MinLevel.INFO }",
+            kotlinVersion = kotlinVersion,
+        )
+
+        val output = runConsumer(projectDirectory).output
+
+        assertContains(output, "akki: minLevel=info")
+        assertContains(
+            output,
+            "AKKI records=INFO consumer.Service created, INFO consumer.Service handled A-1, " +
+                "INFO audit audited A-1, INFO consumer.Service explicit A-1, WARN consumer.Service folded A-1, " +
+                "INFO consumer.CompatibilityMain traced A-2, INFO consumer.CompatibilityMain top-level",
+        )
+    }
+
+    @Test
+    fun `rejects an unsupported Kotlin line`(@TempDir projectDirectory: Path) {
+        val supported = property("akki.kotlin.version").line()
+        require(OTHER_KOTLIN.line() != supported)
         val repository = publishRepository(projectDirectory.resolve("repository"))
         projectDirectory.resolve("settings.gradle.kts").writeText(settings(repository))
         projectDirectory.resolve("build.gradle.kts")
@@ -230,7 +266,12 @@ class AkkiGradlePluginTest {
             .buildAndFail()
             .output
 
-        assertContains(output, "akki $VERSION requires Kotlin $expected.x, but this project uses Kotlin $OTHER_KOTLIN")
+        assertContains(
+            output,
+            "akki $VERSION supports Kotlin $supported.x, but this project uses Kotlin $OTHER_KOTLIN. " +
+                "The compiler plugin API differs between Kotlin releases. " +
+                "Use a supported Kotlin version or an akki version that supports Kotlin ${OTHER_KOTLIN.line()}.x.",
+        )
     }
 
     @Test
@@ -485,11 +526,12 @@ class AkkiGradlePluginTest {
         consumer: Consumer,
         extra: String = "",
         pomOnly: Boolean = false,
+        kotlinVersion: String = property("akki.kotlin.version"),
     ) {
         val repository = publishRepository(projectDirectory.resolve("repository"))
         projectDirectory.resolve("settings.gradle.kts").writeText(settings(repository))
         projectDirectory.resolve("build.gradle.kts")
-            .writeText(buildScript(repository, consumer, pomOnly = pomOnly) + "\n" + extra)
+            .writeText(buildScript(repository, consumer, kotlinVersion, pomOnly) + "\n" + extra)
         projectDirectory.resolve("src/main/kotlin/consumer").createDirectories()
         projectDirectory.resolve("src/main/kotlin/consumer/${consumer.source}")
             .writeText(fixture("consumer/${consumer.source}"))
@@ -597,7 +639,7 @@ class AkkiGradlePluginTest {
         """.trimIndent()
 
     private fun dependencies(consumer: Consumer): String = when (consumer) {
-        Consumer.Bare -> emptyList()
+        Consumer.Bare, Consumer.Compatibility -> emptyList()
         Consumer.Core, Consumer.Clipped, Consumer.Incremental, Consumer.Bootstrap ->
             listOf("""implementation("$GROUP:akki-core:$VERSION")""")
         Consumer.SimpleSlf4j -> listOf(
@@ -634,6 +676,7 @@ class AkkiGradlePluginTest {
         Clipped("ClippedMain.kt", "consumer.ClippedMainKt", null),
         Incremental("IncrementalMain.kt", "consumer.IncrementalMainKt", null),
         Modular("ModularMain.kt", "consumer.ModularMainKt", "logback.xml", modular = true),
+        Compatibility("CompatibilityMain.kt", "consumer.CompatibilityMainKt", null),
     }
 
     private companion object {
@@ -645,6 +688,9 @@ class AkkiGradlePluginTest {
 
         const val OTHER_KOTLIN: String = "2.3.21"
 
-        fun String.minor(): String = split('.').take(2).joinToString(".")
+        @JvmStatic
+        fun testedKotlinVersions(): List<String> = requireNotNull(System.getProperty("akki.kotlin.tested")).split(',')
+
+        fun String.line(): String = split('.').take(2).joinToString(".")
     }
 }

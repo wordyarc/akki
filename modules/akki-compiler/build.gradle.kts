@@ -1,5 +1,7 @@
 import akki.buildlogic.ClasspathSystemProperty
 import akki.buildlogic.WriteVersionConstant
+import akki.buildlogic.compilerArtifactId
+import akki.buildlogic.kotlinLine
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinJvm
 
@@ -10,10 +12,15 @@ plugins {
     `java-test-fixtures`
 }
 
-description = "Kotlin compiler plugin for akki: logger fields for the log intrinsic, direct backend calls and the compile-time level threshold"
+description = "Kotlin compiler plugin for akki, built for Kotlin $kotlinLine: logger fields for the log intrinsic, " +
+    "direct backend calls and the compile-time level threshold"
 
 mavenPublishing {
+    coordinates(artifactId = compilerArtifactId)
     configure(KotlinJvm(javadocJar = JavadocJar.Empty()))
+    pom {
+        name = compilerArtifactId
+    }
 }
 
 (components["java"] as AdhocComponentWithVariants).apply {

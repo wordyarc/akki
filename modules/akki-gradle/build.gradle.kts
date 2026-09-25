@@ -1,4 +1,6 @@
 import akki.buildlogic.ClasspathSystemProperty
+import akki.buildlogic.compilerArtifactId
+import akki.buildlogic.kotlinLine
 
 plugins {
     id("akki.kotlin-jvm")
@@ -43,7 +45,7 @@ val writeAkkiGradleProperties = tasks.register<WriteProperties>("writeAkkiGradle
     destinationFile = layout.buildDirectory.file("generated/akki-gradle.properties")
     property("group", providers.gradleProperty("akki.maven.group").get())
     property("version", project.version.toString())
-    property("kotlin", libs.versions.kotlin.get())
+    property("compiler.$kotlinLine", compilerArtifactId)
 }
 
 tasks.processResources {
@@ -63,6 +65,7 @@ tasks.test {
     systemProperty("akki.plugin.id", providers.gradleProperty("akki.plugin.id").get())
     systemProperty("akki.version", project.version.toString())
     systemProperty("akki.kotlin.version", libs.versions.kotlin.get())
+    systemProperty("akki.kotlin.tested", providers.gradleProperty("akki.kotlin.tested").get())
     systemProperty("akki.slf4j.version", libs.versions.slf4j.get())
     systemProperty("akki.logback.version", libs.versions.logback.get())
 }

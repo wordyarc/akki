@@ -12,6 +12,8 @@ import org.jetbrains.kotlin.gradle.plugin.SubpluginArtifact
 import org.jetbrains.kotlin.gradle.plugin.SubpluginOption
 
 public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
+    private lateinit var compilerArtifact: String
+
     override fun apply(target: Project) {
         target.extensions.create(EXTENSION, AkkiExtension::class.java)
         val coreVersion = target.configurations.create(CORE_VERSION) {
@@ -23,7 +25,9 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
             constraint.version { it.strictly(pluginVersion) }
             constraint.because("Akki core and compiler plugin versions must match")
         }
-        target.plugins.withType(KotlinBasePlugin::class.java) { kotlin -> checkKotlinVersion(kotlin.pluginVersion) }
+        target.plugins.withType(KotlinBasePlugin::class.java) { kotlin ->
+            compilerArtifact = compilerArtifactFor(kotlin.pluginVersion)
+        }
     }
 
     override fun isApplicable(kotlinCompilation: KotlinCompilation<*>): Boolean =
@@ -34,7 +38,7 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
 
     override fun getPluginArtifact(): SubpluginArtifact = SubpluginArtifact(
         groupId = group,
-        artifactId = COMPILER_ARTIFACT,
+        artifactId = compilerArtifact,
         version = pluginVersion,
     )
 
@@ -56,17 +60,16 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
     }
 
     private companion object {
-        fun checkKotlinVersion(actual: String) {
-            val expected = kotlinVersion.minor()
-            if (actual.minor() == expected) return
-            throw GradleException(
-                "akki $pluginVersion requires Kotlin $expected.x, but this project uses Kotlin $actual. " +
-                    "The compiler plugin API differs between minor releases. Use Kotlin $expected.x " +
-                    "or an akki version built for Kotlin ${actual.minor()}.x.",
+        fun compilerArtifactFor(kotlinVersion: String): String {
+            val line = kotlinVersion.line()
+            return compilers[line] ?: throw GradleException(
+                "akki $pluginVersion supports Kotlin ${compilers.keys.joinToString { "$it.x" }}, " +
+                    "but this project uses Kotlin $kotlinVersion. The compiler plugin API differs between Kotlin " +
+                    "releases. Use a supported Kotlin version or an akki version that supports Kotlin $line.x.",
             )
         }
 
-        fun String.minor(): String = split('.').take(2).joinToString(".")
+        fun String.line(): String = split('.').take(2).joinToString(".")
 
         fun notice(level: MinLevel): String =
             "akki: minLevel=${level.name.lowercase()}, lower-level records are removed from the bytecode; " +
@@ -75,7 +78,7 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
         const val EXTENSION: String = "akki"
         const val MIN_LEVEL_OPTION: String = "minLevel"
         const val COMPILER_PLUGIN_ID: String = "io.akki"
-        const val COMPILER_ARTIFACT: String = "akki-compiler"
+        const val COMPILER_PREFIX: String = "compiler."
         const val CORE_VERSION: String = "akkiCoreVersion"
 
         val properties: Properties by lazy {
@@ -91,7 +94,13 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
 
         val pluginVersion: String by lazy { property("version") }
 
-        val kotlinVersion: String by lazy { property("kotlin") }
+        val compilers: Map<String, String> by lazy {
+            properties.stringPropertyNames()
+                .mapNotNull { name -> name.removePrefix(COMPILER_PREFIX).takeIf { it != name } }
+                .sortedWith(compareBy({ it.substringBefore('.').toInt() }, { it.substringAfter('.').toInt() }))
+                .associateWith { line -> properties.getProperty(COMPILER_PREFIX + line) }
+                .also { require(it.isNotEmpty()) { "akki-gradle.properties has no compiler artifacts" } }
+        }
 
         fun property(name: String): String =
             requireNotNull(properties.getProperty(name)) { "akki-gradle.properties has no $name" }
