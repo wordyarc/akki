@@ -6,6 +6,7 @@ import io.akki.backend.Sink
 import io.akki.internal.DefaultBackend
 import io.akki.internal.chooseBackend
 import io.akki.internal.discover
+import java.io.File
 import java.io.IOException
 import java.net.URLClassLoader
 import java.net.URL
@@ -13,11 +14,13 @@ import java.nio.file.Path
 import java.time.Duration
 import java.util.Collections
 import java.util.Enumeration
+import java.util.function.BooleanSupplier
 import kotlin.io.path.createDirectories
 import kotlin.io.path.writeText
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertIsNot
@@ -167,6 +170,37 @@ class JvmBackendDiscoveryTest {
         assertFalse(output.contains("ignoring a broken backend service declaration"), output)
     }
 
+    @Test
+    fun `a fatal error escapes discovery unreported`(): Unit {
+        val loader = object : ClassLoader(LogBackend::class.java.classLoader) {
+            override fun getResources(name: String): Enumeration<URL> = throw StackOverflowError("fatal")
+        }
+
+        val output = captureStderr { assertFailsWith<StackOverflowError> { discover(loader) } }
+
+        assertEquals("", output)
+    }
+
+    @Test
+    fun `the next lookup retries a discovery that failed fatally`(): Unit {
+        var lookups = 0
+        IsolatedLoader { name ->
+            if (name == "META-INF/services/${LogBackend::class.java.name}") {
+                lookups++
+                if (lookups == 1) throw StackOverflowError("fatal")
+            }
+        }.use { loader ->
+            val lookup = loader.loadClass(IsolatedLookup::class.java.name)
+                .getDeclaredConstructor()
+                .newInstance() as BooleanSupplier
+
+            assertFailsWith<StackOverflowError> { lookup.asBoolean }
+            assertTrue(lookup.asBoolean)
+        }
+
+        assertEquals(2, lookups)
+    }
+
     private fun Path.declareBackends(vararg names: String): URL {
         val declarations = resolve("META-INF/services/${LogBackend::class.java.name}")
         declarations.parent.createDirectories()
@@ -181,6 +215,19 @@ class JvmBackendDiscoveryTest {
         override fun loadClass(name: String, resolve: Boolean): Class<*> {
             if (name == UNLINKED_BACKEND) throw NoClassDefFoundError("provider/AbsentBase")
             return super.loadClass(name, resolve)
+        }
+    }
+
+    private class IsolatedLoader(private val lookup: (String) -> Unit) : URLClassLoader(
+        System.getProperty("java.class.path")
+            .split(File.pathSeparator)
+            .map { File(it).toURI().toURL() }
+            .toTypedArray(),
+        ClassLoader.getPlatformClassLoader(),
+    ) {
+        override fun getResources(name: String): Enumeration<URL> {
+            lookup(name)
+            return super.getResources(name)
         }
     }
 
@@ -207,4 +254,8 @@ class ThrowingBackend : LogBackend {
     }
 
     override fun bind(name: String): LoggerBinding = LoggerBinding { null }
+}
+
+class IsolatedLookup : BooleanSupplier {
+    override fun getAsBoolean(): Boolean = Log.named("discovery.isolated").isEnabled(Level.INFO)
 }

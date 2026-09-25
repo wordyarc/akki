@@ -23,6 +23,7 @@ internal fun discover(loader: ClassLoader): LogBackend {
             }
         }
     } catch (failure: Throwable) {
+        if (failure.isFatal()) throw failure
         printError("akki: failed to discover backends\n${failure.stackTraceToString().trimEnd()}")
     }
     return chooseBackend(declared)

@@ -17,7 +17,12 @@ internal object BackendRegistry {
     fun backend(): LogBackend {
         val previous = current.load()
         if (previous !== initial || !discovery.compareAndSet(null, initial)) return previous.backend
-        val discovered = BackendState(discoverPlatformBackend())
+        val discovered = try {
+            BackendState(discoverPlatformBackend())
+        } catch (failure: Throwable) {
+            discovery.store(null)
+            throw failure
+        }
         discovery.store(discovered)
         current.compareAndSet(initial, discovered)
         return current.load().backend
