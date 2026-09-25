@@ -106,3 +106,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PRERELEASE: ${{ contains(github.ref_name, '-') }}
+
+  release-branch:
+    needs: gradle-plugin-portal
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - run: gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/release/${GITHUB_REF_NAME#v}" -f sha="$GITHUB_SHA"
+        env:
+          GH_TOKEN: ${{ github.token }}
