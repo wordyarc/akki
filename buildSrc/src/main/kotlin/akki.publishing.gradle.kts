@@ -6,7 +6,7 @@ plugins {
 mavenPublishing {
     coordinates(groupId = providers.gradleProperty("akki.maven.group").get())
     publishToMavenCentral()
-    signAllPublications()
+    if (providers.gradleProperty("signingInMemoryKey").isPresent) signAllPublications()
 
     pom {
         name = project.name

@@ -61,6 +61,7 @@ tasks.test {
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.core.jar", akkiCoreJar))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.slf4j.jar", akkiSlf4jJar))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.test.jar", akkiTestJar))
+    systemProperty("org.gradle.testkit.dir", layout.buildDirectory.dir("test-kit").get().asFile)
     systemProperty("akki.maven.group", providers.gradleProperty("akki.maven.group").get())
     systemProperty("akki.plugin.id", providers.gradleProperty("akki.plugin.id").get())
     systemProperty("akki.version", project.version.toString())

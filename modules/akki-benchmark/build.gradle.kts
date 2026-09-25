@@ -8,15 +8,15 @@ plugins {
     id("org.jetbrains.kotlinx.benchmark")
 }
 
-val plugged: SourceSet by sourceSets.creating {
+val plugged: SourceSet = sourceSets.create("plugged") {
     kotlin.setSrcDirs(listOf("src/benchmarks/kotlin"))
 }
 
-val plain: SourceSet by sourceSets.creating {
+val plain: SourceSet = sourceSets.create("plain") {
     kotlin.setSrcDirs(listOf("src/benchmarks/kotlin"))
 }
 
-val clipped: SourceSet by sourceSets.creating {
+val clipped: SourceSet = sourceSets.create("clipped") {
     kotlin.setSrcDirs(listOf("src/benchmarks/kotlin"))
 }
 

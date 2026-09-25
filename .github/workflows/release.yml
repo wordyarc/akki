@@ -12,28 +12,50 @@ concurrency:
   group: release
   cancel-in-progress: false
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   check:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-      - uses: gradle/actions/wrapper-validation@v4
-      - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew check -Pakki.version="${GITHUB_REF_NAME#v}"
-        env:
-          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
-          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
-      - run: ./gradlew lincheck -Pakki.version="${GITHUB_REF_NAME#v}"
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: |
+            17
+            25
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-disabled: true
+      - run: ./gradlew check -Pakki.version="${GITHUB_REF_NAME#v}" --stacktrace
+      - run: ./gradlew lincheck -Pakki.version="${GITHUB_REF_NAME#v}" --stacktrace
 
   maven-central:
     needs: check
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
     steps:
-      - uses: actions/checkout@v4
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: |
+            17
+            25
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-disabled: true
       - run: >-
           ./gradlew publishAndReleaseToMavenCentral -Pakki.version="${GITHUB_REF_NAME#v}"
-          -PmavenCentralDeploymentValidation=PUBLISHED -PSONATYPE_CLOSE_TIMEOUT_SECONDS=3600
+          -PmavenCentralDeploymentValidation=PUBLISHED -PSONATYPE_CLOSE_TIMEOUT_SECONDS=3600 --stacktrace
         env:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
@@ -42,11 +64,22 @@ jobs:
 
   gradle-plugin-portal:
     needs: maven-central
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew :akki-gradle:publishPlugins -Pakki.version="${GITHUB_REF_NAME#v}"
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: |
+            17
+            25
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-disabled: true
+      - run: ./gradlew :akki-gradle:publishPlugins -Pakki.version="${GITHUB_REF_NAME#v}" --stacktrace
         env:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
@@ -56,16 +89,20 @@ jobs:
   github-release:
     needs: gradle-plugin-portal
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
       - run: |
-          previous=$(git describe --tags --abbrev=0 "$GITHUB_REF_NAME^" 2>/dev/null || true)
+          previous=$(git describe --tags --abbrev=0 --match 'v*.*.*' "$GITHUB_REF_NAME^" 2>/dev/null || true)
           git log --format='- %s' ${previous:+$previous..}"$GITHUB_REF_NAME" |
             sed -E 's/@([[:alnum:]_-]+)/`@\1`/g' > notes.md
-          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md --verify-tag
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md --verify-tag \
+            --prerelease="$PRERELEASE"
         env:
           GH_TOKEN: ${{ github.token }}
+          PRERELEASE: ${{ contains(github.ref_name, '-') }}
