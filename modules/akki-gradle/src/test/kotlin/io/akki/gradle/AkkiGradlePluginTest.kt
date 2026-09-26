@@ -104,6 +104,70 @@ class AkkiGradlePluginTest {
     }
 
     @Test
+    fun `passes the configured logger name style to the JVMs that Gradle launches`(@TempDir projectDirectory: Path) {
+        prepareConsumer(
+            projectDirectory,
+            Consumer.Bootstrap,
+            extra = """
+                akki {
+                    loggerNameStyle.set(providers.gradleProperty("style").map(io.akki.gradle.LoggerNameStyle::valueOf))
+                }
+            """.trimIndent(),
+        )
+
+        val jvm = runConsumer(projectDirectory, "test", "-Pstyle=JVM_CLASS")
+        assertEquals(TaskOutcome.SUCCESS, jvm.task(":test")?.outcome, jvm.output)
+        assertContains(jvm.output, "AKKI startup style=jvm-class")
+        assertContains(jvm.output, "AKKI name=consumer.Owner\$Nested")
+        assertContains(jvm.output, "AKKI test name=consumer.Owner\$Nested")
+
+        val repeated = runConsumer(projectDirectory, "test", "-Pstyle=JVM_CLASS")
+        assertContains(repeated.output, "Reusing configuration cache.")
+        assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":test")?.outcome, repeated.output)
+        assertContains(repeated.output, "AKKI name=consumer.Owner\$Nested")
+
+        val source = runConsumer(projectDirectory, "test", "-Pstyle=SOURCE")
+        assertEquals(TaskOutcome.SUCCESS, source.task(":test")?.outcome, source.output)
+        assertContains(source.output, "AKKI startup style=source")
+        assertContains(source.output, "AKKI name=consumer.Owner.Nested")
+        assertContains(source.output, "AKKI test name=consumer.Owner.Nested")
+    }
+
+    @Test
+    fun `keeps the logger name style that a task sets itself`(@TempDir projectDirectory: Path) {
+        prepareConsumer(
+            projectDirectory,
+            Consumer.Bootstrap,
+            extra = """
+                akki {
+                    loggerNameStyle = io.akki.gradle.LoggerNameStyle.JVM_CLASS
+                }
+
+                application {
+                    applicationDefaultJvmArgs = listOf("-Dio.akki.loggerNameStyle=source")
+                }
+
+                tasks.test {
+                    systemProperty("io.akki.loggerNameStyle", "source")
+                }
+            """.trimIndent(),
+        )
+
+        val output = runConsumer(projectDirectory, "test").output
+
+        assertContains(output, "AKKI name=consumer.Owner.Nested")
+        assertContains(output, "AKKI test name=consumer.Owner.Nested")
+    }
+
+    @Test
+    fun `passes no logger name style until one is configured`(@TempDir projectDirectory: Path) {
+        val output = build(projectDirectory, consumer = Consumer.Bootstrap)
+
+        assertContains(output, "AKKI startup style=null")
+        assertContains(output, "AKKI name=consumer.Owner.Nested")
+    }
+
+    @Test
     fun `writes to stderr after an slf4j-api downgrade`(@TempDir projectDirectory: Path) {
         val output = build(
             projectDirectory,
@@ -589,6 +653,10 @@ class AkkiGradlePluginTest {
             projectDirectory.resolve("src/main/resources").createDirectories().resolve(it)
                 .writeText(fixture("consumer/$it"))
         }
+        consumer.test?.let {
+            projectDirectory.resolve("src/test/kotlin/consumer").createDirectories().resolve(it)
+                .writeText(fixture("consumer/$it"))
+        }
         if (consumer.modular) {
             projectDirectory.resolve("src/main/java").createDirectories().resolve("module-info.java")
                 .writeText("module consumer {\n    requires io.akki.core;\n}\n")
@@ -686,12 +754,18 @@ class AkkiGradlePluginTest {
             mainClass.set("${consumer.mainClass}")
             ${if (consumer.modular) "mainModule.set(\"consumer\")" else ""}
         }
+
+        ${if (consumer.test != null) "tasks.test { testLogging.showStandardStreams = true }" else ""}
         """.trimIndent()
 
     private fun dependencies(consumer: Consumer): String = when (consumer) {
         Consumer.Bare, Consumer.Compatibility -> emptyList()
-        Consumer.Core, Consumer.Clipped, Consumer.Incremental, Consumer.Bootstrap ->
+        Consumer.Core, Consumer.Clipped, Consumer.Incremental ->
             listOf("""implementation("$GROUP:akki-core:$VERSION")""")
+        Consumer.Bootstrap -> listOf(
+            """implementation("$GROUP:akki-core:$VERSION")""",
+            """testImplementation(kotlin("test"))""",
+        )
         Consumer.SimpleSlf4j -> listOf(
             """runtimeOnly("org.slf4j:slf4j-simple:${property("akki.slf4j.version")}")""",
         )
@@ -723,12 +797,13 @@ class AkkiGradlePluginTest {
         val mainClass: String,
         val resource: String?,
         val modular: Boolean = false,
+        val test: String? = null,
     ) {
         Bare("BareMain.kt", "consumer.BareMainKt", null),
         Core("Main.kt", "consumer.MainKt", null),
         Slf4j("Slf4jMain.kt", "consumer.Slf4jMainKt", "logback.xml"),
         SimpleSlf4j("SimpleSlf4jMain.kt", "consumer.SimpleSlf4jMainKt", null),
-        Bootstrap("BootstrapMain.kt", "consumer.BootstrapMainKt", null),
+        Bootstrap("BootstrapMain.kt", "consumer.BootstrapMainKt", null, test = "BootstrapTest.kt"),
         Clipped("ClippedMain.kt", "consumer.ClippedMainKt", null),
         Incremental("IncrementalMain.kt", "consumer.IncrementalMainKt", null),
         Modular("ModularMain.kt", "consumer.ModularMainKt", "logback.xml", modular = true),

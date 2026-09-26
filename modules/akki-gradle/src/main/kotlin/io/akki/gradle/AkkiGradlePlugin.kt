@@ -4,6 +4,8 @@ import java.util.Properties
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.JavaExec
+import org.gradle.api.tasks.testing.Test
 import org.jetbrains.kotlin.gradle.plugin.KotlinBasePlugin
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilerPluginSupportPlugin
@@ -15,7 +17,7 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
     private lateinit var compilerArtifact: String
 
     override fun apply(target: Project) {
-        target.extensions.create(EXTENSION, AkkiExtension::class.java)
+        val extension = target.extensions.create(EXTENSION, AkkiExtension::class.java)
         val versions = target.configurations.create(VERSIONS) {
             it.description =
                 "Pins $core and $slf4j to the compiler plugin version in compilations using the plugin"
@@ -31,6 +33,9 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
         target.plugins.withType(KotlinBasePlugin::class.java) { kotlin ->
             compilerArtifact = compilerArtifactFor(kotlin.pluginVersion)
         }
+        val style = extension.loggerNameStyle
+        target.tasks.withType(Test::class.java).configureEach { it.passLoggerNameStyle(target.providers, style) }
+        target.tasks.withType(JavaExec::class.java).configureEach { it.passLoggerNameStyle(target.providers, style) }
     }
 
     override fun isApplicable(kotlinCompilation: KotlinCompilation<*>): Boolean =

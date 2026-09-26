@@ -12,6 +12,7 @@ class Owner {
 fun main() {
     println("AKKI entered main")
     val startupStyle = System.getProperty(LOGGER_NAME_STYLE_PROPERTY_NAME)
+    println("AKKI startup style=$startupStyle")
     System.setProperty(
         LOGGER_NAME_STYLE_PROPERTY_NAME,
         if (startupStyle == LOGGER_NAME_STYLE_VALUE_SOURCE) LOGGER_NAME_STYLE_VALUE_JVM_CLASS else LOGGER_NAME_STYLE_VALUE_SOURCE,

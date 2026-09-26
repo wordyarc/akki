@@ -1,5 +1,6 @@
 public abstract class io/akki/gradle/AkkiExtension {
 	public fun <init> ()V
+	public abstract fun getLoggerNameStyle ()Lorg/gradle/api/provider/Property;
 	public abstract fun getMinLevel ()Lorg/gradle/api/provider/Property;
 }
 
@@ -11,6 +12,14 @@ public final class io/akki/gradle/AkkiGradlePlugin : org/jetbrains/kotlin/gradle
 	public fun getCompilerPluginId ()Ljava/lang/String;
 	public fun getPluginArtifact ()Lorg/jetbrains/kotlin/gradle/plugin/SubpluginArtifact;
 	public fun isApplicable (Lorg/jetbrains/kotlin/gradle/plugin/KotlinCompilation;)Z
+}
+
+public final class io/akki/gradle/LoggerNameStyle : java/lang/Enum {
+	public static final field JVM_CLASS Lio/akki/gradle/LoggerNameStyle;
+	public static final field SOURCE Lio/akki/gradle/LoggerNameStyle;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/akki/gradle/LoggerNameStyle;
+	public static fun values ()[Lio/akki/gradle/LoggerNameStyle;
 }
 
 public final class io/akki/gradle/MinLevel : java/lang/Enum {

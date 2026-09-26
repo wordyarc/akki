@@ -144,7 +144,17 @@ akki {
 
 By default, logger names use source notation, such as `com.example.Outer.Inner`. Launch the JVM with
 `-Dio.akki.loggerNameStyle=jvm-class` to use JVM names instead: `com.example.Outer$Inner` and `JobsKt` for files.
-The default value of this option is `source`.
+The default value of this option is `source`. The Gradle plugin passes the option to the JVMs that Gradle starts,
+such as `test`, `run` and `bootRun`:
+
+```kotlin
+akki {
+    loggerNameStyle = io.akki.gradle.LoggerNameStyle.JVM_CLASS
+}
+```
+
+A JVM started outside Gradle, for example with `java -jar` or in a container, still needs the `-D` option. A value
+that a task sets itself with `systemProperty` or `jvmArgs` takes precedence over `loggerNameStyle`.
 
 ## Limitations
 
@@ -159,7 +169,8 @@ The default value of this option is `source`.
 * Only a message passed as a lambda is lazy. Ordinary arguments, including fields, are evaluated even when the
   level is disabled.
 * `recordLogs` and `LogScope` capture the current thread. Executors and other threads use the global backend.
-* Choose the name style when launching the JVM. Setting it with `System.setProperty` in `main` is too late.
+* Choose the name style when launching the JVM. `loggerNameStyle` reaches only the JVMs that Gradle starts, and
+  setting the style with `System.setProperty` in `main` is too late.
 * Records removed by `minLevel` cannot be restored through runtime logging configuration.
 * MDC and markers are not supported. `Log.named` retains its loggers, so applications need a bounded set of names.
 * The API is experimental. Releases before `1.0` may break compatibility.

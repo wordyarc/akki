@@ -11,7 +11,14 @@ public enum class MinLevel {
     OFF,
 }
 
+public enum class LoggerNameStyle {
+    SOURCE,
+    JVM_CLASS,
+}
+
 public abstract class AkkiExtension {
 
     public abstract val minLevel: Property<MinLevel>
+
+    public abstract val loggerNameStyle: Property<LoggerNameStyle>
 }
