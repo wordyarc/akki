@@ -1,0 +1,21 @@
+name: Set up JDKs and Gradle
+description: Installs JDK 17 and 25 and sets up Gradle; setup-java caches the Gradle User Home and saves it only when the job succeeds
+
+inputs:
+  cache:
+    description: Restore the Gradle User Home and save it when the job succeeds
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      with:
+        distribution: temurin
+        java-version: |
+          17
+          25
+        cache: ${{ inputs.cache == 'true' && 'gradle' || '' }}
+    - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      with:
+        cache-disabled: true
