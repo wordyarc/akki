@@ -21,33 +21,25 @@ jobs:
   version:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    outputs:
-      version: ${{ steps.version.outputs.version }}
     steps:
-      - id: version
-        run: |
+      - run: |
           version=${GITHUB_REF_NAME#v}
           semver='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$'
           [[ $version =~ $semver ]] || { echo "::error::$GITHUB_REF_NAME is not vMAJOR.MINOR.PATCH[-PRERELEASE]"; exit 1; }
-          echo "version=$version" >> "$GITHUB_OUTPUT"
 
   check:
     needs: version
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
       - uses: $/.github/actions/setup
-      - run: ./gradlew check -Pakki.version="$VERSION" --stacktrace
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
+      - id: gradle
+        run: ./gradlew check -Pakki.version="${GITHUB_REF_NAME#v}" --stacktrace
       - name: Upload test reports
+        if: ${{ !cancelled() && steps.gradle.outcome == 'failure' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: failure()
         with:
-          name: test-reports
+          name: ${{ github.job }}-reports
           path: '**/build/reports/tests'
 
   lincheck:
@@ -55,51 +47,39 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
       - uses: $/.github/actions/setup
-      - run: ./gradlew lincheck -Pakki.version="$VERSION" --max-workers=1 --stacktrace
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
+      - id: gradle
+        run: ./gradlew lincheck -Pakki.version="${GITHUB_REF_NAME#v}" --max-workers=1 --stacktrace
       - name: Upload test reports
+        if: ${{ !cancelled() && steps.gradle.outcome == 'failure' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: failure()
         with:
-          name: lincheck-reports
+          name: ${{ github.job }}-reports
           path: '**/build/reports/tests'
 
   maven-central:
-    needs: [version, check, lincheck]
+    needs: [check, lincheck]
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
       - uses: $/.github/actions/setup
-      - run: >-
-          ./gradlew publishAndReleaseToMavenCentral -Pakki.version="$VERSION"
-          -PmavenCentralDeploymentValidation=PUBLISHED -PSONATYPE_CLOSE_TIMEOUT_SECONDS=3600 --stacktrace
+      - run: ./gradlew publishAndReleaseToMavenCentral -Pakki.version="${GITHUB_REF_NAME#v}" --stacktrace
         env:
-          VERSION: ${{ needs.version.outputs.version }}
+          ORG_GRADLE_PROJECT_mavenCentralDeploymentValidation: PUBLISHED
+          ORG_GRADLE_PROJECT_SONATYPE_CLOSE_TIMEOUT_SECONDS: 3600
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
 
   gradle-plugin-portal:
-    needs: [version, maven-central]
+    needs: maven-central
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
       - uses: $/.github/actions/setup
-      - run: ./gradlew :akki-gradle:publishPlugins -Pakki.version="$VERSION" --stacktrace
+      - run: ./gradlew :akki-gradle:publishPlugins -Pakki.version="${GITHUB_REF_NAME#v}" --stacktrace
         env:
-          VERSION: ${{ needs.version.outputs.version }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
           GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
@@ -129,13 +109,12 @@ jobs:
           PRERELEASE: ${{ contains(github.ref_name, '-') }}
 
   release-branch:
-    needs: [version, gradle-plugin-portal]
+    needs: gradle-plugin-portal
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: write
     steps:
-      - run: gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/release/$VERSION" -f sha="$GITHUB_SHA"
+      - run: gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/release/${GITHUB_REF_NAME#v}" -f sha="$GITHUB_SHA"
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.version.outputs.version }}
