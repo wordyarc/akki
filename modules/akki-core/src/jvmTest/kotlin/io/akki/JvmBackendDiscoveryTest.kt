@@ -172,7 +172,7 @@ class JvmBackendDiscoveryTest {
 
         assertContains(
             output,
-            "akki: skipping backend factory ${FailingFactory::class.java.name} after a failure: " +
+            "akki: ignoring a failed backend factory ${FailingFactory::class.java.name}: " +
                 "java.lang.IllegalStateException: broken factory",
         )
         assertContains(output, "writing to stderr at INFO. Add the failing provider.\nINFO  acme.Failed - failed")
