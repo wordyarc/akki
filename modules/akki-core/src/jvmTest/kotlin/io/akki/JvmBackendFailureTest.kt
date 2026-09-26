@@ -27,7 +27,11 @@ class JvmBackendFailureTest {
         }
 
         assertEquals(1, output.lineSequence().count { it.startsWith("akki: the backend failed to resolve logger") })
-        assertContains(output, "akki: the backend failed to resolve logger 'failure.announced.first.bind'")
+        assertContains(
+            output,
+            "akki: the backend failed to resolve logger 'failure.announced.first.bind', " +
+                "records are dropped while it keeps failing",
+        )
         assertContains(output, "java.lang.IllegalStateException: bind is broken for failure.announced.first.bind")
     }
 
@@ -58,21 +62,41 @@ class JvmBackendFailureTest {
     }
 
     @Test
-    fun `a linkage error in the backend is contained like any other failure`(): Unit {
-        val logger = Log.named("failure.linkage")
-
-        val output = captureStderr {
-            Log.install(LogBackend { _ -> throw NoClassDefFoundError("org/slf4j/LoggerFactory") }).use {
-                logger.info("dropped")
-                assertFalse(logger.isEnabled(Level.ERROR))
+    fun `a linkage error disables the logger until another backend is installed`(): Unit {
+        val unbound = Log.named("failure.linkage.bind")
+        val unresolved = Log.named("failure.linkage.resolve")
+        val recording = RecordingBackend()
+        var attempts = 0
+        val broken = LogBackend { name ->
+            attempts++
+            if (name == unbound.name) throw NoClassDefFoundError("org/slf4j/LoggerFactory")
+            LoggerBinding {
+                attempts++
+                throw NoSuchMethodError("org.slf4j.Logger.isEnabledForLevel")
             }
         }
 
-        assertEquals(
-            1,
-            output.lineSequence().count {
-                it.startsWith("akki: the backend failed to resolve logger 'failure.linkage'")
-            },
+        val output = captureStderr {
+            Log.install(broken).use {
+                repeat(2) {
+                    unbound.info("dropped")
+                    unresolved.info("dropped")
+                }
+                assertFalse(unbound.isEnabled(Level.ERROR))
+                assertFalse(unresolved.isEnabled(Level.ERROR))
+            }
+            Log.install(recording).use {
+                unbound.info("recorded")
+                unresolved.info("recorded")
+            }
+        }
+
+        assertEquals(3, attempts)
+        assertEquals(listOf("recorded", "recorded"), recording.records.map { it.message })
+        assertContains(
+            output,
+            "akki: the backend failed to resolve logger 'failure.linkage.bind', records of every logger it fails " +
+                "to resolve are dropped until another backend is installed",
         )
         assertContains(output, "java.lang.NoClassDefFoundError: org/slf4j/LoggerFactory")
     }

@@ -29,13 +29,7 @@ internal class LoggerImpl(override val name: String) : Logger() {
         val backend = BackendRegistry.backend()
         val previous = binding.load()
         previous?.takeIf { it.backend === backend }?.let { return it }
-        val delegate = try {
-            backend.bind(name)
-        } catch (failure: Throwable) {
-            if (failure.isFatal()) throw failure
-            report(backend, failure)
-            NO_SINK
-        }
+        val delegate = bind(backend) ?: return NO_SINK
         val created = Binding(backend, delegate)
         var expected = previous
         while (!binding.compareAndSet(expected, created)) {
@@ -47,11 +41,25 @@ internal class LoggerImpl(override val name: String) : Logger() {
         return created
     }
 
+    private fun bind(backend: LogBackend): LoggerBinding? =
+        try {
+            backend.bind(name)
+        } catch (failure: Throwable) {
+            if (failure.isFatal()) throw failure
+            report(backend, failure)
+            if (failure.isPermanent()) NO_SINK else null
+        }
+
     private fun report(backend: LogBackend, failure: Throwable) {
         if (!BackendRegistry.claimFailureReport(backend)) return
+        val consequence = if (failure.isPermanent()) {
+            "records of every logger it fails to resolve are dropped until another backend is installed"
+        } else {
+            "records are dropped while it keeps failing"
+        }
         printError(
-            "akki: the backend failed to resolve logger '$name', records of every logger it fails to resolve " +
-                "are dropped until another backend is installed, and only this first failure is reported\n" +
+            "akki: the backend failed to resolve logger '$name', $consequence, " +
+                "and only this first failure is reported\n" +
                 failure.stackTraceToString().trimEnd(),
         )
     }
@@ -64,7 +72,7 @@ internal class LoggerImpl(override val name: String) : Logger() {
                 delegate.resolve(level)
             } catch (failure: Throwable) {
                 if (failure.isFatal()) throw failure
-                binding.compareAndSet(this, Binding(backend, NO_SINK))
+                if (failure.isPermanent()) binding.compareAndSet(this, Binding(backend, NO_SINK))
                 report(backend, failure)
                 null
             }

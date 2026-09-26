@@ -59,20 +59,48 @@ class BackendFailureTest {
     }
 
     @Test
-    fun `a failing backend is not asked again until another backend is installed`(): Unit {
-        val logger = Log.named("failure.terminal")
+    fun `a failing backend is asked again by the next record`(): Unit {
+        val logger = Log.named("failure.retried")
         val backend = FailingBackend()
-        val working = RecordingBackend()
 
         Log.install(backend).use {
             repeat(3) { logger.info("dropped") }
         }
-        Log.install(working).use {
+
+        assertEquals(3, backend.attempts)
+    }
+
+    @Test
+    fun `a logger writes again once the backend resolves it`(): Unit {
+        val logger = Log.named("failure.recovered.resolve")
+        val recording = RecordingBackend()
+        var failures = 1
+        val backend = LogBackend { name ->
+            val binding = recording.bind(name)
+            LoggerBinding { level -> if (failures-- > 0) error("resolve failed once") else binding.resolve(level) }
+        }
+
+        Log.install(backend).use {
+            logger.info("dropped")
             logger.info("recorded")
         }
 
-        assertEquals(1, backend.attempts)
-        assertEquals(listOf("recorded"), working.records.map { it.message })
+        assertEquals(listOf("recorded"), recording.records.map { it.message })
+    }
+
+    @Test
+    fun `a logger binds again after a failed bind`(): Unit {
+        val logger = Log.named("failure.recovered.bind")
+        val recording = RecordingBackend()
+        var failures = 1
+        val backend = LogBackend { name -> if (failures-- > 0) error("bind failed once") else recording.bind(name) }
+
+        Log.install(backend).use {
+            logger.info("dropped")
+            logger.info("recorded")
+        }
+
+        assertEquals(listOf("recorded"), recording.records.map { it.message })
     }
 
     private enum class Failing {

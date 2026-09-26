@@ -1,10 +1,14 @@
 package io.akki
 
+import io.akki.backend.LogBackend
+import io.akki.backend.LoggerBinding
 import io.akki.test.RecordingBackend
+import java.lang.management.ManagementFactory
 import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @OptIn(DelicateAkkiApi::class)
 class JvmLogScopeTest {
@@ -26,6 +30,16 @@ class JvmLogScopeTest {
 
         assertEquals(listOf("owner"), scoped.records.map { it.message })
         assertEquals(listOf("worker"), installed.records.map { it.message })
+    }
+
+    @Test
+    fun `a scope binds many loggers without copying its bindings`(): Unit {
+        val loggers = List(20_000) { Log.named("scope.many.$it") }
+        val scope = LogScope(LogBackend { LoggerBinding { null } })
+
+        val allocated = allocatedBytes { scope.run { loggers.forEach { it.info("dropped") } } }
+
+        assertTrue(allocated < 64L * 1024 * 1024, "allocated $allocated bytes")
     }
 
     @Test
@@ -68,5 +82,12 @@ class JvmLogScopeTest {
         )
         assertNull(workerScope)
         assertNull(LogScope.current())
+    }
+
+    private fun allocatedBytes(block: () -> Unit): Long {
+        val threads = ManagementFactory.getThreadMXBean() as com.sun.management.ThreadMXBean
+        val before = threads.currentThreadAllocatedBytes
+        block()
+        return threads.currentThreadAllocatedBytes - before
     }
 }

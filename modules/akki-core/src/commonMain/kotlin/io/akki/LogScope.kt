@@ -4,11 +4,11 @@ package io.akki
 
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
+import io.akki.internal.ScopeBindings
 import io.akki.internal.akkiError
 import io.akki.internal.currentEntry
 import io.akki.internal.setCurrentEntry
 import kotlin.concurrent.atomics.AtomicBoolean
-import kotlin.concurrent.atomics.AtomicReference
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
@@ -23,7 +23,7 @@ public inline fun <T> withLogScope(scope: LogScope, crossinline block: () -> T):
 }
 
 public class LogScope(public val backend: LogBackend) {
-    private val bindings = AtomicReference<Map<String, LoggerBinding>>(emptyMap())
+    private val bindings = ScopeBindings()
 
     init {
         if (!used.load()) used.store(true)
@@ -36,15 +36,8 @@ public class LogScope(public val backend: LogBackend) {
         return withLogScope(this, block)
     }
 
-    internal fun binding(name: String): LoggerBinding {
-        var bound: LoggerBinding? = null
-        while (true) {
-            val current = bindings.load()
-            current[name]?.let { return it }
-            val created = bound ?: backend.bind(name).also { bound = it }
-            if (bindings.compareAndSet(current, current + (name to created))) return created
-        }
-    }
+    internal fun binding(name: String): LoggerBinding =
+        bindings[name] ?: backend.bind(name).let { bindings.putIfAbsent(name, it) ?: it }
 
     override fun toString(): String = "LogScope($backend)"
 

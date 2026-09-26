@@ -59,9 +59,8 @@ private fun Class<*>.logicalEnclosingOwner(): Class<*>? = ignoringMalformedClass
 
 private fun Class<*>.enclosingOwner(): Class<*>? {
     superclass?.takeIf(Class<*>::isEnum)?.let { return it }
-    declaringClass?.takeIf { isCompanionObject() }?.let { return it }
-    if (canonicalName != null) return null
-    return enclosingClass ?: indyHost()
+    if (canonicalName == null) return enclosingClass ?: indyHost()
+    return declaringClass?.takeIf { isCompanionObject() }
 }
 
 private fun Class<*>.isCompanionObject(): Boolean {
