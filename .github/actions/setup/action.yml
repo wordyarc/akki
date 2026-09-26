@@ -1,10 +1,10 @@
 name: Set up JDKs and Gradle
-description: Installs JDK 17 and 25 and sets up Gradle; setup-java caches the Gradle User Home and saves it only when the job succeeds
+description: Installs JDK 17 and 25 and sets up Gradle; actions/cache keeps the Gradle User Home
 
 inputs:
   cache:
-    description: Restore the Gradle User Home and save it when the job succeeds
-    default: 'true'
+    description: "'read-write' restores the Gradle User Home and saves it when the job succeeds, 'read-only' only restores it, 'none' skips it"
+    default: none
 
 runs:
   using: composite
@@ -15,7 +15,22 @@ runs:
         java-version: |
           17
           25
-        cache: ${{ inputs.cache == 'true' && 'gradle' || '' }}
+    - if: inputs.cache == 'read-write'
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle.properties', '**/gradle-wrapper.properties', 'gradle/*.versions.toml') }}
+        restore-keys: gradle-${{ runner.os }}-
+    - if: inputs.cache == 'read-only'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle.properties', '**/gradle-wrapper.properties', 'gradle/*.versions.toml') }}
+        restore-keys: gradle-${{ runner.os }}-
     - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
       with:
         cache-disabled: true

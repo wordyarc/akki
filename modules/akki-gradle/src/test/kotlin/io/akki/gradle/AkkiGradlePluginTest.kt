@@ -328,10 +328,10 @@ class AkkiGradlePluginTest {
     fun `rejects an unsupported Kotlin line`(@TempDir projectDirectory: Path) {
         val supported = property("akki.kotlin.version").line()
         require(OTHER_KOTLIN.line() != supported)
-        val repository = publishRepository(projectDirectory.resolve("repository"))
-        projectDirectory.resolve("settings.gradle.kts").writeText(settings(repository))
+        publishRepository(projectDirectory)
+        projectDirectory.resolve("settings.gradle.kts").writeText(settings())
         projectDirectory.resolve("build.gradle.kts")
-            .writeText(buildScript(repository, Consumer.Bare, kotlinVersion = OTHER_KOTLIN))
+            .writeText(buildScript(Consumer.Bare, kotlinVersion = OTHER_KOTLIN))
 
         val output = GradleRunner.create()
             .withProjectDir(projectDirectory.toFile())
@@ -349,8 +349,8 @@ class AkkiGradlePluginTest {
 
     @Test
     fun `applies only to JVM compilations`(@TempDir projectDirectory: Path) {
-        val repository = publishRepository(projectDirectory.resolve("repository"))
-        projectDirectory.resolve("settings.gradle.kts").writeText(settings(repository))
+        publishRepository(projectDirectory)
+        projectDirectory.resolve("settings.gradle.kts").writeText(settings())
         projectDirectory.resolve("build.gradle.kts").writeText(
             """
             plugins {
@@ -360,7 +360,7 @@ class AkkiGradlePluginTest {
 
             repositories {
                 mavenCentral()
-                maven { url = uri("${repository.toUri()}") }
+                maven { url = uri("$REPOSITORY") }
             }
 
             kotlin {
@@ -407,8 +407,8 @@ class AkkiGradlePluginTest {
 
     @Test
     fun `consumes published core and test APIs from common source sets`(@TempDir projectDirectory: Path) {
-        val repository = publishRepository(projectDirectory.resolve("repository"))
-        projectDirectory.resolve("settings.gradle.kts").writeText(settings(repository))
+        publishRepository(projectDirectory)
+        projectDirectory.resolve("settings.gradle.kts").writeText(settings())
         projectDirectory.resolve("build.gradle.kts").writeText(
             """
             plugins {
@@ -418,7 +418,7 @@ class AkkiGradlePluginTest {
 
             repositories {
                 mavenCentral()
-                maven { url = uri("${repository.toUri()}") }
+                maven { url = uri("$REPOSITORY") }
             }
 
             kotlin {
@@ -460,11 +460,11 @@ class AkkiGradlePluginTest {
 
     @Test
     fun `leaves the core version of a published library open to its consumers`(@TempDir projectDirectory: Path) {
-        val repository = publishRepository(projectDirectory.resolve("repository"))
+        val repository = publishRepository(projectDirectory)
         val newerVersion = "999.0.0"
         publish(repository, GROUP, "akki-core", path("akki.core.jar"), version = newerVersion)
         val library = projectDirectory.resolve("library").createDirectories()
-        library.resolve("settings.gradle.kts").writeText(settings(repository, name = "library"))
+        library.resolve("settings.gradle.kts").writeText(settings("library", "../$REPOSITORY"))
         library.resolve("build.gradle.kts").writeText(
             """
             plugins {
@@ -478,12 +478,12 @@ class AkkiGradlePluginTest {
 
             repositories {
                 mavenCentral()
-                maven { url = uri("${repository.toUri()}") }
+                maven { url = uri("../$REPOSITORY") }
             }
 
             publishing {
                 publications { create<MavenPublication>("library") { from(components["java"]) } }
-                repositories { maven { url = uri("${repository.toUri()}") } }
+                repositories { maven { url = uri("../$REPOSITORY") } }
             }
             """.trimIndent()
         )
@@ -494,7 +494,7 @@ class AkkiGradlePluginTest {
             .withArguments("publish", "--console=plain")
             .build()
         val application = projectDirectory.resolve("application").createDirectories()
-        application.resolve("settings.gradle.kts").writeText(settings(repository, name = "application"))
+        application.resolve("settings.gradle.kts").writeText(settings("application", "../$REPOSITORY"))
         application.resolve("build.gradle.kts").writeText(
             """
             plugins {
@@ -503,7 +503,7 @@ class AkkiGradlePluginTest {
 
             repositories {
                 mavenCentral()
-                maven { url = uri("${repository.toUri()}") }
+                maven { url = uri("../$REPOSITORY") }
             }
 
             dependencies {
@@ -536,13 +536,13 @@ class AkkiGradlePluginTest {
 
     @Test
     fun `pins the slf4j backend despite a newer transitive dependency`(@TempDir projectDirectory: Path) {
-        val repository = publishRepository(projectDirectory.resolve("repository"))
+        val repository = publishRepository(projectDirectory)
         val newerVersion = "999.0.0"
         publish(repository, GROUP, "akki-slf4j", path("akki.slf4j.jar"), version = newerVersion)
         publish(repository, "consumer", "library", null, dependencies = listOf(Triple(GROUP, "akki-slf4j", newerVersion)))
-        projectDirectory.resolve("settings.gradle.kts").writeText(settings(repository))
+        projectDirectory.resolve("settings.gradle.kts").writeText(settings())
         projectDirectory.resolve("build.gradle.kts").writeText(
-            buildScript(repository, consumer = Consumer.Bare) + "\n" +
+            buildScript(consumer = Consumer.Bare) + "\n" +
                 """
                 dependencies {
                     implementation("consumer:library:$VERSION")
@@ -569,7 +569,7 @@ class AkkiGradlePluginTest {
     }
 
     private fun checkCoreVersionLock(projectDirectory: Path, transitive: Boolean) {
-        val repository = publishRepository(projectDirectory.resolve("repository"))
+        val repository = publishRepository(projectDirectory)
         val newerVersion = "999.0.0"
         publish(repository, GROUP, "akki-core", path("akki.core.jar"), version = newerVersion)
         publish(
@@ -580,9 +580,9 @@ class AkkiGradlePluginTest {
             dependencies = listOf(Triple(GROUP, "akki-core", newerVersion)),
         )
         val dependency = if (transitive) "consumer:library:$VERSION" else "$GROUP:akki-core:$newerVersion"
-        projectDirectory.resolve("settings.gradle.kts").writeText(settings(repository))
+        projectDirectory.resolve("settings.gradle.kts").writeText(settings())
         projectDirectory.resolve("build.gradle.kts").writeText(
-            buildScript(repository, consumer = Consumer.Bare) + "\n" +
+            buildScript(consumer = Consumer.Bare) + "\n" +
                 """
                 dependencies {
                     implementation("$dependency")
@@ -642,10 +642,10 @@ class AkkiGradlePluginTest {
         pomOnly: Boolean = false,
         kotlinVersion: String = property("akki.kotlin.version"),
     ) {
-        val repository = publishRepository(projectDirectory.resolve("repository"))
-        projectDirectory.resolve("settings.gradle.kts").writeText(settings(repository))
+        publishRepository(projectDirectory)
+        projectDirectory.resolve("settings.gradle.kts").writeText(settings())
         projectDirectory.resolve("build.gradle.kts")
-            .writeText(buildScript(repository, consumer, kotlinVersion, pomOnly) + "\n" + extra)
+            .writeText(buildScript(consumer, kotlinVersion, pomOnly) + "\n" + extra)
         projectDirectory.resolve("src/main/kotlin/consumer").createDirectories()
         projectDirectory.resolve("src/main/kotlin/consumer/${consumer.source}")
             .writeText(fixture("consumer/${consumer.source}"))
@@ -672,7 +672,8 @@ class AkkiGradlePluginTest {
             .withProjectDir(projectDirectory.toFile())
             .withArguments("run", "--stacktrace", "--configuration-cache", "--no-build-cache", "--console=plain", *arguments)
 
-    private fun publishRepository(repository: Path): Path {
+    private fun publishRepository(projectDirectory: Path): Path {
+        val repository = projectDirectory.resolve(REPOSITORY)
         path("akki.test.repository").toFile().copyRecursively(repository.toFile())
         return repository
     }
@@ -712,11 +713,11 @@ class AkkiGradlePluginTest {
         )
     }
 
-    private fun settings(repository: Path, name: String = "consumer"): String =
+    private fun settings(name: String = "consumer", repository: String = REPOSITORY): String =
         """
         pluginManagement {
             repositories {
-                maven { url = uri("${repository.toUri()}") }
+                maven { url = uri("$repository") }
                 mavenCentral()
             }
         }
@@ -725,7 +726,6 @@ class AkkiGradlePluginTest {
         """.trimIndent()
 
     private fun buildScript(
-        repository: Path,
         consumer: Consumer,
         kotlinVersion: String = property("akki.kotlin.version"),
         pomOnly: Boolean = false,
@@ -740,7 +740,7 @@ class AkkiGradlePluginTest {
         repositories {
             mavenCentral()
             maven {
-                url = uri("${repository.toUri()}")
+                url = uri("$REPOSITORY")
                 ${if (pomOnly) "metadataSources { mavenPom(); artifact(); ignoreGradleMetadataRedirection() }" else ""}
             }
         }
@@ -819,6 +819,8 @@ class AkkiGradlePluginTest {
         val VERSION: String = requireNotNull(System.getProperty("akki.version"))
 
         const val OTHER_KOTLIN: String = "2.3.21"
+
+        const val REPOSITORY: String = "repository"
 
         const val SLF4J_HINT: String = "Add an SLF4J 2 provider to the runtime classpath, for example logback-classic."
 

@@ -40,8 +40,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: $/.github/actions/setup
-        with:
-          cache: false
       - run: ./gradlew check -Pakki.version="$VERSION" --stacktrace
         env:
           VERSION: ${{ needs.version.outputs.version }}
@@ -61,8 +59,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: $/.github/actions/setup
-        with:
-          cache: false
       - run: ./gradlew lincheck -Pakki.version="$VERSION" --max-workers=1 --stacktrace
         env:
           VERSION: ${{ needs.version.outputs.version }}
@@ -82,8 +78,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: $/.github/actions/setup
-        with:
-          cache: false
       - run: >-
           ./gradlew publishAndReleaseToMavenCentral -Pakki.version="$VERSION"
           -PmavenCentralDeploymentValidation=PUBLISHED -PSONATYPE_CLOSE_TIMEOUT_SECONDS=3600 --stacktrace
@@ -103,8 +97,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: $/.github/actions/setup
-        with:
-          cache: false
       - run: ./gradlew :akki-gradle:publishPlugins -Pakki.version="$VERSION" --stacktrace
         env:
           VERSION: ${{ needs.version.outputs.version }}

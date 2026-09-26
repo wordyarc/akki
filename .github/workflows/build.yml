@@ -27,7 +27,9 @@ jobs:
         with:
           persist-credentials: false
       - uses: $/.github/actions/setup
-      - run: ./gradlew build --continue --stacktrace
+        with:
+          cache: read-write
+      - run: ./gradlew build -x :akki-gradle:check --continue --stacktrace
       - run: ./gradlew :koverHtmlReport --stacktrace
       - name: Upload coverage report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -49,6 +51,42 @@ jobs:
           report_paths: '**/build/test-results/*/TEST-*.xml'
           annotate_only: ${{ github.event.pull_request.head.repo.fork == true }}
 
+  akki-gradle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      checks: write
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/setup
+        with:
+          cache: read-only
+      - name: Cache the TestKit Gradle User Home
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: modules/akki-gradle/build/test-kit/caches
+          key: test-kit-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties', 'modules/akki-gradle/src/**') }}
+          restore-keys: test-kit-${{ runner.os }}-
+      - run: ./gradlew :akki-gradle:check --continue --stacktrace
+      - name: Upload test reports
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: akki-gradle-reports
+          path: '**/build/reports/tests'
+
+      - name: Report test results
+        uses: mikepenz/action-junit-report@a9170d5795813c01ab4901ffb045b52bab4ab09d # v6.5.0
+        if: ${{ !cancelled() }}
+        with:
+          report_paths: '**/build/test-results/*/TEST-*.xml'
+          check_name: JUnit Test Report (akki-gradle)
+          annotate_only: ${{ github.event.pull_request.head.repo.fork == true }}
+
   lincheck:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -59,7 +97,7 @@ jobs:
           persist-credentials: false
       - uses: $/.github/actions/setup
         with:
-          cache: false
+          cache: read-only
       - run: ./gradlew lincheck --max-workers=1 --stacktrace
       - name: Upload test reports
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
