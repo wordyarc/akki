@@ -1,6 +1,5 @@
 module io.akki.core {
     requires transitive kotlin.stdlib;
-    requires kotlin.metadata.jvm;
 
     exports io.akki;
     exports io.akki.backend;

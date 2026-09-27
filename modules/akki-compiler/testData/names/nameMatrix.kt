@@ -77,6 +77,33 @@ class Service {
     }
 }
 
+class Initialized {
+    val objectInInit: Logger
+    val localClassInInit: Logger
+
+    init {
+        val probe = object : Any() {
+            fun probe(): Logger = agrees(log, this::class)
+        }
+        objectInInit = probe.probe()
+        class Local {
+            fun probe(): Logger = agrees(log, this::class, Log.of<Local>(), Log.of(Local::class))
+        }
+        localClassInInit = Local().probe()
+    }
+
+    companion object {
+        val objectInCompanionInit: Logger
+
+        init {
+            val probe = object : Any() {
+                fun probe(): Logger = agrees(log, this::class)
+            }
+            objectInCompanionInit = probe.probe()
+        }
+    }
+}
+
 object Standalone {
     fun probe(): Logger = agrees(log, this::class, Log.of<Standalone>(), Log.of(Standalone::class))
 }
@@ -123,6 +150,9 @@ fun box(): String {
             "localClass=fixture.Service",
             "innerOfLocalClass=fixture.Service",
             "objectExpression=fixture.Service",
+            "objectInInit=fixture.Initialized",
+            "localClassInInit=fixture.Initialized",
+            "objectInCompanionInit=fixture.Initialized",
             "enumEntry=fixture.Colour",
             "interfaceMethod=fixture.Contract",
         ),
@@ -138,6 +168,9 @@ fun box(): String {
             "localClass=${Service().localClass().name}",
             "innerOfLocalClass=${Service().innerOfLocalClass().name}",
             "objectExpression=${Service().objectExpression().name}",
+            "objectInInit=${Initialized().objectInInit.name}",
+            "localClassInInit=${Initialized().localClassInInit.name}",
+            "objectInCompanionInit=${Initialized.objectInCompanionInit.name}",
             "enumEntry=${Colour.RED.probe().name}",
             "interfaceMethod=${ContractImpl().probe().name}",
         ),

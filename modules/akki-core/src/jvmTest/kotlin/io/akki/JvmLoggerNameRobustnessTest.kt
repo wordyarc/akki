@@ -1,10 +1,16 @@
 package io.akki
 
 import io.akki.internal.JvmLoggerNameStyle
+import io.akki.internal.isCompanionObject
 import io.akki.internal.platformTypeName
 import java.io.File
 import java.util.zip.ZipFile
+import kotlin.metadata.ClassKind
+import kotlin.metadata.jvm.KotlinClassMetadata
+import kotlin.metadata.kind
+import kotlin.random.Random
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class JvmLoggerNameRobustnessTest {
@@ -21,16 +27,32 @@ class JvmLoggerNameRobustnessTest {
         }
     }
 
+    @Test
+    fun `recognizes companion objects as kotlin-metadata-jvm does`(): Unit {
+        val types = listOf(Unit::class.java, KotlinClassMetadata::class.java, Log::class.java, javaClass)
+            .flatMap(::classesOf)
+            .filter { it.isAnnotationPresent(Metadata::class.java) }
+        val companions = types.filter { it.isCompanionObject() }
+
+        assertEquals(emptyList(), types.filter { it.isCompanionObject() != it.isCompanionPerKotlinMetadata() })
+        assertTrue(Random.Default::class.java in companions, "expected the standard library companions to be checked")
+    }
+
     private fun classesOf(anchor: Class<*>): List<Class<*>> {
-        val jar = File(anchor.protectionDomain.codeSource.location.toURI())
-        return ZipFile(jar).use { zip ->
-            zip.entries()
-                .asSequence()
-                .map(java.util.zip.ZipEntry::getName)
-                .filter { it.endsWith(".class") && !it.startsWith("META-INF") }
-                .map { it.removeSuffix(".class").replace('/', '.') }
-                .mapNotNull { runCatching { Class.forName(it, false, anchor.classLoader) }.getOrNull() }
-                .toList()
+        val location = File(anchor.protectionDomain.codeSource.location.toURI())
+        val entries = if (location.isDirectory) {
+            location.walk().map { it.relativeTo(location).invariantSeparatorsPath }.toList()
+        } else {
+            ZipFile(location).use { zip -> zip.entries().asSequence().map(java.util.zip.ZipEntry::getName).toList() }
         }
+        return entries
+            .filter { it.endsWith(".class") && !it.startsWith("META-INF") }
+            .map { it.removeSuffix(".class").replace('/', '.') }
+            .mapNotNull { runCatching { Class.forName(it, false, anchor.classLoader) }.getOrNull() }
+    }
+
+    private fun Class<*>.isCompanionPerKotlinMetadata(): Boolean {
+        val metadata = KotlinClassMetadata.readLenient(getDeclaredAnnotation(Metadata::class.java))
+        return metadata is KotlinClassMetadata.Class && metadata.kmClass.kind == ClassKind.COMPANION_OBJECT
     }
 }

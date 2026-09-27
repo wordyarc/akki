@@ -31,15 +31,12 @@ kotlin {
     }
 
     sourceSets {
-        jvmMain.dependencies {
-            implementation(libs.kotlin.metadata.jvm)
-        }
-
         commonTest.dependencies {
             implementation(project(":akki-test"))
         }
 
         jvmTest.dependencies {
+            implementation(libs.kotlin.metadata.jvm)
             implementation(libs.kotlin.test.junit5)
             implementation(libs.junit.jupiter)
             implementation(libs.lincheck)

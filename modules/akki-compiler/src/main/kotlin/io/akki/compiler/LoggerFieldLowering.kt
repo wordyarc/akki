@@ -41,6 +41,7 @@ import org.jetbrains.kotlin.ir.util.isAnnotationClass
 import org.jetbrains.kotlin.ir.util.isArrayOrPrimitiveArray
 import org.jetbrains.kotlin.ir.util.isEnumEntry
 import org.jetbrains.kotlin.ir.util.isInterface
+import org.jetbrains.kotlin.ir.util.isLocal
 import org.jetbrains.kotlin.ir.util.isSuspendFunction
 import org.jetbrains.kotlin.ir.util.parents
 import org.jetbrains.kotlin.load.java.JavaDescriptorVisibilities
@@ -182,7 +183,7 @@ internal class LoggerFieldLowering(
         createThisReceiverParameter()
     }
 
-    private fun IrClass.isHoisted(): Boolean = classId == null || isCompanion || isEnumEntry
+    private fun IrClass.isHoisted(): Boolean = isLocal || isCompanion || isEnumEntry
 
     private fun IrDeclarationContainer.loggerField(
         key: String,

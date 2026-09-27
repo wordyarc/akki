@@ -5,6 +5,8 @@ import io.akki.backend.LogBackend
 import java.io.IOException
 import java.util.ServiceConfigurationError
 import java.util.ServiceLoader
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.ReentrantLock
 
 @OptIn(InternalAkkiApi::class)
 internal fun discover(loader: ClassLoader): LogBackend {
@@ -33,7 +35,37 @@ internal fun chooseBackend(declared: List<LogBackend>): LogBackend {
     return chosen
 }
 
-internal actual fun discoverPlatformBackend(): LogBackend = discover(LogBackend::class.java.classLoader)
+private const val DISCOVERY_WAIT_MILLIS: Long = 1_000
+
+private val discovery = ReentrantLock()
+
+@Volatile
+private var discovered: LogBackend? = null
+
+@Volatile
+private var stalled: Boolean = false
+
+internal actual fun discoverPlatformBackend(): LogBackend? {
+    discovered?.let { return it }
+    if (discovery.isHeldByCurrentThread || !awaitDiscovery()) return null
+    try {
+        return discovered ?: discover(LogBackend::class.java.classLoader).also { discovered = it }
+    } finally {
+        discovery.unlock()
+    }
+}
+
+private fun awaitDiscovery(): Boolean {
+    if (discovery.tryLock()) return true
+    if (stalled) return false
+    try {
+        if (discovery.tryLock(DISCOVERY_WAIT_MILLIS, TimeUnit.MILLISECONDS)) return true
+        stalled = true
+    } catch (_: InterruptedException) {
+        Thread.currentThread().interrupt()
+    }
+    return false
+}
 
 @OptIn(InternalAkkiApi::class)
 private fun LogBackendFactory.tryCreateBackend(): LogBackend? =
