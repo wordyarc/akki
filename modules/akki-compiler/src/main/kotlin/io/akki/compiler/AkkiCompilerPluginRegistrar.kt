@@ -3,6 +3,7 @@
 package io.akki.compiler
 
 import io.akki.compiler.fir.AkkiFirExtensionRegistrar
+import io.akki.compiler.ir.AkkiIrGenerationExtension
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.compiler.plugin.CompilerPluginRegistrar
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi

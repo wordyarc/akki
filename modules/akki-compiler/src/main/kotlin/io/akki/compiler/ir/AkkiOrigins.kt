@@ -1,4 +1,4 @@
-package io.akki.compiler
+package io.akki.compiler.ir
 
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationOriginImpl

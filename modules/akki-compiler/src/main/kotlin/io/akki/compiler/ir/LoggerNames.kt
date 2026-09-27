@@ -1,6 +1,6 @@
 @file:OptIn(UnsafeDuringIrConstructionAPI::class)
 
-package io.akki.compiler
+package io.akki.compiler.ir
 
 import org.jetbrains.kotlin.backend.jvm.lower.getFileClassInfo
 import org.jetbrains.kotlin.ir.declarations.IrClass

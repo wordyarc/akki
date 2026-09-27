@@ -1,7 +1,9 @@
 @file:OptIn(UnsafeDuringIrConstructionAPI::class)
 
-package io.akki.compiler
+package io.akki.compiler.ir
 
+import io.akki.compiler.AkkiErrors
+import io.akki.compiler.MinLevel
 import org.jetbrains.kotlin.backend.common.FileLoweringPass
 import org.jetbrains.kotlin.backend.common.IrElementTransformerVoidWithContext
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext

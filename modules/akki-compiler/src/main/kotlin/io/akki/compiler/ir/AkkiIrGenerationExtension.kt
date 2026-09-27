@@ -1,5 +1,6 @@
-package io.akki.compiler
+package io.akki.compiler.ir
 
+import io.akki.compiler.MinLevel
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
