@@ -90,13 +90,17 @@ private class Services(private val loader: ClassLoader) {
                     if (!providers.hasNext()) return found
                     found += providers.next()
                 } catch (failure: Throwable) {
-                    if (failure is ServiceConfigurationError && failure.cause is IOException) {
+                    val cause = (failure as? ServiceConfigurationError)?.cause
+                    if (cause != null && cause.isFatal()) throw cause
+                    if (cause is IOException) {
                         printError("akki: backend service enumeration interrupted by an I/O failure: $failure")
                         complete = false
                         return found
                     }
                     if (failure !is ServiceConfigurationError && failure !is LinkageError) throw failure
-                    printError("akki: ignoring a broken backend service declaration: $failure")
+                    printError(
+                        "akki: ignoring a broken backend service declaration\n${failure.stackTraceToString().trimEnd()}",
+                    )
                 }
             }
         } catch (failure: Throwable) {

@@ -20,7 +20,9 @@ import kotlin.concurrent.thread
 import kotlin.io.path.createDirectories
 import kotlin.io.path.writeText
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
@@ -63,17 +65,36 @@ class Slf4jDiscoveryTest {
     }
 
     @Test
-    fun `declines the backend if slf4j selects a nop provider`(@TempDir directory: Path) {
+    fun `accepts a nop provider selected before another provider`(@TempDir directory: Path) {
         directory.declareProviders(NOP_FallbackServiceProvider::class.java.name)
 
-        assertNull(createBackend(listOf(directory.toFile()) + classpath()))
+        val backend = createBackend(listOf(directory.toFile()) + classpath())
+
+        assertEquals(Slf4jBackend::class.java.name, backend?.javaClass?.name)
     }
 
     @Test
-    fun `a nop provider set through the slf4j property disables the backend`() {
-        val backend = withProviderProperty(NOP_FallbackServiceProvider::class.java.name) { createBackend(classpath()) }
+    fun `an explicit slf4j nop provider keeps logging silent`() {
+        val output = captureStderr {
+            URLClassLoader((nopProvider() + classpath().without("logback-")).urls(), ClassLoader.getPlatformClassLoader())
+                .use { it.writeLog() }
+        }
 
-        assertNull(backend)
+        assertEquals("", output)
+    }
+
+    @Test
+    fun `a nop provider selected through the slf4j property keeps logging silent`() {
+        val output = captureStderr {
+            withProviderProperty("org.slf4j.nop.NOPServiceProvider") {
+                URLClassLoader((nopProvider() + classpath()).urls(), ClassLoader.getPlatformClassLoader())
+                    .use { it.writeLog() }
+            }
+        }
+
+        assertContains(output, "Attempting to load provider \"org.slf4j.nop.NOPServiceProvider\"")
+        assertFalse(output.contains("akki:"), output)
+        assertFalse(output.contains("from isolated runtime"), output)
     }
 
     @Test
@@ -92,6 +113,21 @@ class Slf4jDiscoveryTest {
         val backend = createBackend(listOf(directory.toFile()) + classpath())
 
         assertEquals(Slf4jBackend::class.java.name, backend?.javaClass?.name)
+    }
+
+    @Test
+    fun `slf4j reports broken declarations when no working provider remains`(@TempDir directory: Path) {
+        directory.declareProviders("io.akki.slf4j.MissingProvider")
+
+        val output = captureStderr {
+            URLClassLoader(
+                (listOf(directory.toFile()) + classpath().without("logback-")).urls(),
+                ClassLoader.getPlatformClassLoader(),
+            ).use { it.writeLog() }
+        }
+
+        assertContains(output, "io.akki.slf4j.MissingProvider")
+        assertContains(output, "No SLF4J providers were found")
     }
 
     @Test
@@ -135,6 +171,9 @@ class Slf4jDiscoveryTest {
 
     private fun classpath(): List<File> = System.getProperty("java.class.path").split(File.pathSeparator).map(::File)
 
+    private fun nopProvider(): List<File> =
+        System.getProperty("akki.slf4j.nop.classpath").split(File.pathSeparator).map(::File)
+
     private fun List<File>.without(vararg libraries: String): List<File> =
         filterNot { file -> libraries.any { file.name.startsWith(it) } }
 
@@ -148,6 +187,12 @@ class Slf4jDiscoveryTest {
         return factory.javaClass.getMethod("createBackend").invoke(factory)
     }
 
+    private fun ClassLoader.writeLog() {
+        val logger = loadClass("io.akki.Log").getMethod("named", String::class.java).invoke(null, "discovered")
+        loadClass("io.akki.Logger").getMethod("info", String::class.java, Throwable::class.java, Map::class.java)
+            .invoke(logger, "from isolated runtime", null, emptyMap<String, Any?>())
+    }
+
     private fun Path.declareProviders(vararg names: String) {
         val declarations = resolve(PROVIDER_DECLARATIONS)
         declarations.parent.createDirectories()
@@ -155,11 +200,15 @@ class Slf4jDiscoveryTest {
     }
 
     private fun <T> withProviderProperty(provider: String, block: () -> T): T {
-        System.setProperty(PROVIDER_PROPERTY, provider)
+        val previous = System.setProperty(PROVIDER_PROPERTY, provider)
         try {
             return block()
         } finally {
-            System.clearProperty(PROVIDER_PROPERTY)
+            if (previous == null) {
+                System.clearProperty(PROVIDER_PROPERTY)
+            } else {
+                System.setProperty(PROVIDER_PROPERTY, previous)
+            }
         }
     }
 

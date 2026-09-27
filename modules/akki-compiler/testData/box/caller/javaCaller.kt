@@ -3,12 +3,17 @@
 package fixture;
 
 import io.akki.Logger;
-import java.util.Map;
 
 public final class JavaCaller {
     public static int write(Logger logger) {
         int line = new Throwable().getStackTrace()[0].getLineNumber() + 1;
-        logger.info("from Java", null, Map.of());
+        logger.info("from Java");
+        return line;
+    }
+
+    public static int writeLazy(Logger logger) {
+        int line = new Throwable().getStackTrace()[0].getLineNumber() + 1;
+        logger.info(() -> "lazy from Java");
         return line;
     }
 }
@@ -30,19 +35,26 @@ fun box(): String {
 
     val context = LoggerFactory.getILoggerFactory() as LoggerContext
     var javaLine = 0
+    var lazyJavaLine = 0
     var kotlinLine = 0
     val callers = try {
         capturedCallers {
             context.frameworkPackages.add("io.akki.Logger")
             javaLine = JavaCaller.write(logger)
+            lazyJavaLine = JavaCaller.writeLazy(logger)
             kotlinLine = Throwable().stackTrace[0].lineNumber + 1
             logger.info("from Kotlin")
         }
     } finally {
         context.frameworkPackages.remove("io.akki.Logger")
     }
-    assertEquals(listOf("fixture.JavaCaller|write|$javaLine", "fixture.MainKt|box|$kotlinLine"), callers.map {
-        "${it.className}|${it.methodName}|${it.lineNumber}"
-    })
+    assertEquals(
+        listOf(
+            "fixture.JavaCaller|write|$javaLine",
+            "fixture.JavaCaller|writeLazy|$lazyJavaLine",
+            "fixture.MainKt|box|$kotlinLine",
+        ),
+        callers.map { "${it.className}|${it.methodName}|${it.lineNumber}" },
+    )
     return "OK"
 }

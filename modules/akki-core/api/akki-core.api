@@ -56,27 +56,47 @@ public final class io/akki/LogScopeKt {
 
 public abstract class io/akki/Logger {
 	public fun <init> ()V
+	public final fun debug (Ljava/lang/String;)V
+	public final fun debug (Ljava/lang/String;Ljava/lang/Throwable;)V
 	public final fun debug (Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
 	public final fun debug (Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;)V
+	public final fun debug (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
+	public final fun debug (Lkotlin/jvm/functions/Function0;)V
 	public static synthetic fun debug$default (Lio/akki/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V
 	public static synthetic fun debug$default (Lio/akki/Logger;Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
+	public final fun error (Ljava/lang/String;)V
+	public final fun error (Ljava/lang/String;Ljava/lang/Throwable;)V
 	public final fun error (Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
 	public final fun error (Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;)V
+	public final fun error (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
+	public final fun error (Lkotlin/jvm/functions/Function0;)V
 	public static synthetic fun error$default (Lio/akki/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V
 	public static synthetic fun error$default (Lio/akki/Logger;Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
 	public abstract fun getName ()Ljava/lang/String;
+	public final fun info (Ljava/lang/String;)V
+	public final fun info (Ljava/lang/String;Ljava/lang/Throwable;)V
 	public final fun info (Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
 	public final fun info (Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;)V
+	public final fun info (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
+	public final fun info (Lkotlin/jvm/functions/Function0;)V
 	public static synthetic fun info$default (Lio/akki/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V
 	public static synthetic fun info$default (Lio/akki/Logger;Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
 	public final fun isEnabled (Lio/akki/Level;)Z
 	public abstract fun sink (Lio/akki/Level;)Lio/akki/backend/Sink;
+	public final fun trace (Ljava/lang/String;)V
+	public final fun trace (Ljava/lang/String;Ljava/lang/Throwable;)V
 	public final fun trace (Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
 	public final fun trace (Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;)V
+	public final fun trace (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
+	public final fun trace (Lkotlin/jvm/functions/Function0;)V
 	public static synthetic fun trace$default (Lio/akki/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V
 	public static synthetic fun trace$default (Lio/akki/Logger;Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
+	public final fun warn (Ljava/lang/String;)V
+	public final fun warn (Ljava/lang/String;Ljava/lang/Throwable;)V
 	public final fun warn (Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
 	public final fun warn (Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;)V
+	public final fun warn (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
+	public final fun warn (Lkotlin/jvm/functions/Function0;)V
 	public static synthetic fun warn$default (Lio/akki/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V
 	public static synthetic fun warn$default (Lio/akki/Logger;Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
 }

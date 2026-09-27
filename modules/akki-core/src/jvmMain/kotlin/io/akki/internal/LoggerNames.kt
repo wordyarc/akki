@@ -120,11 +120,12 @@ private fun Class<*>.sourceName(): String {
 
 private fun Class<*>.fileClassName(metadata: Metadata): String {
     val shortName = name.substringAfterLast('.')
-    val stem = if (metadata.kind == MULTI_FILE_CLASS_PART_KIND) {
+    val partName = if (metadata.kind == MULTI_FILE_CLASS_PART_KIND) {
         shortName.removePrefix(metadata.extraString.substringAfterLast('/') + MULTIFILE_PART_DELIMITER)
     } else {
         shortName
-    }.removeSuffix(FACADE_SUFFIX)
+    }
+    val stem = partName.removeSuffix(FACADE_SUFFIX).ifEmpty { partName }
     val packageName = metadata.packageName.ifEmpty(::getPackageName)
     return if (packageName.isEmpty()) stem else "$packageName.$stem"
 }

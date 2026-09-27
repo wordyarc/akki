@@ -41,6 +41,7 @@ compiler-test-framework-legacy-junit = { module = "junit:junit", version.ref = "
 
 # -- Logging API --------------------------------------------------------------
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+slf4j-nop = { module = "org.slf4j:slf4j-nop", version.ref = "slf4j" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 
 # -- Build logic --------------------------------------------------------------

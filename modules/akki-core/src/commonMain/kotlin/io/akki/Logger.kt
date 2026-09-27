@@ -1,6 +1,7 @@
 package io.akki
 
 import io.akki.backend.Sink
+import kotlin.jvm.JvmOverloads
 
 public abstract class Logger {
     public abstract val name: String
@@ -10,6 +11,7 @@ public abstract class Logger {
     public fun isEnabled(level: Level): Boolean = sink(level) != null
 
     @Suppress("NOTHING_TO_INLINE")
+    @JvmOverloads
     public inline fun trace(
         message: String,
         cause: Throwable? = null,
@@ -18,6 +20,7 @@ public abstract class Logger {
         sink(Level.TRACE)?.emit(message, cause, fields)
     }
 
+    @JvmOverloads
     public inline fun trace(
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
@@ -27,6 +30,7 @@ public abstract class Logger {
     }
 
     @Suppress("NOTHING_TO_INLINE")
+    @JvmOverloads
     public inline fun debug(
         message: String,
         cause: Throwable? = null,
@@ -35,6 +39,7 @@ public abstract class Logger {
         sink(Level.DEBUG)?.emit(message, cause, fields)
     }
 
+    @JvmOverloads
     public inline fun debug(
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
@@ -44,6 +49,7 @@ public abstract class Logger {
     }
 
     @Suppress("NOTHING_TO_INLINE")
+    @JvmOverloads
     public inline fun info(
         message: String,
         cause: Throwable? = null,
@@ -52,6 +58,7 @@ public abstract class Logger {
         sink(Level.INFO)?.emit(message, cause, fields)
     }
 
+    @JvmOverloads
     public inline fun info(
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
@@ -61,6 +68,7 @@ public abstract class Logger {
     }
 
     @Suppress("NOTHING_TO_INLINE")
+    @JvmOverloads
     public inline fun warn(
         message: String,
         cause: Throwable? = null,
@@ -69,6 +77,7 @@ public abstract class Logger {
         sink(Level.WARN)?.emit(message, cause, fields)
     }
 
+    @JvmOverloads
     public inline fun warn(
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
@@ -78,6 +87,7 @@ public abstract class Logger {
     }
 
     @Suppress("NOTHING_TO_INLINE")
+    @JvmOverloads
     public inline fun error(
         message: String,
         cause: Throwable? = null,
@@ -86,6 +96,7 @@ public abstract class Logger {
         sink(Level.ERROR)?.emit(message, cause, fields)
     }
 
+    @JvmOverloads
     public inline fun error(
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),

@@ -86,6 +86,7 @@ class JvmBackendDiscoveryTest {
 
         assertContains(output, "io.akki.MissingBackend")
         assertContains(output, ThrowingBackend::class.java.name)
+        assertContains(output, "broken constructor")
         assertEquals(2, output.lines().count { it.contains("ignoring a broken backend service declaration") }, output)
     }
 
@@ -184,6 +185,40 @@ class JvmBackendDiscoveryTest {
 
         val output = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
             captureStderr { assertFailsWith<StackOverflowError> { discover(loader) } }
+        }
+
+        assertEquals("", output)
+    }
+
+    @Test
+    fun `propagates fatal factory constructor errors without reporting them`(@TempDir directory: Path): Unit {
+        directory.declareFactories(FatalConstructorFactory::class.java.name)
+
+        val output = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
+            captureStderr {
+                val failure = assertFailsWith<StackOverflowError> { discover(loader) }
+                assertEquals("fatal constructor", failure.message)
+            }
+        }
+
+        assertEquals("", output)
+    }
+
+    @Test
+    fun `the next lookup retries discovery after a fatal backend constructor`(@TempDir directory: Path): Unit {
+        directory.declareBackends(FatalConstructorBackend::class.java.name)
+
+        val output = IsolatedLoader(directory).use { loader ->
+            val lookup = loader.loadClass(IsolatedLookup::class.java.name)
+                .getDeclaredConstructor()
+                .newInstance() as BooleanSupplier
+
+            captureStderr {
+                val failure = assertFailsWith<StackOverflowError> { lookup.asBoolean }
+                assertEquals("fatal constructor", failure.message)
+                directory.declareBackends(DeclaredBackend::class.java.name)
+                assertFalse(lookup.asBoolean)
+            }
         }
 
         assertEquals("", output)
@@ -294,10 +329,9 @@ class JvmBackendDiscoveryTest {
         }
     }
 
-    private class IsolatedLoader(private val lookup: (String) -> Unit) : URLClassLoader(
-        System.getProperty("java.class.path")
-            .split(File.pathSeparator)
-            .map { File(it).toURI().toURL() }
+    private class IsolatedLoader(directory: Path? = null, private val lookup: (String) -> Unit = {}) : URLClassLoader(
+        (listOfNotNull(directory?.toFile()) + System.getProperty("java.class.path").split(File.pathSeparator).map(::File))
+            .map { it.toURI().toURL() }
             .toTypedArray(),
         ClassLoader.getPlatformClassLoader(),
     ) {
@@ -330,6 +364,24 @@ class ThrowingBackend : LogBackend {
     }
 
     override fun bind(name: String): LoggerBinding = LoggerBinding { null }
+}
+
+class FatalConstructorBackend : LogBackend {
+    init {
+        throw StackOverflowError("fatal constructor")
+    }
+
+    override fun bind(name: String): LoggerBinding = LoggerBinding { null }
+}
+
+class FatalConstructorFactory : LogBackendFactory {
+    init {
+        throw StackOverflowError("fatal constructor")
+    }
+
+    override fun createBackend(): LogBackend? = null
+
+    override fun hintOnMissing(): String = "Add the fatal constructor provider."
 }
 
 class IsolatedLookup : BooleanSupplier {

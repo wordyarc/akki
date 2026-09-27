@@ -35,11 +35,12 @@ private fun IrFile.jvmFileName(): DeclarationName {
     val info = getFileClassInfo()
     val fileClass = info.fileClassFqName
     val shortName = fileClass.shortName().asString()
-    val stem = if (info.withJvmMultifileClass) {
+    val partName = if (info.withJvmMultifileClass) {
         shortName.removePrefix(info.facadeClassFqName.shortName().asString() + MULTIFILE_PART_NAME_DELIMITER)
     } else {
         shortName
-    }.removeSuffix(FACADE_SUFFIX)
+    }
+    val stem = partName.removeSuffix(FACADE_SUFFIX).ifEmpty { partName }
     return DeclarationName(fileClass.parent().qualifier() + stem, fileClass.asString())
 }
 

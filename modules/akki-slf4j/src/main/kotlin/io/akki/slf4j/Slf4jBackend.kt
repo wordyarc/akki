@@ -6,7 +6,6 @@ import io.akki.backend.LoggerBinding
 import io.akki.backend.Sink
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.slf4j.helpers.NOPLoggerFactory
 import org.slf4j.event.Level as Slf4jLevel
 
 public class Slf4jBackend : LogBackend {
@@ -33,4 +32,7 @@ private val LEVELS: Array<Slf4jLevel> = Array(Level.entries.size) { ordinal ->
     }
 }
 
-internal fun isSlf4jBound(): Boolean = LoggerFactory.getILoggerFactory() !is NOPLoggerFactory
+internal fun createSlf4jBackend(): Slf4jBackend {
+    LoggerFactory.getILoggerFactory()
+    return Slf4jBackend()
+}

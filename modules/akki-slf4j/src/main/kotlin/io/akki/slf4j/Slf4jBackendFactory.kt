@@ -8,7 +8,7 @@ import io.akki.internal.LogBackendFactory
 import java.util.ServiceLoader
 
 internal class Slf4jBackendFactory : LogBackendFactory {
-    override fun createBackend(): LogBackend? = if (isProviderDeclared() && isSlf4jBound()) Slf4jBackend() else null
+    override fun createBackend(): LogBackend? = if (isProviderDeclared()) createSlf4jBackend() else null
 
     override fun hintOnMissing(): String = "Add an SLF4J 2 provider to the runtime classpath, for example logback-classic."
 
