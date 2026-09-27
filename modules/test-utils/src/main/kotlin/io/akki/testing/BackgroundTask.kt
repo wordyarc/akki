@@ -10,7 +10,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
-internal class BackgroundTask<T>(name: String, action: () -> T) : AutoCloseable {
+class BackgroundTask<T>(name: String, action: () -> T) : AutoCloseable {
     private val task = FutureTask { action() }
     private val thread = Thread(task, name).apply {
         isDaemon = true
@@ -51,7 +51,7 @@ internal class BackgroundTask<T>(name: String, action: () -> T) : AutoCloseable 
     }
 }
 
-internal fun CountDownLatch.awaitSignal(message: String, timeout: Duration = 10.seconds) {
+fun CountDownLatch.awaitSignal(message: String, timeout: Duration = 10.seconds) {
     assertTrue(await(timeout.timeoutNanos(), NANOSECONDS), message)
 }
 

@@ -1,5 +1,4 @@
 // BACKEND_SERVICES: fixture.SlowBackend
-// WITH_BACKGROUND_TASKS
 package fixture
 
 import io.akki.Log

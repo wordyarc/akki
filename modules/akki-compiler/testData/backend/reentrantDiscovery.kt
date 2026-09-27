@@ -1,5 +1,4 @@
 // BACKEND_SERVICES: fixture.ReentrantBackend
-// WITH_BACKGROUND_TASKS
 package fixture
 
 import io.akki.Log

@@ -34,6 +34,7 @@ listOf(
     "akki-coroutines",
     "akki-test-coroutines",
     "akki-benchmark",
+    "test-utils",
 ).forEach { module ->
     include(module)
     project(":$module").projectDir = file("modules/$module")

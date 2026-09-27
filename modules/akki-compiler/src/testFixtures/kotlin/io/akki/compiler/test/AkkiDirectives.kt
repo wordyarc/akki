@@ -10,7 +10,7 @@ internal object AkkiDirectives : SimpleDirectivesContainer() {
 
     val WITHOUT_PLUGIN by directive("Compile the module without the Akki compiler plugin")
 
-    val WITHOUT_AKKI by directive("Leave akki-core, akki-slf4j, akki-test and logback off the classpath")
+    val WITHOUT_AKKI by directive("Leave akki-core, akki-slf4j, akki-test, test-utils and logback off the classpath")
 
     val WITH_LOGBACK by directive("Compile testData/helpers/Logback.kt into the module")
 
@@ -18,8 +18,6 @@ internal object AkkiDirectives : SimpleDirectivesContainer() {
         "Compile testData/helpers/Helpers.kt into the module; with CHECK_BYTECODE_TEXT add TREAT_AS_ONE_FILE " +
             "so that the helpers are not counted",
     )
-
-    val WITH_BACKGROUND_TASKS by directive("Compile the shared test-utils/BackgroundTask.kt into the module")
 
     val BACKEND_SERVICES by stringDirective("LogBackend providers on the runtime classpath instead of akki-slf4j")
 

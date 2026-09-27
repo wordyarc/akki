@@ -35,15 +35,9 @@ val writeVersionConstant = tasks.register<WriteVersionConstant>("writeVersionCon
     outputDirectory = layout.buildDirectory.dir("generated/source/version")
 }
 
-val testUtils = rootProject.layout.projectDirectory.dir("test-utils")
-
 kotlin {
     sourceSets.main {
         kotlin.srcDir(writeVersionConstant)
-    }
-
-    sourceSets.test {
-        kotlin.srcDir(testUtils)
     }
 }
 
@@ -68,6 +62,7 @@ dependencies {
     fixtureRuntime(project(":akki-core"))
     fixtureRuntime(project(":akki-slf4j"))
     fixtureRuntime(project(":akki-test"))
+    fixtureRuntime(project(":test-utils"))
     fixtureRuntime(libs.logback.classic)
     compilerTestLibraries(libs.kotlin.stdlib)
     compilerTestLibraries(libs.kotlin.stdlib.jdk8)
@@ -94,7 +89,6 @@ sourceSets.test {
 
 tasks.withType<Test>().configureEach {
     inputs.dir(testData).withPropertyName("testData").withPathSensitivity(PathSensitivity.RELATIVE)
-    inputs.dir(testUtils).withPropertyName("testUtils").withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 tasks.test {

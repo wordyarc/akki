@@ -23,13 +23,17 @@ tasks.withType<JavaCompile>().configureEach {
 compileModuleDescriptor(tasks.named<JavaCompile>("compileJava"), tasks.named<KotlinCompile>("compileKotlin"))
 
 kotlin {
-    @OptIn(ExperimentalAbiValidation::class)
-    abiValidation()
-
     compilerOptions {
         jvmTarget = JvmTarget.fromTarget(jvmTargetVersion.toString())
         allWarningsAsErrors = true
         freeCompilerArgs.addAll("-progressive", "-Xjdk-release=$jvmTargetVersion")
+    }
+}
+
+plugins.withId("akki.publishing") {
+    kotlin {
+        @OptIn(ExperimentalAbiValidation::class)
+        abiValidation()
     }
 }
 

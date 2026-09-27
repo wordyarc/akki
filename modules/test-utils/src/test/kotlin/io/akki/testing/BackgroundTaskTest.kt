@@ -1,7 +1,5 @@
-package io.akki.compiler
+package io.akki.testing
 
-import io.akki.testing.BackgroundTask
-import io.akki.testing.awaitSignal
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean

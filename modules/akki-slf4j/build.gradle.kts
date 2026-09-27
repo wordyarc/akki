@@ -12,10 +12,6 @@ description = "SLF4J 2 backend for akki"
 
 kotlin {
     explicitApi()
-
-    sourceSets.test {
-        kotlin.srcDir(rootProject.layout.projectDirectory.dir("test-utils"))
-    }
 }
 
 mavenPublishing {
@@ -31,6 +27,7 @@ val nopProvider: Configuration = configurations.create("nopProvider") {
 dependencies {
     api(project(":akki-core"))
     compileOnly(libs.slf4j.api)
+    testImplementation(project(":test-utils"))
     testImplementation(libs.logback.classic)
     nopProvider(libs.slf4j.nop)
 }

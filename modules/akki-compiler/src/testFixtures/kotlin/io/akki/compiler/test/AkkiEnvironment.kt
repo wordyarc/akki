@@ -100,7 +100,6 @@ private class HelperSourceProvider(testServices: TestServices) : AdditionalSourc
         val helpers = listOf(
             AkkiDirectives.WITH_HELPERS to "testData/helpers/Helpers.kt",
             AkkiDirectives.WITH_LOGBACK to "testData/helpers/Logback.kt",
-            AkkiDirectives.WITH_BACKGROUND_TASKS to "../../test-utils/BackgroundTask.kt",
         )
     }
 }
