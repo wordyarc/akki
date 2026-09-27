@@ -1,14 +1,14 @@
 // BACKEND_SERVICES: fixture.ReentrantBackend
+// WITH_BACKGROUND_TASKS
 package fixture
 
 import io.akki.Log
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import io.akki.test.RecordingBackend
+import io.akki.testing.BackgroundTask
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
-import java.util.concurrent.FutureTask
-import java.util.concurrent.TimeUnit.SECONDS
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -20,9 +20,9 @@ class ReentrantBackend : LogBackend {
     init {
         constructions++
         Log.named("bootstrap").info("same thread")
-        val background = FutureTask { Log.named("bootstrap").info("background thread") }
-        Thread(background, "backend-bootstrap").apply { isDaemon = true; start() }
-        background.get(5, SECONDS)
+        BackgroundTask("backend-bootstrap") {
+            Log.named("bootstrap").info("background thread")
+        }.use { it.await() }
     }
 
     override fun bind(name: String): LoggerBinding = recording.bind(name)

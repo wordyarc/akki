@@ -19,6 +19,8 @@ internal object AkkiDirectives : SimpleDirectivesContainer() {
             "so that the helpers are not counted",
     )
 
+    val WITH_BACKGROUND_TASKS by directive("Compile the shared test-utils/BackgroundTask.kt into the module")
+
     val BACKEND_SERVICES by stringDirective("LogBackend providers on the runtime classpath instead of akki-slf4j")
 
     val CHECK_SOURCELESS_DIAGNOSTICS by directive(

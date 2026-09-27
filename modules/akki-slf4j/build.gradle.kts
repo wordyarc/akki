@@ -12,6 +12,10 @@ description = "SLF4J 2 backend for akki"
 
 kotlin {
     explicitApi()
+
+    sourceSets.test {
+        kotlin.srcDir(rootProject.layout.projectDirectory.dir("test-utils"))
+    }
 }
 
 mavenPublishing {

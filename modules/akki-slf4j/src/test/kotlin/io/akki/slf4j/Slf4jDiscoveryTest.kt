@@ -6,6 +6,8 @@ import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.classic.spi.LogbackServiceProvider
 import ch.qos.logback.core.read.ListAppender
 import io.akki.Log
+import io.akki.testing.BackgroundTask
+import io.akki.testing.awaitSignal
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.PrintStream
@@ -15,8 +17,6 @@ import java.nio.file.Path
 import java.util.Collections
 import java.util.Enumeration
 import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
-import kotlin.concurrent.thread
 import kotlin.io.path.createDirectories
 import kotlin.io.path.writeText
 import kotlin.test.Test
@@ -24,7 +24,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import org.slf4j.LoggerFactory
 import org.slf4j.helpers.NOP_FallbackServiceProvider
@@ -149,22 +148,24 @@ class Slf4jDiscoveryTest {
             override fun getResources(name: String): Enumeration<URL> {
                 if (name == PROVIDER_DECLARATIONS && Thread.currentThread().name == INITIALIZER) {
                     initializing.countDown()
-                    proceed.await()
+                    proceed.awaitSignal("SLF4J initialization was not released")
                 }
                 return super.getResources(name)
             }
         }
-        val initializer = thread(name = INITIALIZER) {
-            loader.loadClass(LoggerFactory::class.java.name).getMethod("getILoggerFactory").invoke(null)
-        }
-
         loader.use {
-            try {
-                assertTrue(initializing.await(10, TimeUnit.SECONDS))
-                assertNull(it.createBackend())
-            } finally {
-                proceed.countDown()
-                initializer.join()
+            BackgroundTask(INITIALIZER) {
+                it.loadClass(LoggerFactory::class.java.name).getMethod("getILoggerFactory").invoke(null)
+            }.use { initializer ->
+                try {
+                    initializing.awaitSignal("SLF4J initialization did not reach provider discovery")
+                    BackgroundTask("akki-discovery") { it.createBackend() }.use { discovery ->
+                        assertNull(discovery.await())
+                    }
+                } finally {
+                    proceed.countDown()
+                }
+                initializer.await()
             }
         }
     }
