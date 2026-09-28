@@ -1,6 +1,4 @@
 import akki.buildlogic.ClasspathSystemProperty
-import com.vanniktech.maven.publish.JavadocJar
-import com.vanniktech.maven.publish.KotlinJvm
 
 plugins {
     id("akki.kotlin-jvm")
@@ -12,10 +10,6 @@ description = "SLF4J 2 backend for akki"
 
 kotlin {
     explicitApi()
-}
-
-mavenPublishing {
-    configure(KotlinJvm(javadocJar = JavadocJar.Empty()))
 }
 
 val nopProvider: Configuration = configurations.create("nopProvider") {

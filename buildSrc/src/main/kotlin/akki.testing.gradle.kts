@@ -1,4 +1,4 @@
-import akki.buildlogic.ClasspathSystemProperty
+import akki.buildlogic.copyTestsFrom
 import akki.buildlogic.jvmTargetVersion
 import org.gradle.jvm.toolchain.JavaToolchainService
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
@@ -16,20 +16,11 @@ val onTargetJdk = "OnJdk$jvmTargetVersion"
 afterEvaluate {
     tasks.withType<Test>().filter { !it.name.endsWith(onTargetJdk) }.forEach { source ->
         val onTarget = tasks.register<Test>(source.name + onTargetJdk) {
-            group = "verification"
             description = "Runs ${source.name} on JDK $jvmTargetVersion, the oldest runtime the library supports"
             javaLauncher = project.extensions.getByType<JavaToolchainService>().launcherFor {
                 languageVersion = JavaLanguageVersion.of(jvmTargetVersion)
             }
-            testClassesDirs = source.testClassesDirs
-            classpath = source.classpath
-            jvmArgumentProviders.addAll(source.jvmArgumentProviders.filterIsInstance<ClasspathSystemProperty>())
-            systemProperties(source.systemProperties)
-            filter {
-                setIncludePatterns(*source.filter.includePatterns.toTypedArray())
-                setExcludePatterns(*source.filter.excludePatterns.toTypedArray())
-            }
-            shouldRunAfter(source)
+            copyTestsFrom(source)
         }
         tasks.named(source.extra.properties["akki.lifecycle"] as String? ?: "check") { dependsOn(onTarget) }
     }

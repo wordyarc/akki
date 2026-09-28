@@ -1,9 +1,9 @@
 import akki.buildlogic.ClasspathSystemProperty
-import akki.buildlogic.WriteVersionConstant
 import akki.buildlogic.compilerArtifactId
+import akki.buildlogic.generateVersionConstant
+import akki.buildlogic.jvmClassTest
 import akki.buildlogic.kotlinLine
-import com.vanniktech.maven.publish.JavadocJar
-import com.vanniktech.maven.publish.KotlinJvm
+import akki.buildlogic.publishAs
 
 plugins {
     id("akki.kotlin-jvm")
@@ -15,31 +15,8 @@ plugins {
 description = "Kotlin compiler plugin for akki, built for Kotlin $kotlinLine: logger fields for the log intrinsic, " +
     "direct backend calls and the compile-time level threshold"
 
-mavenPublishing {
-    coordinates(artifactId = compilerArtifactId)
-    configure(KotlinJvm(javadocJar = JavadocJar.Empty()))
-    pom {
-        name = compilerArtifactId
-    }
-}
-
-(components["java"] as AdhocComponentWithVariants).apply {
-    listOf("testFixturesApiElements", "testFixturesRuntimeElements", "testFixturesSourcesElements").forEach { variant ->
-        withVariantsFromConfiguration(configurations[variant]) { skip() }
-    }
-}
-
-val writeVersionConstant = tasks.register<WriteVersionConstant>("writeVersionConstant") {
-    packageName = "io.akki.compiler"
-    version = project.version.toString()
-    outputDirectory = layout.buildDirectory.dir("generated/source/version")
-}
-
-kotlin {
-    sourceSets.main {
-        kotlin.srcDir(writeVersionConstant)
-    }
-}
+publishAs(compilerArtifactId)
+generateVersionConstant(packageName = "io.akki.compiler", sourceSet = "main")
 
 val fixtureRuntime: Configuration = configurations.create("fixtureRuntime") {
     isCanBeConsumed = false
@@ -117,19 +94,7 @@ tasks.test {
     systemProperty("kotlin.test.update.test.data", updateTestData.get())
 }
 
-val jvmClassTest = tasks.register<Test>("jvmClassTest") {
-    val source = tasks.test.get()
-    group = "verification"
+jvmClassTest(tasks.test) {
     description = "Runs the logger name matrix with JVM_CLASS categories"
-    testClassesDirs = source.testClassesDirs
-    classpath = source.classpath
-    jvmArgumentProviders.addAll(source.jvmArgumentProviders.filterIsInstance<ClasspathSystemProperty>())
-    systemProperties(source.systemProperties)
-    systemProperty("io.akki.loggerNameStyle", "jvm-class")
     filter { includeTestsMatching("*AkkiBoxTestGenerated*Names*") }
-    shouldRunAfter(source)
-}
-
-tasks.named("check") {
-    dependsOn(jvmClassTest)
 }

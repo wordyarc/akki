@@ -1,11 +1,15 @@
 package akki.buildlogic
 
 import org.gradle.api.DefaultTask
+import org.gradle.api.Project
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
+import org.gradle.kotlin.dsl.getByType
+import org.gradle.kotlin.dsl.register
+import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
 
 abstract class WriteVersionConstant : DefaultTask() {
     @get:Input
@@ -24,5 +28,16 @@ abstract class WriteVersionConstant : DefaultTask() {
         directory.resolve("AkkiVersion.kt").writeText(
             "package ${packageName.get()}\n\ninternal const val AKKI_VERSION: String = \"${version.get()}\"\n",
         )
+    }
+}
+
+fun Project.generateVersionConstant(packageName: String, sourceSet: String) {
+    val writeVersionConstant = tasks.register<WriteVersionConstant>("writeVersionConstant") {
+        this.packageName.set(packageName)
+        version.set(project.version.toString())
+        outputDirectory.set(layout.buildDirectory.dir("generated/source/version"))
+    }
+    extensions.getByType<KotlinProjectExtension>().sourceSets.named(sourceSet) {
+        kotlin.srcDir(writeVersionConstant)
     }
 }

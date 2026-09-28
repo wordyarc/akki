@@ -22,8 +22,10 @@ val clipped: SourceSet = sourceSets.create("clipped") {
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(libs.versions.jvm.toolchain.get().toInt())
-    sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.target.get())
-    targetCompatibility = JavaVersion.toVersion(libs.versions.jvm.target.get())
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.release = libs.versions.jvm.target.get().toInt()
 }
 
 allOpen {

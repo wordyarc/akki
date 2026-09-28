@@ -1,4 +1,5 @@
 import akki.buildlogic.compileModuleDescriptor
+import akki.buildlogic.jvmModuleName
 import akki.buildlogic.jvmTargetVersion
 import akki.buildlogic.jvmToolchainVersion
 import akki.buildlogic.library
@@ -20,7 +21,15 @@ tasks.withType<JavaCompile>().configureEach {
     options.release = jvmTargetVersion
 }
 
+tasks.named<Javadoc>("javadoc") {
+    exclude("module-info.java")
+}
+
 compileModuleDescriptor(tasks.named<JavaCompile>("compileJava"), tasks.named<KotlinCompile>("compileKotlin"))
+
+tasks.named<KotlinCompile>("compileKotlin") {
+    compilerOptions.moduleName = jvmModuleName
+}
 
 kotlin {
     compilerOptions {

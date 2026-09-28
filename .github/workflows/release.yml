@@ -65,7 +65,6 @@ jobs:
       - uses: $/.github/actions/setup
       - run: ./gradlew publishAndReleaseToMavenCentral -Pakki.version="${GITHUB_REF_NAME#v}" --stacktrace
         env:
-          ORG_GRADLE_PROJECT_mavenCentralDeploymentValidation: PUBLISHED
           ORG_GRADLE_PROJECT_SONATYPE_CLOSE_TIMEOUT_SECONDS: 3600
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
@@ -78,7 +77,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: $/.github/actions/setup
-      - run: ./gradlew :akki-gradle:publishPlugins -Pakki.version="${GITHUB_REF_NAME#v}" --stacktrace
+      - run: ./gradlew publishPlugins -Pakki.version="${GITHUB_REF_NAME#v}" --stacktrace
         env:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}

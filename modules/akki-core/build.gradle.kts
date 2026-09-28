@@ -1,4 +1,5 @@
-import akki.buildlogic.WriteVersionConstant
+import akki.buildlogic.generateVersionConstant
+import akki.buildlogic.jvmClassTest
 import org.gradle.api.tasks.testing.Test
 
 plugins {
@@ -9,18 +10,10 @@ plugins {
 
 description = "Kotlin logging where the compiler names the logger: the log intrinsic, the Log factory and the backend SPI"
 
-val writeVersionConstant = tasks.register<WriteVersionConstant>("writeVersionConstant") {
-    packageName = "io.akki.internal"
-    version = project.version.toString()
-    outputDirectory = layout.buildDirectory.dir("generated/source/version")
-}
+generateVersionConstant(packageName = "io.akki.internal", sourceSet = "commonMain")
 
 kotlin {
     explicitApi()
-
-    sourceSets.commonMain {
-        kotlin.srcDir(writeVersionConstant)
-    }
 
     jvm {
         testRuns.configureEach {
@@ -49,15 +42,8 @@ val lincheckPattern = "*LincheckTest"
 val jvmTest = tasks.named<Test>("jvmTest") {
     filter { excludeTestsMatching(lincheckPattern) }
 }
-val jvmClassTest = tasks.register<Test>("jvmClassTest") {
-    group = "verification"
-    description = "Runs JVM tests with JVM_CLASS logger names"
-    testClassesDirs = jvmTest.get().testClassesDirs
-    classpath = jvmTest.get().classpath
-    systemProperty("io.akki.loggerNameStyle", "jvm-class")
-    filter { excludeTestsMatching(lincheckPattern) }
-    shouldRunAfter(jvmTest)
-}
+
+jvmClassTest(jvmTest)
 
 val lincheck = tasks.register("lincheck") {
     group = "verification"
@@ -83,8 +69,4 @@ kover {
             disabledForTestTasks.addAll("lincheckTest", "lincheckTestOnJdk17")
         }
     }
-}
-
-tasks.named("check") {
-    dependsOn(jvmClassTest)
 }

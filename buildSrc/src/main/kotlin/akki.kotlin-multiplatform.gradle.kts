@@ -1,4 +1,5 @@
 import akki.buildlogic.compileModuleDescriptor
+import akki.buildlogic.jvmModuleName
 import akki.buildlogic.jvmTargetVersion
 import akki.buildlogic.jvmToolchainVersion
 import akki.buildlogic.library
@@ -28,6 +29,11 @@ kotlin {
         compilerOptions {
             jvmTarget = JvmTarget.fromTarget(jvmTargetVersion.toString())
             freeCompilerArgs.add("-Xjdk-release=$jvmTargetVersion")
+        }
+        compilations.named("main") {
+            compileTaskProvider.configure {
+                compilerOptions.moduleName = jvmModuleName
+            }
         }
     }
 

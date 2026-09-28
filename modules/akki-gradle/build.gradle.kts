@@ -1,6 +1,9 @@
 import akki.buildlogic.ClasspathSystemProperty
 import akki.buildlogic.compilerArtifactId
+import akki.buildlogic.gradlePluginId
 import akki.buildlogic.kotlinLine
+import akki.buildlogic.mavenGroup
+import akki.buildlogic.testRepositoryOf
 
 plugins {
     id("akki.kotlin-jvm")
@@ -9,14 +12,15 @@ plugins {
     id("com.gradle.plugin-publish")
 }
 
-description = "Gradle plugin that applies the akki compiler plugin and adds akki-core"
+description = "Gradle plugin that applies the akki compiler plugin for the project's Kotlin line, adds akki-core and " +
+    "akki-slf4j of the same version and passes the configured logger name style to Test and JavaExec tasks"
+
+val testRepository: Configuration =
+    testRepositoryOf(":akki-core", ":akki-slf4j", ":akki-compiler", ":akki-gradle", ":akki-test")
 
 val prepareTestRepository = tasks.register<Sync>("prepareTestRepository") {
     into(layout.buildDirectory.dir("test-repository"))
-    listOf("akki-core", "akki-slf4j", "akki-compiler", "akki-gradle", "akki-test").forEach { module ->
-        dependsOn(":$module:publishAllPublicationsToTestRepository")
-        from(project(":$module").layout.buildDirectory.dir("publications/test-repository"))
-    }
+    from(testRepository)
 }
 
 fun artifactConfiguration(name: String): Configuration = configurations.create(name) {
@@ -43,7 +47,7 @@ kotlin {
 
 val writeAkkiGradleProperties = tasks.register<WriteProperties>("writeAkkiGradleProperties") {
     destinationFile = layout.buildDirectory.file("generated/akki-gradle.properties")
-    property("group", providers.gradleProperty("akki.maven.group").get())
+    property("group", mavenGroup)
     property("version", project.version.toString())
     property("compiler.$kotlinLine", compilerArtifactId)
 }
@@ -62,8 +66,8 @@ tasks.test {
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.slf4j.jar", akkiSlf4jJar))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.test.jar", akkiTestJar))
     systemProperty("org.gradle.testkit.dir", layout.buildDirectory.dir("test-kit").get().asFile)
-    systemProperty("akki.maven.group", providers.gradleProperty("akki.maven.group").get())
-    systemProperty("akki.plugin.id", providers.gradleProperty("akki.plugin.id").get())
+    systemProperty("akki.maven.group", mavenGroup)
+    systemProperty("akki.plugin.id", gradlePluginId)
     systemProperty("akki.version", project.version.toString())
     systemProperty("akki.kotlin.version", libs.versions.kotlin.get())
     systemProperty("akki.kotlin.tested", providers.gradleProperty("akki.kotlin.tested").get())
@@ -72,13 +76,11 @@ tasks.test {
 }
 
 gradlePlugin {
-    website = "https://github.com/wordyarc/akki"
-    vcsUrl = "https://github.com/wordyarc/akki"
     plugins {
         create("akki") {
-            id = providers.gradleProperty("akki.plugin.id").get()
+            id = gradlePluginId
             displayName = "Akki"
-            description = "Adds the Akki compiler plugin to Kotlin compilations"
+            description = project.description
             implementationClass = "io.akki.gradle.AkkiGradlePlugin"
             tags = listOf("kotlin", "logging", "compiler-plugin")
         }
