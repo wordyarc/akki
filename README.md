@@ -43,7 +43,7 @@ Add the plugin to your build:
 ```kotlin
 plugins {
     kotlin("jvm") version "2.4.20"
-    id("io.github.octofleet.akki") version "0.2.0"
+    id("io.github.wordyarc.akki") version "0.2.0"
 }
 ```
 
@@ -61,7 +61,7 @@ To capture logs in tests:
 
 ```kotlin
 dependencies {
-    testImplementation("io.github.octofleet:akki-test:0.2.0")
+    testImplementation("io.github.wordyarc:akki-test:0.2.0")
 }
 ```
 
