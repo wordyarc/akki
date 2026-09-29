@@ -2,17 +2,20 @@ import akki.buildlogic.AwaitMavenCentral
 import akki.buildlogic.REPOSITORY_PATH
 import akki.buildlogic.REPOSITORY_URL
 import akki.buildlogic.mavenGroup
-import akki.buildlogic.testRepositoryCategory
+import akki.buildlogic.publishTestRepository
 import akki.buildlogic.unpublishTestFixtures
 import com.vanniktech.maven.publish.DeploymentValidation
 import com.vanniktech.maven.publish.GradlePublishPlugin
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinJvm
 import com.vanniktech.maven.publish.KotlinMultiplatform
+import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 
 plugins {
     base
-    id("akki.base")
+    id("akki.versioning")
     id("com.vanniktech.maven.publish.base")
 }
 
@@ -59,6 +62,26 @@ afterEvaluate {
     if (pluginManager.hasPlugin("java-test-fixtures")) unpublishTestFixtures()
 }
 
+pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
+    extensions.configure<KotlinJvmProjectExtension> {
+        @OptIn(ExperimentalAbiValidation::class)
+        abiValidation()
+    }
+}
+
+pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
+    extensions.configure<KotlinMultiplatformExtension> {
+        @OptIn(ExperimentalAbiValidation::class)
+        abiValidation()
+    }
+}
+
+tasks.register("releaseToMavenCentral") {
+    group = PublishingPlugin.PUBLISH_TASK_GROUP
+    description = "Uploads every publication to Maven Central and releases the deployment"
+    dependsOn("publishAndReleaseToMavenCentral")
+}
+
 tasks.register<AwaitMavenCentral>("awaitMavenCentral") {
     group = PublishingPlugin.PUBLISH_TASK_GROUP
     description = "Waits until Maven Central serves the POM of every publication"
@@ -69,32 +92,4 @@ tasks.register<AwaitMavenCentral>("awaitMavenCentral") {
     }
 }
 
-val testRepositoryDirectory = layout.buildDirectory.dir("publications/test-repository")
-
-val testRepository = publishing.repositories.maven {
-    name = "test"
-    url = uri(testRepositoryDirectory)
-}
-
-val toTestRepository = "To${testRepository.name.replaceFirstChar(Char::uppercaseChar)}Repository"
-
-val publishToTestRepository = tasks.named("publishAllPublications$toTestRepository")
-
-val cleanTestRepository = tasks.register<Delete>("cleanTestRepository") {
-    delete(testRepositoryDirectory)
-}
-
-tasks.withType<PublishToMavenRepository>().configureEach {
-    if (name.endsWith(toTestRepository)) dependsOn(cleanTestRepository)
-}
-
-configurations.consumable("testRepositoryElements") {
-    attributes.attribute(Category.CATEGORY_ATTRIBUTE, testRepositoryCategory)
-    outgoing.artifact(testRepositoryDirectory) {
-        builtBy(publishToTestRepository)
-    }
-}
-
-tasks.check {
-    dependsOn(publishToTestRepository)
-}
+publishTestRepository()

@@ -1,24 +1,13 @@
 import akki.buildlogic.compileModuleDescriptor
 import akki.buildlogic.jvmModuleName
-import akki.buildlogic.jvmTargetVersion
-import akki.buildlogic.jvmToolchainVersion
 import akki.buildlogic.library
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
+import akki.buildlogic.targetJvm
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("akki.base")
+    id("akki.versioning")
     id("org.jetbrains.kotlin.jvm")
     id("akki.testing")
-}
-
-java {
-    toolchain.languageVersion = JavaLanguageVersion.of(jvmToolchainVersion)
-}
-
-tasks.withType<JavaCompile>().configureEach {
-    options.release = jvmTargetVersion
 }
 
 tasks.named<Javadoc>("javadoc") {
@@ -33,17 +22,10 @@ tasks.named<KotlinCompile>("compileKotlin") {
 
 kotlin {
     compilerOptions {
-        jvmTarget = JvmTarget.fromTarget(jvmTargetVersion.toString())
         allWarningsAsErrors = true
-        freeCompilerArgs.addAll("-progressive", "-Xjdk-release=$jvmTargetVersion")
+        freeCompilerArgs.add("-progressive")
     }
-}
-
-plugins.withId("akki.publishing") {
-    kotlin {
-        @OptIn(ExperimentalAbiValidation::class)
-        abiValidation()
-    }
+    targetJvm(compilerOptions)
 }
 
 dependencies {

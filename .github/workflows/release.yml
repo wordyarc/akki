@@ -59,7 +59,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: $/.github/actions/setup
-      - run: ./gradlew publishAndReleaseToMavenCentral -Pakki.version="${GITHUB_REF_NAME#v}" --stacktrace
+      - run: ./gradlew releaseToMavenCentral -Pakki.version="${GITHUB_REF_NAME#v}" --stacktrace
         env:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
@@ -98,13 +98,9 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Create the release from commit subjects with @names quoted against mentions
+      - name: Create the release with notes from commit subjects
         run: |
-          exclude=()
-          [[ $PRERELEASE == true ]] || exclude=(--exclude 'v*-*')
-          previous=$(git describe --tags --abbrev=0 --match 'v*.*.*' "${exclude[@]}" "$GITHUB_REF_NAME^" 2>/dev/null || true)
-          git log --format='- %s' ${previous:+$previous..}"$GITHUB_REF_NAME" |
-            perl -pe 's/(`+).*?\1|(?<![\w`])@[\w-]+/$1 ? $& : "`$&`"/ge' > notes.md
+          tools/release-notes.sh "$GITHUB_REF_NAME" > notes.md
           gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md --verify-tag \
             --prerelease="$PRERELEASE"
         env:

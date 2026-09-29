@@ -19,7 +19,7 @@ class KotlinClassesPatch(
 }
 
 internal val Project.jvmModuleName: String
-    get() = "io.akki.${name.removePrefix("akki-").replace('-', '.')}"
+    get() = "$identity.${name.removePrefix("akki-").replace('-', '.')}"
 
 internal fun Project.compileModuleDescriptor(javaCompile: TaskProvider<JavaCompile>, kotlinCompile: TaskProvider<KotlinCompile>) {
     javaCompile.configure {

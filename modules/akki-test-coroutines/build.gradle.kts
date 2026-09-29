@@ -9,8 +9,6 @@ description = "Suspending log capture for coroutine tests with akki"
 kotlin {
     explicitApi()
 
-    jvm()
-
     sourceSets {
         commonMain.dependencies {
             api(project(":akki-test"))

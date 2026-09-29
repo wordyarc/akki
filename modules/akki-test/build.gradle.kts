@@ -9,8 +9,6 @@ description = "Log capture for tests of code that logs with akki"
 kotlin {
     explicitApi()
 
-    jvm()
-
     sourceSets {
         commonMain.dependencies {
             api(project(":akki-core"))

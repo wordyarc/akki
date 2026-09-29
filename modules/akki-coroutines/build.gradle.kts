@@ -9,8 +9,6 @@ description = "Carries an akki LogScope with a coroutine across dispatchers"
 kotlin {
     explicitApi()
 
-    jvm()
-
     sourceSets {
         commonMain.dependencies {
             api(project(":akki-core"))

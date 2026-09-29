@@ -20,7 +20,8 @@ git merge-base --is-ancestor HEAD origin/master || die "HEAD is not on origin/ma
 grep -qxF "akki.version=$snapshot" gradle.properties || die "gradle.properties is not at $snapshot"
 
 group=$(sed -n 's/^akki\.maven\.group=//p' gradle.properties)
-stale=$(grep -F "$group" README.md | grep -vF "$version" || true)
+plugin=$(sed -n 's/^akki\.plugin\.id=//p' gradle.properties)
+stale=$(grep -F -e "$group:" -e "\"$plugin\"" README.md | grep -vF "$version\"" || true)
 [[ $version == *-* || -z $stale ]] || die "README.md names another version: $stale"
 
 git tag -a -m "$tag" "$tag"

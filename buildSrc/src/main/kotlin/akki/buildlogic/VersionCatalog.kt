@@ -16,9 +16,3 @@ internal fun Project.library(alias: String): Provider<MinimalExternalModuleDepen
 internal fun Project.version(alias: String): String =
     libs.findVersion(alias).orElseThrow { IllegalStateException("no version '$alias' in the version catalog") }
         .requiredVersion
-
-internal val Project.jvmToolchainVersion: Int
-    get() = version("jvm-toolchain").toInt()
-
-internal val Project.jvmTargetVersion: Int
-    get() = version("jvm-target").toInt()

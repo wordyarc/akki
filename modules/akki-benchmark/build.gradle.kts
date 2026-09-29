@@ -1,8 +1,8 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import akki.buildlogic.targetJvm
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("akki.base")
+    id("akki.versioning")
     id("org.jetbrains.kotlin.jvm")
     id("org.jetbrains.kotlin.plugin.allopen")
     id("org.jetbrains.kotlinx.benchmark")
@@ -20,12 +20,8 @@ val clipped: SourceSet = sourceSets.create("clipped") {
     kotlin.setSrcDirs(listOf("src/benchmarks/kotlin"))
 }
 
-java {
-    toolchain.languageVersion = JavaLanguageVersion.of(libs.versions.jvm.toolchain.get().toInt())
-}
-
-tasks.withType<JavaCompile>().configureEach {
-    options.release = libs.versions.jvm.target.get().toInt()
+kotlin {
+    targetJvm(compilerOptions)
 }
 
 allOpen {
@@ -45,10 +41,6 @@ dependencies {
         sourceSet.implementationConfigurationName(libs.logback.classic)
         sourceSet.implementationConfigurationName(libs.kotlinx.benchmark.runtime)
     }
-}
-
-tasks.withType<KotlinCompile>().configureEach {
-    compilerOptions.jvmTarget = JvmTarget.fromTarget(libs.versions.jvm.target.get())
 }
 
 mapOf(plugged to emptyList(), clipped to listOf("-P", "plugin:io.akki:minLevel=info")).forEach { (set, options) ->

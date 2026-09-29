@@ -1,5 +1,7 @@
 import akki.buildlogic.copyTestsFrom
 import akki.buildlogic.jvmTargetVersion
+import akki.buildlogic.lifecycleOutsideCheck
+import akki.buildlogic.onTargetJdk
 import org.gradle.jvm.toolchain.JavaToolchainService
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 
@@ -11,12 +13,10 @@ tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 }
 
-val onTargetJdk = "OnJdk$jvmTargetVersion"
-
 afterEvaluate {
-    tasks.withType<Test>().filter { !it.name.endsWith(onTargetJdk) }.forEach { source ->
-        val lifecycle = source.extra.properties["akki.lifecycle"] as String?
-        val onTarget = tasks.register<Test>(source.name + onTargetJdk) {
+    tasks.withType<Test>().toList().forEach { source ->
+        val lifecycle = source.lifecycleOutsideCheck
+        val onTarget = tasks.register<Test>(onTargetJdk(source.name)) {
             description = "Runs ${source.name} on JDK $jvmTargetVersion, the oldest runtime the library supports"
             javaLauncher = project.extensions.getByType<JavaToolchainService>().launcherFor {
                 languageVersion = JavaLanguageVersion.of(jvmTargetVersion)

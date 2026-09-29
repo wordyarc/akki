@@ -87,7 +87,6 @@ tasks.test {
         javacProperties[library]?.let { jvmArgumentProviders.add(ClasspathSystemProperty(it, jar)) }
     }
     systemProperty("akki.jvm.target", libs.versions.jvm.target.get())
-    systemProperty("io.akki.loggerNameStyle", "source")
     systemProperty("idea.ignore.disabled.plugins", "true")
     systemProperty("idea.home.path", projectDir)
     val updateTestData = providers.gradleProperty("kotlin.test.update.test.data").orElse("false")

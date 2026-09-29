@@ -1,5 +1,7 @@
 import akki.buildlogic.generateVersionConstant
 import akki.buildlogic.jvmClassTest
+import akki.buildlogic.onTargetJdk
+import akki.buildlogic.outsideCheck
 import org.gradle.api.tasks.testing.Test
 
 plugins {
@@ -15,14 +17,6 @@ generateVersionConstant(packageName = "io.akki.internal", sourceSet = "commonMai
 kotlin {
     explicitApi()
 
-    jvm {
-        testRuns.configureEach {
-            executionTask.configure {
-                systemProperty("io.akki.loggerNameStyle", "source")
-            }
-        }
-    }
-
     sourceSets {
         commonTest.dependencies {
             implementation(project(":akki-test"))
@@ -30,10 +24,7 @@ kotlin {
 
         jvmTest.dependencies {
             implementation(libs.kotlin.metadata.jvm)
-            implementation(libs.kotlin.test.junit5)
-            implementation(libs.junit.jupiter)
             implementation(libs.lincheck)
-            runtimeOnly(libs.junit.platform.launcher)
         }
     }
 }
@@ -56,7 +47,7 @@ val lincheckTest = tasks.register<Test>("lincheckTest") {
     testClassesDirs = jvmTest.get().testClassesDirs
     classpath = jvmTest.get().classpath
     filter { includeTestsMatching(lincheckPattern) }
-    extra["akki.lifecycle"] = lincheck.name
+    outsideCheck(lincheck)
 }
 
 lincheck {
@@ -66,7 +57,7 @@ lincheck {
 kover {
     currentProject {
         instrumentation {
-            disabledForTestTasks.addAll("lincheckTest", "lincheckTestOnJdk17")
+            disabledForTestTasks.addAll(lincheckTest.name, onTargetJdk(lincheckTest.name))
         }
     }
 }
