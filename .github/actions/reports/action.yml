@@ -1,0 +1,27 @@
+name: Report tests
+description: Uploads the HTML test reports when the Gradle step failed and, on request, reports the JUnit results as a check
+
+inputs:
+  outcome:
+    description: "Outcome of the Gradle step, 'steps.gradle.outcome'; the HTML reports are uploaded on 'failure'"
+    required: true
+  junit:
+    description: "'true' also reports the JUnit results as a check, which needs 'checks: write'"
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Upload test reports
+      if: ${{ !cancelled() && inputs.outcome == 'failure' }}
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: ${{ github.job }}-reports
+        path: '**/build/reports/tests'
+    - name: Report test results
+      if: ${{ !cancelled() && inputs.junit == 'true' }}
+      uses: mikepenz/action-junit-report@a9170d5795813c01ab4901ffb045b52bab4ab09d # v6.5.0
+      with:
+        report_paths: '**/build/test-results/*/TEST-*.xml'
+        check_name: JUnit (${{ github.job }})
+        annotate_only: ${{ github.event.pull_request.head.repo.fork == true }}

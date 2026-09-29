@@ -55,19 +55,11 @@ jobs:
           name: coverage
           path: build/reports/kover/html
           if-no-files-found: error
-      - name: Upload test reports
-        if: ${{ !cancelled() && steps.gradle.outcome == 'failure' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - if: ${{ !cancelled() }}
+        uses: $/.github/actions/reports
         with:
-          name: ${{ github.job }}-reports
-          path: '**/build/reports/tests'
-      - name: Report test results
-        if: ${{ !cancelled() }}
-        uses: mikepenz/action-junit-report@a9170d5795813c01ab4901ffb045b52bab4ab09d # v6.5.0
-        with:
-          report_paths: '**/build/test-results/*/TEST-*.xml'
-          check_name: JUnit (${{ github.job }})
-          annotate_only: ${{ github.event.pull_request.head.repo.fork == true }}
+          outcome: ${{ steps.gradle.outcome }}
+          junit: true
 
   akki-gradle:
     runs-on: ubuntu-latest
@@ -87,19 +79,11 @@ jobs:
           restore-keys: test-kit-${{ runner.os }}-
       - id: gradle
         run: ./gradlew :akki-gradle:check --continue --stacktrace
-      - name: Upload test reports
-        if: ${{ !cancelled() && steps.gradle.outcome == 'failure' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - if: ${{ !cancelled() }}
+        uses: $/.github/actions/reports
         with:
-          name: ${{ github.job }}-reports
-          path: '**/build/reports/tests'
-      - name: Report test results
-        if: ${{ !cancelled() }}
-        uses: mikepenz/action-junit-report@a9170d5795813c01ab4901ffb045b52bab4ab09d # v6.5.0
-        with:
-          report_paths: '**/build/test-results/*/TEST-*.xml'
-          check_name: JUnit (${{ github.job }})
-          annotate_only: ${{ github.event.pull_request.head.repo.fork == true }}
+          outcome: ${{ steps.gradle.outcome }}
+          junit: true
 
   lincheck:
     runs-on: ubuntu-latest
@@ -109,10 +93,8 @@ jobs:
         with:
           cache: read-only
       - id: gradle
-        run: ./gradlew lincheck --max-workers=1 --stacktrace
-      - name: Upload test reports
-        if: ${{ !cancelled() && steps.gradle.outcome == 'failure' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        run: ./gradlew lincheck --stacktrace
+      - if: ${{ !cancelled() }}
+        uses: $/.github/actions/reports
         with:
-          name: ${{ github.job }}-reports
-          path: '**/build/reports/tests'
+          outcome: ${{ steps.gradle.outcome }}

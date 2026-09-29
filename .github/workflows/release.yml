@@ -35,12 +35,10 @@ jobs:
       - uses: $/.github/actions/setup
       - id: gradle
         run: ./gradlew check -Pakki.version="${GITHUB_REF_NAME#v}" --stacktrace
-      - name: Upload test reports
-        if: ${{ !cancelled() && steps.gradle.outcome == 'failure' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - if: ${{ !cancelled() }}
+        uses: $/.github/actions/reports
         with:
-          name: ${{ github.job }}-reports
-          path: '**/build/reports/tests'
+          outcome: ${{ steps.gradle.outcome }}
 
   lincheck:
     needs: version
@@ -49,13 +47,11 @@ jobs:
     steps:
       - uses: $/.github/actions/setup
       - id: gradle
-        run: ./gradlew lincheck -Pakki.version="${GITHUB_REF_NAME#v}" --max-workers=1 --stacktrace
-      - name: Upload test reports
-        if: ${{ !cancelled() && steps.gradle.outcome == 'failure' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        run: ./gradlew lincheck -Pakki.version="${GITHUB_REF_NAME#v}" --stacktrace
+      - if: ${{ !cancelled() }}
+        uses: $/.github/actions/reports
         with:
-          name: ${{ github.job }}-reports
-          path: '**/build/reports/tests'
+          outcome: ${{ steps.gradle.outcome }}
 
   maven-central:
     needs: [check, lincheck]
