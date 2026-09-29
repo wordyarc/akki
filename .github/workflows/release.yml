@@ -60,19 +60,26 @@ jobs:
   maven-central:
     needs: [check, lincheck]
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 45
     steps:
       - uses: $/.github/actions/setup
       - run: ./gradlew publishAndReleaseToMavenCentral -Pakki.version="${GITHUB_REF_NAME#v}" --stacktrace
         env:
-          ORG_GRADLE_PROJECT_SONATYPE_CLOSE_TIMEOUT_SECONDS: 3600
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
 
-  gradle-plugin-portal:
+  maven-central-sync:
     needs: maven-central
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: $/.github/actions/setup
+      - run: ./gradlew awaitMavenCentral -Pakki.version="${GITHUB_REF_NAME#v}" --stacktrace
+
+  gradle-plugin-portal:
+    needs: maven-central-sync
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -95,7 +102,8 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - run: |
+      - name: Create the release from commit subjects with @names quoted against mentions
+        run: |
           exclude=()
           [[ $PRERELEASE == true ]] || exclude=(--exclude 'v*-*')
           previous=$(git describe --tags --abbrev=0 --match 'v*.*.*' "${exclude[@]}" "$GITHUB_REF_NAME^" 2>/dev/null || true)

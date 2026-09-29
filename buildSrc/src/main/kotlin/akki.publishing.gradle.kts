@@ -1,26 +1,30 @@
+import akki.buildlogic.AwaitMavenCentral
+import akki.buildlogic.REPOSITORY_PATH
+import akki.buildlogic.REPOSITORY_URL
 import akki.buildlogic.mavenGroup
 import akki.buildlogic.testRepositoryCategory
+import akki.buildlogic.unpublishTestFixtures
 import com.vanniktech.maven.publish.DeploymentValidation
+import com.vanniktech.maven.publish.GradlePublishPlugin
 import com.vanniktech.maven.publish.JavadocJar
-import org.gradle.plugin.devel.GradlePluginDevelopmentExtension
+import com.vanniktech.maven.publish.KotlinJvm
+import com.vanniktech.maven.publish.KotlinMultiplatform
 
 plugins {
+    base
     id("akki.base")
     id("com.vanniktech.maven.publish.base")
 }
 
-val repositoryPath = "wordyarc/akki"
-val repositoryUrl = "https://github.com/$repositoryPath"
-
 mavenPublishing {
     coordinates(groupId = mavenGroup)
-    publishToMavenCentral(automaticRelease = false, validateDeployment = DeploymentValidation.PUBLISHED)
+    publishToMavenCentral(automaticRelease = false, validateDeployment = DeploymentValidation.VALIDATED)
     if (providers.gradleProperty("signingInMemoryKey").isPresent) signAllPublications()
 
     pom {
         name = project.name
         description = provider { requireNotNull(project.description) { "${project.path} has no description" } }
-        url = repositoryUrl
+        url = REPOSITORY_URL
         inceptionYear = "2026"
         licenses {
             license {
@@ -37,51 +41,60 @@ mavenPublishing {
             }
         }
         scm {
-            url = repositoryUrl
-            connection = "scm:git:$repositoryUrl.git"
-            developerConnection = "scm:git:ssh://git@github.com/$repositoryPath.git"
+            url = REPOSITORY_URL
+            connection = "scm:git:$REPOSITORY_URL.git"
+            developerConnection = "scm:git:ssh://git@github.com/$REPOSITORY_PATH.git"
         }
     }
 }
 
 afterEvaluate {
-    mavenPublishing.configureBasedOnAppliedPlugins(javadocJar = JavadocJar.Empty())
-    if (pluginManager.hasPlugin("java-test-fixtures")) {
-        val java = components["java"] as AdhocComponentWithVariants
-        val fixtures = listOf("testFixturesApiElements", "testFixturesRuntimeElements", "testFixturesSourcesElements")
-        fixtures.forEach { java.withVariantsFromConfiguration(configurations[it]) { skip() } }
+    val javadocJar = JavadocJar.Empty()
+    val platform = when {
+        pluginManager.hasPlugin("com.gradle.plugin-publish") -> GradlePublishPlugin()
+        pluginManager.hasPlugin("org.jetbrains.kotlin.multiplatform") -> KotlinMultiplatform(javadocJar)
+        else -> KotlinJvm(javadocJar)
     }
+    mavenPublishing.configure(platform)
+    if (pluginManager.hasPlugin("java-test-fixtures")) unpublishTestFixtures()
 }
 
-pluginManager.withPlugin("com.gradle.plugin-publish") {
-    extensions.configure<GradlePluginDevelopmentExtension> {
-        website = repositoryUrl
-        vcsUrl = repositoryUrl
-    }
-}
-
-val testRepository = layout.buildDirectory.dir("publications/test-repository")
-
-publishing {
-    repositories {
-        maven {
-            name = "test"
-            url = uri(testRepository)
+tasks.register<AwaitMavenCentral>("awaitMavenCentral") {
+    group = PublishingPlugin.PUBLISH_TASK_GROUP
+    description = "Waits until Maven Central serves the POM of every publication"
+    poms = provider {
+        publishing.publications.withType<MavenPublication>().map {
+            "${it.groupId.replace('.', '/')}/${it.artifactId}/${it.version}/${it.artifactId}-${it.version}.pom"
         }
     }
 }
 
-configurations.consumable("testRepositoryElements") {
-    attributes.attribute(Category.CATEGORY_ATTRIBUTE, testRepositoryCategory)
-    outgoing.artifact(testRepository) {
-        builtBy("publishAllPublicationsToTestRepository")
-    }
+val testRepositoryDirectory = layout.buildDirectory.dir("publications/test-repository")
+
+val testRepository = publishing.repositories.maven {
+    name = "test"
+    url = uri(testRepositoryDirectory)
 }
 
+val toTestRepository = "To${testRepository.name.replaceFirstChar(Char::uppercaseChar)}Repository"
+
+val publishToTestRepository = tasks.named("publishAllPublications$toTestRepository")
+
 val cleanTestRepository = tasks.register<Delete>("cleanTestRepository") {
-    delete(testRepository)
+    delete(testRepositoryDirectory)
 }
 
 tasks.withType<PublishToMavenRepository>().configureEach {
-    if (name.endsWith("ToTestRepository")) dependsOn(cleanTestRepository)
+    if (name.endsWith(toTestRepository)) dependsOn(cleanTestRepository)
+}
+
+configurations.consumable("testRepositoryElements") {
+    attributes.attribute(Category.CATEGORY_ATTRIBUTE, testRepositoryCategory)
+    outgoing.artifact(testRepositoryDirectory) {
+        builtBy(publishToTestRepository)
+    }
+}
+
+tasks.check {
+    dependsOn(publishToTestRepository)
 }
