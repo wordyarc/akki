@@ -4,6 +4,7 @@ import io.akki.Level
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import io.akki.backend.Sink
+import io.akki.test.internal.LockFreeAppendList
 
 public class RecordingBackend(
     private val minLevel: Level = Level.TRACE,

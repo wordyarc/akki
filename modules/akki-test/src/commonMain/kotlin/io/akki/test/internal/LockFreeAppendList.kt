@@ -1,4 +1,4 @@
-package io.akki.test
+package io.akki.test.internal
 
 import kotlin.concurrent.atomics.AtomicReference
 import kotlin.concurrent.atomics.ExperimentalAtomicApi

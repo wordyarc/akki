@@ -3,6 +3,7 @@ package io.akki.test
 import io.akki.Level
 import io.akki.Logger
 import io.akki.backend.Sink
+import io.akki.test.internal.LockFreeAppendList
 
 public class RecordingLogger(
     override val name: String = "recording",
