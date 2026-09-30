@@ -4,7 +4,7 @@
 [![GitHub license](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg?style=flat)](https://www.apache.org/licenses/LICENSE-2.0)
 
 Log in Kotlin without declaring a logger. The compiler plugin derives its name from the surrounding code.
-Requires Kotlin `2.4.x`.
+Requires Kotlin `2.3.20` or newer.
 
 ```kotlin
 import io.akki.log
@@ -28,7 +28,7 @@ caller line. An optional compile-time threshold removes calls below the selected
   * `Logger` provides eager and lazy overloads of `trace`, `debug`, `info`, `warn`, and `error`.
   * `LogBackend` connects a backend; `LogScope` selects one for the current thread.
 * `akki-slf4j`: backend for SLF4J 2, enabled when an SLF4J 2 provider is available at runtime.
-* `akki-compiler-kotlin-<line>`: Kotlin compiler plugin, with a separate artifact for each supported Kotlin line.
+* `akki-compiler`: Kotlin compiler plugin, one artifact for every supported Kotlin release.
 * `akki-gradle`: sets up the compiler plugin with `akki-core` and `akki-slf4j` of the same version.
 * `akki-test`: captures test logs with `recordLogs { }` or `RecordingBackend`.
 * `akki-coroutines`: carries a `LogScope` in a coroutine context via `LogScope.asContextElement()`.
@@ -69,16 +69,18 @@ dependencies {
 
 All akki artifacts use the same release version, following [semantic versioning](https://semver.org). Until `1.0`,
 minor releases may introduce breaking changes. Patch releases provide fixes and backward-compatible additions;
-these can include support for an additional Kotlin line.
+these can include support for an additional Kotlin release.
 
-Because the plugin depends on the Kotlin compiler, each akki release provides a separate
-`akki-compiler-kotlin-<line>` artifact for every Kotlin line it supports. The Gradle plugin selects one based on the
-project's Kotlin version. If that line is unsupported by the akki release, the build fails.
+The plugin depends on the Kotlin compiler, whose API changes between releases. `akki-compiler` contains an adapter
+for each compiler API it supports and selects one by the version of the compiler that runs it, so Gradle, Maven and
+the command line use the same artifact. In a compiler older than every adapter, or in a pre-release one, the plugin
+fails the compilation and names the oldest supported version.
 
-| akki    | Kotlin                      | Compiler plugin            |
-|---------|-----------------------------|----------------------------|
-| `0.2.x` | `2.4.0`, `2.4.10`, `2.4.20` | `akki-compiler-kotlin-2.4` |
-| `0.1.0` | `2.4.x`                     | `akki-compiler`            |
+| akki    | Kotlin                                          | Compiler plugin            |
+|---------|-------------------------------------------------|----------------------------|
+| `0.2.1` | `2.3.20`, `2.3.21`, `2.4.0`, `2.4.10`, `2.4.20` | `akki-compiler`            |
+| `0.2.0` | `2.4.0`, `2.4.10`, `2.4.20`                     | `akki-compiler-kotlin-2.4` |
+| `0.1.0` | `2.4.x`                                         | `akki-compiler`            |
 
 ## Usage
 
@@ -159,11 +161,11 @@ that a task sets itself with `systemProperty` or `jvmArgs` takes precedence over
 ## Limitations
 
 * Only JVM compilations are supported. Android needs minSdk 34 and has not been tested.
-* Supported Kotlin lines are listed by release in the compatibility table. Currently, only `2.4` is supported.
+* Supported Kotlin releases are listed in the compatibility table. Pre-release compilers are not supported.
 * `log` and `logger()` compile without the plugin but throw when called. Use `Log.of` or `Log.named` in that case.
-* Plugin setup and akki dependencies are automatic in Gradle. With Maven, set `-Xplugin` to the
-  `akki-compiler-kotlin-<line>` artifact that matches the project's Kotlin line. Add `akki-core` and `akki-slf4j`
-  with the same akki version as the plugin; the compiler plugin reports version mismatches.
+* Plugin setup and akki dependencies are automatic in Gradle. With Maven, set `-Xplugin` to the `akki-compiler`
+  artifact. Add `akki-core` and `akki-slf4j` with the same akki version as the plugin; the compiler plugin reports
+  version mismatches.
 * Accurate caller lines require the plugin. Inline wrappers around `log` produce synthetic line numbers. Java
   calls report `io.akki.Logger` unless that class is registered in logback's `frameworkPackages`.
 * Only a message passed as a lambda is lazy. Ordinary arguments, including fields, are evaluated even when the

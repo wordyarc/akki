@@ -291,7 +291,7 @@ class AkkiGradlePluginTest {
     }
 
     @Test
-    fun `adds the compiler plugin built for the Kotlin line of the project`(@TempDir projectDirectory: Path) {
+    fun `adds the same compiler plugin artifact for every Kotlin release`(@TempDir projectDirectory: Path) {
         prepareConsumer(projectDirectory, Consumer.Bare)
 
         val output = GradleRunner.create()
@@ -300,7 +300,7 @@ class AkkiGradlePluginTest {
             .build()
             .output
 
-        assertContains(output, "$GROUP:akki-compiler-kotlin-${property("akki.kotlin.version").line()}:$VERSION")
+        assertContains(output, "$GROUP:akki-compiler:$VERSION")
     }
 
     @ParameterizedTest(name = "Kotlin {0}")
@@ -324,26 +324,20 @@ class AkkiGradlePluginTest {
         )
     }
 
-    @Test
-    fun `rejects an unsupported Kotlin line`(@TempDir projectDirectory: Path) {
-        val supported = property("akki.kotlin.version").line()
-        require(OTHER_KOTLIN.line() != supported)
-        publishRepository(projectDirectory)
-        projectDirectory.resolve("settings.gradle.kts").writeText(settings())
-        projectDirectory.resolve("build.gradle.kts")
-            .writeText(buildScript(Consumer.Bare, kotlinVersion = OTHER_KOTLIN))
+    @ParameterizedTest(name = "Kotlin {0}")
+    @MethodSource("rejectedKotlinVersions")
+    fun `fails the compilation on a Kotlin release older than every adapter`(
+        kotlinVersion: String,
+        @TempDir projectDirectory: Path,
+    ) {
+        prepareConsumer(projectDirectory, Consumer.Compatibility, kotlinVersion = kotlinVersion)
 
-        val output = GradleRunner.create()
-            .withProjectDir(projectDirectory.toFile())
-            .withArguments("help", "--console=plain")
-            .buildAndFail()
-            .output
+        val result = consumerRunner(projectDirectory).buildAndFail()
 
+        assertEquals(TaskOutcome.FAILED, result.task(":compileKotlin")?.outcome, result.output)
         assertContains(
-            output,
-            "akki $VERSION supports Kotlin $supported.x, but this project uses Kotlin $OTHER_KOTLIN. " +
-                "The compiler plugin API differs between Kotlin releases. " +
-                "Use a supported Kotlin version or an akki version that supports Kotlin ${OTHER_KOTLIN.line()}.x.",
+            result.output,
+            "akki: compiler plugin $VERSION cannot start. Kotlin $kotlinVersion is not supported.",
         )
     }
 
@@ -818,8 +812,6 @@ class AkkiGradlePluginTest {
 
         val VERSION: String = requireNotNull(System.getProperty("akki.version"))
 
-        const val OTHER_KOTLIN: String = "2.3.21"
-
         const val REPOSITORY: String = "repository"
 
         const val SLF4J_HINT: String = "Add an SLF4J 2 provider to the runtime classpath, for example logback-classic."
@@ -827,6 +819,8 @@ class AkkiGradlePluginTest {
         @JvmStatic
         fun testedKotlinVersions(): List<String> = requireNotNull(System.getProperty("akki.kotlin.tested")).split(',')
 
-        fun String.line(): String = split('.').take(2).joinToString(".")
+        @JvmStatic
+        fun rejectedKotlinVersions(): List<String> =
+            requireNotNull(System.getProperty("akki.kotlin.rejected")).split(',')
     }
 }

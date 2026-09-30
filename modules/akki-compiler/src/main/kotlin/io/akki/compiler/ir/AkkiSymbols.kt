@@ -5,6 +5,7 @@ package io.akki.compiler.ir
 import io.akki.compiler.AKKI_VERSION
 import io.akki.compiler.AkkiErrors
 import io.akki.compiler.AkkiNames
+import io.akki.compiler.compat.CompilerCompat
 import org.jetbrains.kotlin.backend.common.extensions.DeclarationFinder
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.ir.declarations.IrEnumEntry
@@ -159,12 +160,13 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
         private const val EMIT_SIGNATURE: String =
             "Sink.emit(message: String, cause: Throwable?, fields: Map<String, Any?>)"
 
-        fun of(context: IrPluginContext): AkkiSymbols? {
+        fun of(context: IrPluginContext, compat: CompilerCompat): AkkiSymbols? {
             val finder = context.finderForBuiltins()
             finder.findClass(AkkiNames.LOGGER_ID) ?: return null
             val coreVersion = finder.findProperties(AkkiNames.CORE_VERSION_ID).singleOrNull()?.owner?.constantString()
             if (coreVersion != null && coreVersion != AKKI_VERSION) {
                 return context.incompatible(
+                    compat,
                     "Akki compiler plugin $AKKI_VERSION requires akki-core $AKKI_VERSION, but the compile " +
                         "classpath contains akki-core $coreVersion.",
                 )
@@ -173,6 +175,7 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
                 AkkiSymbols(context, finder)
             } catch (failure: IncompatibleCore) {
                 context.incompatible(
+                    compat,
                     "Akki compiler plugin $AKKI_VERSION found an incompatible akki-core on the compile classpath: " +
                         "its version is unknown and '${failure.signature}' is missing. " +
                         "Use akki-core $AKKI_VERSION.",
@@ -180,8 +183,13 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
             }
         }
 
-        private fun IrPluginContext.incompatible(message: String): AkkiSymbols? {
-            diagnosticReporter.report(AkkiErrors.INCOMPATIBLE_AKKI_CORE, message)
+        private fun IrPluginContext.incompatible(compat: CompilerCompat, message: String): AkkiSymbols? {
+            with(compat) {
+                diagnosticReporter.reportWithoutSource(
+                    diagnostic = AkkiErrors.INCOMPATIBLE_AKKI_CORE,
+                    message = message,
+                )
+            }
             return null
         }
     }

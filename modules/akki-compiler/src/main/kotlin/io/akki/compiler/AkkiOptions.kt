@@ -31,7 +31,7 @@ internal enum class MinLevel {
     }
 }
 
-internal val MIN_LEVEL: CompilerConfigurationKey<MinLevel> = CompilerConfigurationKey.create("akki minimal level")
+internal val MIN_LEVEL: CompilerConfigurationKey<MinLevel> = CompilerConfigurationKey("akki minimal level")
 
 internal class AkkiCommandLineProcessor : CommandLineProcessor {
     override val pluginId: String = AkkiNames.PLUGIN_ID

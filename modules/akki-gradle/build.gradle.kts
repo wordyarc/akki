@@ -1,8 +1,6 @@
 import akki.buildlogic.ClasspathSystemProperty
 import akki.buildlogic.REPOSITORY_URL
-import akki.buildlogic.compilerArtifactId
 import akki.buildlogic.gradlePluginId
-import akki.buildlogic.kotlinLine
 import akki.buildlogic.mavenGroup
 import akki.buildlogic.testRepositoriesOf
 
@@ -12,8 +10,8 @@ plugins {
     id("com.gradle.plugin-publish")
 }
 
-description = "Gradle plugin that applies the akki compiler plugin for the project's Kotlin line, adds akki-core and " +
-    "akki-slf4j of the same version and passes the configured logger name style to Test and JavaExec tasks"
+description = "Gradle plugin that applies the akki compiler plugin, adds akki-core and akki-slf4j of the same " +
+    "version and passes the configured logger name style to Test and JavaExec tasks"
 
 val testRepositories: Configuration =
     testRepositoriesOf(":akki-core", ":akki-slf4j", ":akki-compiler", ":akki-gradle", ":akki-test")
@@ -49,7 +47,6 @@ val writeAkkiGradleProperties = tasks.register<WriteProperties>("writeAkkiGradle
     destinationFile = layout.buildDirectory.file("generated/akki-gradle.properties")
     property("group", mavenGroup)
     property("version", project.version.toString())
-    property("compiler.$kotlinLine", compilerArtifactId)
 }
 
 tasks.processResources {
@@ -71,6 +68,7 @@ tasks.test {
     systemProperty("akki.version", project.version.toString())
     systemProperty("akki.kotlin.version", libs.versions.kotlin.get())
     systemProperty("akki.kotlin.tested", providers.gradleProperty("akki.kotlin.tested").get())
+    systemProperty("akki.kotlin.rejected", providers.gradleProperty("akki.kotlin.rejected").get())
     systemProperty("akki.slf4j.version", libs.versions.slf4j.get())
     systemProperty("akki.logback.version", libs.versions.logback.get())
 }

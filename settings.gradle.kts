@@ -30,6 +30,7 @@ rootProject.name = "akki"
 listOf(
     "akki-core",
     "akki-slf4j",
+    "akki-compiler-compat",
     "akki-compiler",
     "akki-gradle",
     "akki-test",
@@ -41,3 +42,13 @@ listOf(
     include(module)
     project(":$module").projectDir = file("modules/$module")
 }
+
+providers.fileContents(layout.rootDirectory.file("modules/akki-compiler-compat/adapters.properties")).asText.get()
+    .lineSequence()
+    .map { it.substringBefore('=').trim() }
+    .filterNot { it.isEmpty() || it.startsWith('#') }
+    .forEach { version ->
+        include(":akki-compiler-compat:kotlin-$version")
+        project(":akki-compiler-compat:kotlin-$version").projectDir =
+            file("modules/akki-compiler-compat/kotlin-$version")
+    }
