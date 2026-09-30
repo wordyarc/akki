@@ -26,7 +26,7 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
                 constraint.because("Akki modules require the same version as the compiler plugin")
             }
         }
-        val style = extension.loggerNameStyle
+        val style = extension.jvm.loggerNameStyle
         target.tasks.withType(Test::class.java).configureEach { it.passLoggerNameStyle(target.providers, style) }
         target.tasks.withType(JavaExec::class.java).configureEach { it.passLoggerNameStyle(target.providers, style) }
     }
@@ -52,7 +52,7 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
         val versions = project.configurations.getByName(VERSIONS)
         listOfNotNull(kotlinCompilation.compileDependencyConfigurationName, kotlinCompilation.runtimeDependencyConfigurationName)
             .forEach { name -> project.configurations.named(name) { it.extendsFrom(versions) } }
-        val minLevel = project.extensions.getByType(AkkiExtension::class.java).minLevel
+        val minLevel = project.extensions.getByType(AkkiExtension::class.java).compilerOptions.minLevel
         val notice = minLevel.map { if (it == MinLevel.TRACE) "" else notice(it) }.orElse("")
         kotlinCompilation.compileTaskProvider.configure { task ->
             task.doFirst { running ->

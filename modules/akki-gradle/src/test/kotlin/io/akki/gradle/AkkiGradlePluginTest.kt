@@ -110,7 +110,9 @@ class AkkiGradlePluginTest {
             Consumer.Bootstrap,
             extra = """
                 akki {
-                    loggerNameStyle.set(providers.gradleProperty("style").map(io.akki.gradle.LoggerNameStyle::valueOf))
+                    jvm {
+                        loggerNameStyle.set(providers.gradleProperty("style").map(io.akki.gradle.LoggerNameStyle::valueOf))
+                    }
                 }
             """.trimIndent(),
         )
@@ -140,7 +142,9 @@ class AkkiGradlePluginTest {
             Consumer.Bootstrap,
             extra = """
                 akki {
-                    loggerNameStyle = io.akki.gradle.LoggerNameStyle.JVM_CLASS
+                    jvm {
+                        loggerNameStyle = io.akki.gradle.LoggerNameStyle.JVM_CLASS
+                    }
                 }
 
                 application {
@@ -217,7 +221,9 @@ class AkkiGradlePluginTest {
             consumer = Consumer.Clipped,
             extra = """
                 akki {
-                    minLevel = io.akki.gradle.MinLevel.INFO
+                    compilerOptions {
+                        minLevel = io.akki.gradle.MinLevel.INFO
+                    }
                 }
             """.trimIndent(),
         )
@@ -265,7 +271,9 @@ class AkkiGradlePluginTest {
             Consumer.Clipped,
             extra = """
                 akki {
-                    minLevel.set(providers.gradleProperty("testMinLevel").map { io.akki.gradle.MinLevel.valueOf(it) })
+                    compilerOptions {
+                        minLevel.set(providers.gradleProperty("testMinLevel").map { io.akki.gradle.MinLevel.valueOf(it) })
+                    }
                 }
             """.trimIndent(),
         )
@@ -309,7 +317,7 @@ class AkkiGradlePluginTest {
         prepareConsumer(
             projectDirectory,
             Consumer.Compatibility,
-            extra = "akki { minLevel = io.akki.gradle.MinLevel.INFO }",
+            extra = "akki { compilerOptions { minLevel = io.akki.gradle.MinLevel.INFO } }",
             kotlinVersion = kotlinVersion,
         )
 

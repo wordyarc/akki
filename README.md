@@ -136,11 +136,16 @@ from `akki-test-coroutines` to capture logs across dispatcher changes.
 
 ### Configuration
 
+Inside `akki {}`, compiler plugin settings belong in `compilerOptions {}` and affect the generated code.
+The other block, `jvm {}`, controls JVMs launched by Gradle without changing that code.
+
 Set `minLevel` to remove lower-level records from the compiled code:
 
 ```kotlin
 akki {
-    minLevel = io.akki.gradle.MinLevel.INFO
+    compilerOptions {
+        minLevel = io.akki.gradle.MinLevel.INFO
+    }
 }
 ```
 
@@ -151,7 +156,9 @@ such as `test`, `run` and `bootRun`:
 
 ```kotlin
 akki {
-    loggerNameStyle = io.akki.gradle.LoggerNameStyle.JVM_CLASS
+    jvm {
+        loggerNameStyle = io.akki.gradle.LoggerNameStyle.JVM_CLASS
+    }
 }
 ```
 
