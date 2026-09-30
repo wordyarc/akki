@@ -4,7 +4,7 @@ import io.akki.backend.LogBackend
 import kotlin.reflect.KClass
 
 public expect object Log {
-    public fun of(type: KClass<*>): Logger
+    public fun of(kClass: KClass<*>): Logger
 
     public inline fun <reified T : Any> of(): Logger
 

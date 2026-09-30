@@ -11,7 +11,7 @@ public class RecordingBackend(
     private val recorded: LockFreeAppendList<LogRecord> = LockFreeAppendList()
 
     public val records: List<LogRecord>
-        get() = recorded.snapshot
+        get() = recorded.toList()
 
     override fun bind(name: String): LoggerBinding {
         val sinks = Array(Level.entries.size) { ordinal ->

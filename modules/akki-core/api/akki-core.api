@@ -125,7 +125,7 @@ public final class io/akki/internal/DeclarationLoggers {
 
 public abstract interface class io/akki/internal/LogBackendFactory {
 	public abstract fun createBackend ()Lio/akki/backend/LogBackend;
-	public abstract fun getMissingBackendHint ()Ljava/lang/String;
+	public abstract fun hintOnMissing ()Ljava/lang/String;
 }
 
 public final class io/akki/internal/ThreadContextKt {

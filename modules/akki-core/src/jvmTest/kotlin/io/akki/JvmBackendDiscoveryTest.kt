@@ -381,7 +381,7 @@ class FatalConstructorFactory : LogBackendFactory {
 
     override fun createBackend(): LogBackend? = null
 
-    override val missingBackendHint: String = "Add the fatal constructor provider."
+    override fun hintOnMissing(): String = "Add the fatal constructor provider."
 }
 
 class IsolatedLookup : BooleanSupplier {
@@ -391,23 +391,23 @@ class IsolatedLookup : BooleanSupplier {
 class CreatingFactory : LogBackendFactory {
     override fun createBackend(): LogBackend = DeclaredBackend()
 
-    override val missingBackendHint: String = "Add the creating provider."
+    override fun hintOnMissing(): String = "Add the creating provider."
 }
 
 class DecliningFactory : LogBackendFactory {
     override fun createBackend(): LogBackend? = null
 
-    override val missingBackendHint: String = "Add the declining provider."
+    override fun hintOnMissing(): String = "Add the declining provider."
 }
 
 class FailingFactory : LogBackendFactory {
     override fun createBackend(): LogBackend? = error("broken factory")
 
-    override val missingBackendHint: String = "Add the failing provider."
+    override fun hintOnMissing(): String = "Add the failing provider."
 }
 
 class FatalFactory : LogBackendFactory {
     override fun createBackend(): LogBackend? = throw StackOverflowError("fatal")
 
-    override val missingBackendHint: String = "Add the fatal provider."
+    override fun hintOnMissing(): String = "Add the fatal provider."
 }

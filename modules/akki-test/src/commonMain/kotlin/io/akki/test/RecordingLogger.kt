@@ -16,7 +16,7 @@ public class RecordingLogger(
     }
 
     public val records: List<LogRecord>
-        get() = recorded.snapshot
+        get() = recorded.toList()
 
     override fun sink(level: Level): Sink? = if (level >= minLevel) sinks[level.ordinal] else null
 

@@ -10,7 +10,7 @@ import java.util.ServiceLoader
 internal class Slf4jBackendFactory : LogBackendFactory {
     override fun createBackend(): LogBackend? = if (isProviderDeclared()) createSlf4jBackend() else null
 
-    override val missingBackendHint: String = "Add an SLF4J 2 provider to the runtime classpath, for example logback-classic."
+    override fun hintOnMissing(): String = "Add an SLF4J 2 provider to the runtime classpath, for example logback-classic."
 
     private fun isProviderDeclared(): Boolean {
         val provider = try {

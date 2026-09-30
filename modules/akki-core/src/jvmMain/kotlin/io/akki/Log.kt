@@ -10,7 +10,7 @@ import kotlin.reflect.KClass
 
 public actual object Log {
     @JvmStatic
-    public actual fun of(type: KClass<*>): Logger = getLogger(platformTypeName(type))
+    public actual fun of(kClass: KClass<*>): Logger = getLogger(platformTypeName(kClass))
 
     public actual inline fun <reified T : Any> of(): Logger = of(T::class)
 

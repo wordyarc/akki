@@ -7,13 +7,12 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 internal class LockFreeAppendList<T> {
     private val head: AtomicReference<Node<T>?> = AtomicReference(null)
 
-    val snapshot: List<T>
-        get() = generateSequence(head.load()) { it.next }.map { it.value }.toList().asReversed()
+    fun toList(): List<T> = generateSequence(head.load()) { it.next }.map { it.value }.toList().asReversed()
 
-    fun add(entry: T) {
+    fun add(element: T) {
         while (true) {
             val current = head.load()
-            if (head.compareAndSet(current, Node(entry, current))) return
+            if (head.compareAndSet(current, Node(element, current))) return
         }
     }
 

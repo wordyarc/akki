@@ -7,5 +7,5 @@ import io.akki.backend.LogBackend
 public interface LogBackendFactory {
     public fun createBackend(): LogBackend?
 
-    public val missingBackendHint: String
+    public fun hintOnMissing(): String
 }

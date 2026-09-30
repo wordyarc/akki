@@ -154,7 +154,7 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
         private const val SINK_SIGNATURE: String = "Logger.sink(level: Level): Sink?"
         private const val DECLARATION_LOGGER_SIGNATURE: String =
             "io.akki.internal.declarationLogger(sourceName: String, jvmClassName: String): Logger"
-        private const val OF_TYPE_SIGNATURE: String = "Log.of(type: KClass<*>): Logger"
+        private const val OF_TYPE_SIGNATURE: String = "Log.of(kClass: KClass<*>): Logger"
         private const val OF_REIFIED_SIGNATURE: String = "Log.of<T>(): Logger"
         private const val NAMED_SIGNATURE: String = "Log.named(name: String): Logger"
         private const val EMIT_SIGNATURE: String =

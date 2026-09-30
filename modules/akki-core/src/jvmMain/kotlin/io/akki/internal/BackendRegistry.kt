@@ -16,7 +16,7 @@ internal fun discover(loader: ClassLoader): LogBackend {
     val factories = services.load(LogBackendFactory::class.java)
     val created = factories.mapNotNull { it.tryCreateBackend() }
     if (created.isEmpty() && factories.isNotEmpty()) {
-        return DefaultBackend(factories.joinToString(" ", prefix = "$NO_BACKEND ") { it.missingBackendHint })
+        return DefaultBackend(factories.joinToString(" ", prefix = "$NO_BACKEND ") { it.hintOnMissing() })
     }
     return chooseBackend(created)
 }
