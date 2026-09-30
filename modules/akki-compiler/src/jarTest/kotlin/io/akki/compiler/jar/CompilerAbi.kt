@@ -12,7 +12,7 @@ internal class CompilerAbi(private val plugin: Map<String, ClassShape>, host: Li
     fun violations(): List<String> = plugin.values.flatMap { shape ->
         val broken = shape.references.filterNot { it.owner.isPlatform }.mapNotNull { shape.violation(it) }
         (broken + shape.unimplemented()).map { "${shape.name}: $it" }
-    }
+    }.distinct()
 
     override fun close() = jars.forEach(JarFile::close)
 

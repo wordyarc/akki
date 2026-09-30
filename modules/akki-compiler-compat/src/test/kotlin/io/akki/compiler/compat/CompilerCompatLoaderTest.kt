@@ -2,6 +2,7 @@ package io.akki.compiler.compat
 
 import io.akki.compiler.compat.fixture.AbsentFactory
 import io.akki.compiler.compat.fixture.BrokenFactory
+import io.akki.compiler.compat.fixture.CrashingFactory
 import io.akki.compiler.compat.fixture.CurrentAdapter
 import io.akki.compiler.compat.fixture.CurrentFactory
 import io.akki.compiler.compat.fixture.ExhaustedFactory
@@ -13,6 +14,7 @@ import io.akki.compiler.compat.fixture.MalformedFactory
 import io.akki.compiler.compat.fixture.ParameterizedFactory
 import io.akki.compiler.compat.fixture.PrivateFactory
 import io.akki.compiler.compat.fixture.RivalFactory
+import io.akki.compiler.compat.fixture.UnlinkedFactory
 import java.nio.file.Path
 import java.util.ServiceConfigurationError
 import kotlin.reflect.KClass
@@ -115,6 +117,23 @@ internal class CompilerCompatLoaderTest {
         val failure = assertFailsWith<InternalError> { CompilerCompatLoader.load("9.0.0", classLoader) }
 
         assertEquals("virtual machine failed", failure.message)
+    }
+
+    @Test
+    fun `reports a factory that does not link`() {
+        val failure = failure("2.4.0", UnlinkedFactory::class, CurrentFactory::class)
+
+        assertEquals("Compiler adapter factories cannot be discovered.", failure.message)
+        assertIs<NoSuchMethodError>(assertIs<ServiceConfigurationError>(failure.cause).cause)
+    }
+
+    @Test
+    fun `rethrows a virtual machine error of a factory`() {
+        val classLoader = AdapterClassLoader.of(directory, CrashingFactory::class, CurrentFactory::class)
+
+        val failure = assertFailsWith<InternalError> { CompilerCompatLoader.load("2.4.0", classLoader) }
+
+        assertEquals("virtual machine failed in a factory", failure.message)
     }
 
     @Test

@@ -1,5 +1,6 @@
 package io.akki.compiler.jar
 
+import java.nio.file.Path
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -21,28 +22,36 @@ internal class CompilerAbiTest {
 
         assertContains(plugin, adapterOf(kotlin).implementation.replace('.', '/'))
         assertTrue(plugin.keys.containsAll(factories), plugin.keys.toString())
-        assertEquals(emptyList(), violations(kotlin, plugin))
+        assertEquals(emptyList(), violations(plugin, host(kotlin)))
     }
 
     @ParameterizedTest(name = "Kotlin {0}")
     @MethodSource("testedKotlin")
-    fun `finds the broken references of every other adapter`(kotlin: String) {
-        for (adapter in adapters - adapterOf(kotlin)) {
-            val violations = violations(kotlin, pluginWith(adapter))
+    fun `reports every reference into the compiler once the compiler is missing`(kotlin: String) {
+        val plugin = pluginWith(adapterOf(kotlin))
+        val libraries = host(kotlin).filterNot { it.fileName.toString().startsWith("kotlin-compiler-") }
 
-            assertTrue(violations.isNotEmpty(), "$adapter links against Kotlin $kotlin")
-            for (violation in violations) assertContains(violation, "${adapter.implementation.replace('.', '/')}: org/")
-        }
+        val violations = violations(plugin, libraries)
+
+        val registrar = "io/akki/compiler/AkkiCompilerPluginRegistrar"
+        assertContains(violations, "$registrar: org/jetbrains/kotlin/config/CompilerConfiguration is missing")
+        assertContains(violations, "$registrar: org/jetbrains/kotlin/config/CommonConfigurationKeys is missing")
+        assertTrue(violations.all { it.endsWith(" is missing") }, violations.toString())
+        assertTrue(violations.none { it.startsWith("io/akki/compiler/compat/CompilerVersion") }, violations.toString())
     }
 
     private fun pluginWith(adapter: Adapter): Map<String, ByteArray> =
         classes.filterKeys { name -> adapters.none { it !== adapter && name in it && name !in factories } }
 
-    private fun violations(kotlin: String, plugin: Map<String, ByteArray>): List<String> {
+    private fun host(kotlin: String): List<Path> {
         val host = classpath("akki.compiler.host.$kotlin")
         val libraries = host.map { it.fileName.toString() }
         assertEquals(listOf("kotlin-compiler-$kotlin.jar"), libraries.filter { it.startsWith("kotlin-compiler-") })
         assertContains(libraries, "kotlin-stdlib-$kotlin.jar")
+        return host
+    }
+
+    private fun violations(plugin: Map<String, ByteArray>, host: List<Path>): List<String> {
         val shapes = plugin.mapValues { (_, bytes) -> ClassShape.read(bytes, withReferences = true) }
         return CompilerAbi(shapes, host).use(CompilerAbi::violations)
     }

@@ -85,6 +85,20 @@ internal class BrokenAdapter : InertAdapter() {
 
 internal class BrokenFactory : ReflectiveCompilerCompatFactory("9.0.0", "$FIXTURE_PACKAGE.BrokenAdapter")
 
+internal class CrashingFactory : ReflectiveCompilerCompatFactory("2.3.20", "$FIXTURE_PACKAGE.CurrentAdapter") {
+    init {
+        throw InternalError("virtual machine failed in a factory")
+    }
+}
+
+internal class UnlinkedFactory : ReflectiveCompilerCompatFactory("2.3.20", "$FIXTURE_PACKAGE.CurrentAdapter") {
+    private companion object {
+        init {
+            throw NoSuchMethodError("compiler API is missing in a factory")
+        }
+    }
+}
+
 internal class MalformedFactory : ReflectiveCompilerCompatFactory("nine", "$FIXTURE_PACKAGE.CurrentAdapter")
 
 internal class RivalFactory : ReflectiveCompilerCompatFactory("2.3.20", "$FIXTURE_PACKAGE.CurrentAdapter")

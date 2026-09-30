@@ -60,6 +60,7 @@ internal fun selectFactory(
 private fun discover(classLoader: ClassLoader?): List<CompilerCompat.Factory> = try {
     ServiceLoader.load(CompilerCompat.Factory::class.java, classLoader).toList()
 } catch (failure: ServiceConfigurationError) {
+    failure.cause?.takeIf(Throwable::isFatal)?.let { throw it }
     throw CompatLoadException("Compiler adapter factories cannot be discovered.", failure)
 }
 
@@ -75,14 +76,17 @@ private fun CompilerCompat.Factory.createAdapter(compiler: String): CompilerComp
     throw loadFailure(failure, compiler)
 }
 
-private fun CompilerCompat.Factory.loadFailure(failure: Throwable, compiler: String): Throwable = when (failure) {
-    is LinkageError -> CompatLoadException(
+private fun CompilerCompat.Factory.loadFailure(failure: Throwable, compiler: String): Throwable = when {
+    failure is LinkageError -> CompatLoadException(
         "The compiler adapter for Kotlin $minVersion created by $origin does not link against Kotlin $compiler.",
         failure,
     )
-    is Error -> failure
+    failure.isFatal -> failure
     else -> CompatLoadException("The compiler adapter for Kotlin $minVersion cannot be created by $origin.", failure)
 }
+
+private val Throwable.isFatal: Boolean
+    get() = this is Error && this !is LinkageError
 
 private val CompilerCompat.Factory.origin: String
     get() = "${javaClass.name} from ${javaClass.protectionDomain?.codeSource?.location ?: "an unknown location"}"
