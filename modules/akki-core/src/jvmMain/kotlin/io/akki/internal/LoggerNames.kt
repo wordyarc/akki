@@ -43,9 +43,9 @@ internal fun platformTypeName(type: Class<*>, style: JvmLoggerNameStyle): String
 }
 
 internal fun parseJvmLoggerNameStyle(value: String?): JvmLoggerNameStyle =
-    jvmLoggerNameStyleOrNull(value) ?: akkiError(invalidLoggerNameStyle(value))
+    parseJvmLoggerNameStyleOrNull(value) ?: akkiError(invalidLoggerNameStyle(value))
 
-private fun jvmLoggerNameStyleOrNull(value: String?): JvmLoggerNameStyle? =
+private fun parseJvmLoggerNameStyleOrNull(value: String?): JvmLoggerNameStyle? =
     when (value?.trim()?.lowercase()?.replace('_', '-')?.ifEmpty { null }) {
         null, LOGGER_NAME_STYLE_VALUE_SOURCE -> JvmLoggerNameStyle.SOURCE
         LOGGER_NAME_STYLE_VALUE_JVM_CLASS -> JvmLoggerNameStyle.JVM_CLASS
@@ -68,14 +68,15 @@ private fun Class<*>.logicalEnclosingOwner(): Class<*>? = ignoringMalformedClass
 private fun Class<*>.enclosingOwner(): Class<*>? {
     superclass?.takeIf(Class<*>::isEnum)?.let { return it }
     if (canonicalName == null) return enclosingClass ?: indyHost()
-    return declaringClass?.takeIf { isCompanionObject() }
+    return declaringClass?.takeIf { isCompanion }
 }
 
-internal fun Class<*>.isCompanionObject(): Boolean {
-    val metadata = kotlinMetadata?.takeIf { it.kind == CLASS_KIND } ?: return false
-    val flags = metadata.data1.classFlags() ?: return false
-    return flags ushr CLASS_KIND_FLAGS_OFFSET and CLASS_KIND_FLAGS_MASK == COMPANION_OBJECT_CLASS_KIND
-}
+internal val Class<*>.isCompanion: Boolean
+    get() {
+        val metadata = kotlinMetadata?.takeIf { it.kind == CLASS_KIND } ?: return false
+        val flags = metadata.data1.classFlags() ?: return false
+        return flags ushr CLASS_KIND_FLAGS_OFFSET and CLASS_KIND_FLAGS_MASK == COMPANION_OBJECT_CLASS_KIND
+    }
 
 private fun Array<String>.classFlags(): Int? {
     val bytes = joinToString("").iterator()

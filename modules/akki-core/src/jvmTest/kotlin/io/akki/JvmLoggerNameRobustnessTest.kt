@@ -1,7 +1,7 @@
 package io.akki
 
 import io.akki.internal.JvmLoggerNameStyle
-import io.akki.internal.isCompanionObject
+import io.akki.internal.isCompanion
 import io.akki.internal.platformTypeName
 import java.io.File
 import java.util.zip.ZipFile
@@ -32,9 +32,9 @@ class JvmLoggerNameRobustnessTest {
         val types = listOf(Unit::class.java, KotlinClassMetadata::class.java, Log::class.java, javaClass)
             .flatMap(::classesOf)
             .filter { it.isAnnotationPresent(Metadata::class.java) }
-        val companions = types.filter { it.isCompanionObject() }
+        val companions = types.filter { it.isCompanion }
 
-        assertEquals(emptyList(), types.filter { it.isCompanionObject() != it.isCompanionPerKotlinMetadata() })
+        assertEquals(emptyList(), types.filter { it.isCompanion != it.isCompanionPerKotlinMetadata() })
         assertTrue(Random.Default::class.java in companions, "expected the standard library companions to be checked")
     }
 

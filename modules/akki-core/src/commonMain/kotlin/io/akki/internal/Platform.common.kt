@@ -6,7 +6,7 @@ import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import kotlin.reflect.KClass
 
-internal expect fun platformLogger(name: String): Logger
+internal expect fun getOrCreateLogger(name: String): Logger
 
 internal expect fun discoverPlatformBackend(): LogBackend?
 
@@ -18,9 +18,9 @@ internal expect fun platformTypeName(type: KClass<*>): String
 
 internal expect fun printError(message: String)
 
-internal expect fun Throwable.isFatal(): Boolean
+internal expect val Throwable.isFatal: Boolean
 
-internal expect fun Throwable.isPermanent(): Boolean
+internal expect val Throwable.isPermanent: Boolean
 
 internal expect fun currentEntry(): LogScope.Entry?
 

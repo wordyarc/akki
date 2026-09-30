@@ -45,14 +45,14 @@ internal class LoggerImpl(override val name: String) : Logger() {
         try {
             backend.bind(name)
         } catch (failure: Throwable) {
-            if (failure.isFatal()) throw failure
+            if (failure.isFatal) throw failure
             report(backend, failure)
-            if (failure.isPermanent()) NO_SINK else null
+            if (failure.isPermanent) NO_SINK else null
         }
 
     private fun report(backend: LogBackend, failure: Throwable) {
         if (!BackendRegistry.claimFailureReport(backend)) return
-        val consequence = if (failure.isPermanent()) {
+        val consequence = if (failure.isPermanent) {
             "records of every logger it fails to resolve are dropped until another backend is installed"
         } else {
             "records are dropped while it keeps failing"
@@ -71,8 +71,8 @@ internal class LoggerImpl(override val name: String) : Logger() {
             try {
                 delegate.resolve(level)
             } catch (failure: Throwable) {
-                if (failure.isFatal()) throw failure
-                if (failure.isPermanent()) binding.compareAndSet(this, Binding(backend, NO_SINK))
+                if (failure.isFatal) throw failure
+                if (failure.isPermanent) binding.compareAndSet(this, Binding(backend, NO_SINK))
                 report(backend, failure)
                 null
             }

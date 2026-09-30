@@ -16,7 +16,7 @@ internal fun discover(loader: ClassLoader): LogBackend {
     val factories = services.load(LogBackendFactory::class.java)
     val created = factories.mapNotNull { it.tryCreateBackend() }
     if (created.isEmpty() && factories.isNotEmpty()) {
-        return DefaultBackend(factories.joinToString(" ", prefix = "$NO_BACKEND ") { it.hintOnMissing() })
+        return DefaultBackend(factories.joinToString(" ", prefix = "$NO_BACKEND ") { it.missingBackendHint })
     }
     return chooseBackend(created)
 }
@@ -72,7 +72,7 @@ private fun LogBackendFactory.tryCreateBackend(): LogBackend? =
     try {
         createBackend()
     } catch (failure: Throwable) {
-        if (failure.isFatal()) throw failure
+        if (failure.isFatal) throw failure
         printError("akki: ignoring a failed backend factory ${javaClass.name}: $failure")
         null
     }
@@ -91,7 +91,7 @@ private class Services(private val loader: ClassLoader) {
                     found += providers.next()
                 } catch (failure: Throwable) {
                     val cause = (failure as? ServiceConfigurationError)?.cause
-                    if (cause != null && cause.isFatal()) throw cause
+                    if (cause != null && cause.isFatal) throw cause
                     if (cause is IOException) {
                         printError("akki: backend service enumeration interrupted by an I/O failure: $failure")
                         complete = false
@@ -104,7 +104,7 @@ private class Services(private val loader: ClassLoader) {
                 }
             }
         } catch (failure: Throwable) {
-            if (failure.isFatal()) throw failure
+            if (failure.isFatal) throw failure
             printError("akki: failed to discover backends\n${failure.stackTraceToString().trimEnd()}")
             complete = false
             return found
