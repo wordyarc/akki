@@ -7,4 +7,4 @@ import kotlin.jvm.JvmName
 
 @PublishedApi
 internal fun declarationLogger(sourceName: String, jvmClassName: String): Logger =
-    namedLogger(platformDeclarationName(sourceName, jvmClassName))
+    getLogger(platformDeclarationName(sourceName, jvmClassName))
