@@ -1,3 +1,5 @@
+import akki.buildlogic.KoverMarkdownReport
+
 plugins {
     base
     id("org.jetbrains.kotlinx.kover")
@@ -11,6 +13,13 @@ kover {
             }
         }
     }
+}
+
+tasks.register<KoverMarkdownReport>("koverMarkdownReport") {
+    group = "verification"
+    description = "Generates an aggregated Kover coverage summary in Markdown."
+    xmlReport.fileProvider(tasks.named("koverXmlReport").map { it.outputs.files.singleFile })
+    markdownReport.set(layout.buildDirectory.file("reports/kover/summary.md"))
 }
 
 dependencies {
