@@ -43,7 +43,7 @@ Add the plugin to your build:
 ```kotlin
 plugins {
     kotlin("jvm") version "2.4.20"
-    id("io.github.wordyarc.akki") version "0.2.0"
+    id("io.github.wordyarc.akki") version "0.3.0"
 }
 ```
 
@@ -61,7 +61,7 @@ To capture logs in tests:
 
 ```kotlin
 dependencies {
-    testImplementation("io.github.wordyarc:akki-test:0.2.0")
+    testImplementation("io.github.wordyarc:akki-test:0.3.0")
 }
 ```
 
@@ -78,7 +78,7 @@ fails the compilation and names the oldest supported version.
 
 | akki    | Kotlin                                          | Compiler plugin            |
 |---------|-------------------------------------------------|----------------------------|
-| `0.2.1` | `2.3.20`, `2.3.21`, `2.4.0`, `2.4.10`, `2.4.20` | `akki-compiler`            |
+| `0.3.0` | `2.3.20`, `2.3.21`, `2.4.0`, `2.4.10`, `2.4.20` | `akki-compiler`            |
 | `0.2.0` | `2.4.0`, `2.4.10`, `2.4.20`                     | `akki-compiler-kotlin-2.4` |
 | `0.1.0` | `2.4.x`                                         | `akki-compiler`            |
 
