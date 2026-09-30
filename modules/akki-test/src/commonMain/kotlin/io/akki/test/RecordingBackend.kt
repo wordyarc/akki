@@ -8,7 +8,7 @@ import io.akki.backend.Sink
 public class RecordingBackend(
     private val minLevel: Level = Level.TRACE,
 ) : LogBackend {
-    private val recorded: RecordLog<LogRecord> = RecordLog()
+    private val recorded: LockFreeAppendList<LogRecord> = LockFreeAppendList()
 
     public val records: List<LogRecord>
         get() = recorded.snapshot

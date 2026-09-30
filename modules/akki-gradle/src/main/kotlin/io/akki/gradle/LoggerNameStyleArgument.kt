@@ -8,11 +8,11 @@ import org.gradle.process.CommandLineArgumentProvider
 import org.gradle.process.JavaForkOptions
 
 internal fun JavaForkOptions.passLoggerNameStyle(providers: ProviderFactory, style: Provider<LoggerNameStyle>) {
-    val explicit = providers.provider { setsLoggerNameStyle() }
+    val explicit = providers.provider { hasLoggerNameStyle() }
     jvmArgumentProviders.add(LoggerNameStyleArgument(style, explicit))
 }
 
-private fun JavaForkOptions.setsLoggerNameStyle(): Boolean =
+private fun JavaForkOptions.hasLoggerNameStyle(): Boolean =
     LOGGER_NAME_STYLE_PROPERTY in systemProperties ||
         jvmArgs.orEmpty().any { it.substringBefore('=') == "-D$LOGGER_NAME_STYLE_PROPERTY" }
 

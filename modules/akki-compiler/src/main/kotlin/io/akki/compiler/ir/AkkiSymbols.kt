@@ -160,7 +160,7 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
         private const val EMIT_SIGNATURE: String =
             "Sink.emit(message: String, cause: Throwable?, fields: Map<String, Any?>)"
 
-        fun of(context: IrPluginContext, compat: CompilerCompat): AkkiSymbols? {
+        fun find(context: IrPluginContext, compat: CompilerCompat): AkkiSymbols? {
             val finder = context.finderForBuiltins()
             finder.findClass(AkkiNames.LOGGER_ID) ?: return null
             val coreVersion = finder.findProperties(AkkiNames.CORE_VERSION_ID).singleOrNull()?.owner?.constantString()

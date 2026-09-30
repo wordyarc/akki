@@ -27,7 +27,7 @@ internal enum class MinLevel {
     companion object {
         val DEFAULT: MinLevel = TRACE
 
-        fun of(option: String): MinLevel? = entries.firstOrNull { it.option == option }
+        fun parseOrNull(option: String): MinLevel? = entries.firstOrNull { it.option == option }
     }
 }
 
@@ -40,7 +40,7 @@ internal class AkkiCommandLineProcessor : CommandLineProcessor {
 
     override fun processOption(option: AbstractCliOption, value: String, configuration: CompilerConfiguration) {
         if (option != MIN_LEVEL_OPTION) throw CliOptionProcessingException("Unknown Akki option '${option.optionName}'")
-        val level = MinLevel.of(value)
+        val level = MinLevel.parseOrNull(value)
             ?: throw CliOptionProcessingException(
                 "Unknown value '$value' for the Akki option '${MIN_LEVEL_OPTION.optionName}'. " +
                     "Expected one of ${MinLevel.entries.joinToString(", ") { it.option }}.",

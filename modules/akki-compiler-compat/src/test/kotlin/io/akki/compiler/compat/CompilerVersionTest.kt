@@ -9,8 +9,8 @@ import kotlin.test.assertNull
 internal class CompilerVersionTest {
     @Test
     fun `parses a canonical version`() {
-        assertEquals(CompilerVersion(2, 4, 20), CompilerVersion.parseCanonical("2.4.20"))
-        assertEquals(CompilerVersion(0, 0, 0), CompilerVersion.parseCanonical("0.0.0"))
+        assertEquals(CompilerVersion(2, 4, 20), CompilerVersion.parseCanonicalOrNull("2.4.20"))
+        assertEquals(CompilerVersion(0, 0, 0), CompilerVersion.parseCanonicalOrNull("0.0.0"))
         assertEquals("2.4.20", CompilerVersion(2, 4, 20).toString())
     }
 
@@ -23,13 +23,13 @@ internal class CompilerVersionTest {
             "2147483648.0.0", "2.4.99999999999",
         )
 
-        for (version in rejected) assertNull(CompilerVersion.parseCanonical(version), "'$version'")
+        for (version in rejected) assertNull(CompilerVersion.parseCanonicalOrNull(version), "'$version'")
     }
 
     @Test
     fun `orders versions by numbers and not by text`() {
         val ordered = listOf("2.3.20", "2.3.21", "2.4.0", "2.4.9", "2.4.10", "2.4.20", "2.10.0", "10.0.0")
-            .map { CompilerVersion.parseCanonical(it)!! }
+            .map { CompilerVersion.parseCanonicalOrNull(it)!! }
 
         repeat(20) { seed -> assertEquals(ordered, ordered.shuffled(Random(seed)).sorted()) }
     }

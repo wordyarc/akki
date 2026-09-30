@@ -211,7 +211,7 @@ internal class CompilerCompatLoaderTest {
     fun `reads the version of the compiler on the classpath and finds no factories in the contract`() {
         val failure = assertFailsWith<CompatLoadException> { CompilerCompatLoader.load() }
 
-        assertNotNull(CompilerVersion.parseCanonical(assertNotNull(KotlinCompilerVersion.getVersion())))
+        assertNotNull(CompilerVersion.parseCanonicalOrNull(assertNotNull(KotlinCompilerVersion.getVersion())))
         assertEquals("No compiler adapter factories were found on the compiler plugin classpath.", failure.message)
     }
 

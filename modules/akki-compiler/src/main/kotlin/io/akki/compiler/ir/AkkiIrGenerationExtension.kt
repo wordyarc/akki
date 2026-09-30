@@ -11,7 +11,7 @@ internal class AkkiIrGenerationExtension(
     private val compat: CompilerCompat,
 ) : IrGenerationExtension {
     override fun generate(moduleFragment: IrModuleFragment, pluginContext: IrPluginContext) {
-        val symbols = AkkiSymbols.of(pluginContext, compat) ?: return
+        val symbols = AkkiSymbols.find(pluginContext, compat) ?: return
         LoggerFieldLowering(pluginContext, symbols).lower(moduleFragment)
         LoggerCallLowering(pluginContext, symbols, minLevel, compat).lower(moduleFragment)
     }

@@ -17,7 +17,7 @@ internal data class CompilerVersion(
     companion object {
         private val canonical = Regex("""(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)""")
 
-        fun parseCanonical(value: String): CompilerVersion? {
+        fun parseCanonicalOrNull(value: String): CompilerVersion? {
             val match = canonical.matchEntire(value) ?: return null
             val major = match.groupValues[1].toIntOrNull() ?: return null
             val minor = match.groupValues[2].toIntOrNull() ?: return null

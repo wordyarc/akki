@@ -8,7 +8,7 @@ public class RecordingLogger(
     override val name: String = "recording",
     private val minLevel: Level = Level.TRACE,
 ) : Logger() {
-    private val recorded: RecordLog<LogRecord> = RecordLog()
+    private val recorded: LockFreeAppendList<LogRecord> = LockFreeAppendList()
 
     private val sinks: Array<Sink> = Array(Level.entries.size) { ordinal ->
         val level = Level.entries[ordinal]

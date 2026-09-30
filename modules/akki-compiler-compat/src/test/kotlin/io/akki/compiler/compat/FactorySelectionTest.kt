@@ -86,7 +86,7 @@ internal class FactorySelectionTest {
     }
 
     private fun select(current: String, from: List<CompilerCompat.Factory> = factories): CompilerCompat.Factory =
-        selectFactory(CompilerVersion.parseCanonical(current)!!, from)
+        selectFactory(CompilerVersion.parseCanonicalOrNull(current)!!, from)
 
     private open class Minimum(override val minVersion: String) : CompilerCompat.Factory {
         override fun create(): CompilerCompat = error("selection must not create adapters")
