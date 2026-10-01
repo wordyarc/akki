@@ -9,7 +9,7 @@ internal class CompilerAbi(private val plugin: Map<String, ClassShape>, host: Li
 
     private val shapes = HashMap<String, ClassShape?>(plugin)
 
-    fun violations(): List<String> = plugin.values.flatMap { shape ->
+    fun violations(checked: Set<String> = plugin.keys): List<String> = checked.map(plugin::getValue).flatMap { shape ->
         val broken = shape.references.filterNot { it.owner.isPlatform }.mapNotNull { shape.violation(it) }
         (broken + shape.unimplemented()).map { "${shape.name}: $it" }
     }.distinct()

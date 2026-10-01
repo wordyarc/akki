@@ -21,7 +21,7 @@ internal class CompilerAbiTest {
         val plugin = pluginWith(adapterOf(kotlin))
 
         assertContains(plugin, adapterOf(kotlin).implementation.replace('.', '/'))
-        assertTrue(plugin.keys.containsAll(factories), plugin.keys.toString())
+        assertTrue(plugin.containsAll(factories), plugin.toString())
         assertEquals(emptyList(), violations(plugin, host(kotlin)))
     }
 
@@ -40,8 +40,9 @@ internal class CompilerAbiTest {
         assertTrue(violations.none { it.startsWith("io/akki/compiler/compat/CompilerVersion") }, violations.toString())
     }
 
-    private fun pluginWith(adapter: Adapter): Map<String, ByteArray> =
-        classes.filterKeys { name -> adapters.none { it !== adapter && name in it && name !in factories } }
+    private fun pluginWith(adapter: Adapter): Set<String> = classes.keys.filterTo(mutableSetOf()) { name ->
+        adapters.none { it !== adapter && name in it && name !in factories }
+    }
 
     private fun host(kotlin: String): List<Path> {
         val host = classpath("akki.compiler.host.$kotlin")
@@ -51,9 +52,9 @@ internal class CompilerAbiTest {
         return host
     }
 
-    private fun violations(plugin: Map<String, ByteArray>, host: List<Path>): List<String> {
-        val shapes = plugin.mapValues { (_, bytes) -> ClassShape.read(bytes, withReferences = true) }
-        return CompilerAbi(shapes, host).use(CompilerAbi::violations)
+    private fun violations(plugin: Set<String>, host: List<Path>): List<String> {
+        val shapes = classes.mapValues { (_, bytes) -> ClassShape.read(bytes, withReferences = true) }
+        return CompilerAbi(shapes, host).use { it.violations(plugin) }
     }
 
     private operator fun Adapter.contains(className: String): Boolean =

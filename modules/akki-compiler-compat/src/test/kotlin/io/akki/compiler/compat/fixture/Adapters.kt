@@ -3,7 +3,6 @@
 package io.akki.compiler.compat.fixture
 
 import io.akki.compiler.compat.CompilerCompat
-import io.akki.compiler.compat.ReflectiveCompilerCompatFactory
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.compiler.plugin.CompilerPluginRegistrar
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
@@ -37,27 +36,19 @@ internal abstract class InertAdapter : CompilerCompat {
     ) = Unit
 }
 
+internal abstract class FixtureFactory(final override val minVersion: String) : CompilerCompat.Factory
+
 internal class CurrentAdapter : InertAdapter()
 
-internal class CurrentFactory : ReflectiveCompilerCompatFactory("2.3.20", "$FIXTURE_PACKAGE.CurrentAdapter")
+internal class CurrentFactory : FixtureFactory("2.3.20") {
+    override fun create(): CompilerCompat = CurrentAdapter()
+}
 
 internal class FutureAdapter : InertAdapter()
 
-internal class FutureFactory : ReflectiveCompilerCompatFactory("9.0.0", "$FIXTURE_PACKAGE.FutureAdapter")
-
-internal class AbsentFactory : ReflectiveCompilerCompatFactory("9.0.0", "$FIXTURE_PACKAGE.AbsentAdapter")
-
-internal class ForeignAdapter
-
-internal class ForeignFactory : ReflectiveCompilerCompatFactory("9.0.0", "$FIXTURE_PACKAGE.ForeignAdapter")
-
-internal class ParameterizedAdapter(val name: String) : InertAdapter()
-
-internal class ParameterizedFactory : ReflectiveCompilerCompatFactory("9.0.0", "$FIXTURE_PACKAGE.ParameterizedAdapter")
-
-internal class PrivateAdapter private constructor() : InertAdapter()
-
-internal class PrivateFactory : ReflectiveCompilerCompatFactory("9.0.0", "$FIXTURE_PACKAGE.PrivateAdapter")
+internal class FutureFactory : FixtureFactory("9.0.0") {
+    override fun create(): CompilerCompat = FutureAdapter()
+}
 
 internal class FailingAdapter : InertAdapter() {
     init {
@@ -65,7 +56,9 @@ internal class FailingAdapter : InertAdapter() {
     }
 }
 
-internal class FailingFactory : ReflectiveCompilerCompatFactory("9.0.0", "$FIXTURE_PACKAGE.FailingAdapter")
+internal class FailingFactory : FixtureFactory("9.0.0") {
+    override fun create(): CompilerCompat = FailingAdapter()
+}
 
 internal class ExhaustedAdapter : InertAdapter() {
     init {
@@ -73,7 +66,9 @@ internal class ExhaustedAdapter : InertAdapter() {
     }
 }
 
-internal class ExhaustedFactory : ReflectiveCompilerCompatFactory("9.0.0", "$FIXTURE_PACKAGE.ExhaustedAdapter")
+internal class ExhaustedFactory : FixtureFactory("9.0.0") {
+    override fun create(): CompilerCompat = ExhaustedAdapter()
+}
 
 internal class BrokenAdapter : InertAdapter() {
     private companion object {
@@ -83,15 +78,21 @@ internal class BrokenAdapter : InertAdapter() {
     }
 }
 
-internal class BrokenFactory : ReflectiveCompilerCompatFactory("9.0.0", "$FIXTURE_PACKAGE.BrokenAdapter")
+internal class BrokenFactory : FixtureFactory("9.0.0") {
+    override fun create(): CompilerCompat = BrokenAdapter()
+}
 
-internal class CrashingFactory : ReflectiveCompilerCompatFactory("2.3.20", "$FIXTURE_PACKAGE.CurrentAdapter") {
+internal class CrashingFactory : FixtureFactory("2.3.20") {
     init {
         throw InternalError("virtual machine failed in a factory")
     }
+
+    override fun create(): CompilerCompat = CurrentAdapter()
 }
 
-internal class UnlinkedFactory : ReflectiveCompilerCompatFactory("2.3.20", "$FIXTURE_PACKAGE.CurrentAdapter") {
+internal class UnlinkedFactory : FixtureFactory("2.3.20") {
+    override fun create(): CompilerCompat = CurrentAdapter()
+
     private companion object {
         init {
             throw NoSuchMethodError("compiler API is missing in a factory")
@@ -99,6 +100,10 @@ internal class UnlinkedFactory : ReflectiveCompilerCompatFactory("2.3.20", "$FIX
     }
 }
 
-internal class MalformedFactory : ReflectiveCompilerCompatFactory("nine", "$FIXTURE_PACKAGE.CurrentAdapter")
+internal class MalformedFactory : FixtureFactory("nine") {
+    override fun create(): CompilerCompat = CurrentAdapter()
+}
 
-internal class RivalFactory : ReflectiveCompilerCompatFactory("2.3.20", "$FIXTURE_PACKAGE.CurrentAdapter")
+internal class RivalFactory : FixtureFactory("2.3.20") {
+    override fun create(): CompilerCompat = CurrentAdapter()
+}

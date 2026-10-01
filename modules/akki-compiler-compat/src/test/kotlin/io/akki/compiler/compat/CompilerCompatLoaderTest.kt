@@ -1,18 +1,14 @@
 package io.akki.compiler.compat
 
-import io.akki.compiler.compat.fixture.AbsentFactory
 import io.akki.compiler.compat.fixture.BrokenFactory
 import io.akki.compiler.compat.fixture.CrashingFactory
 import io.akki.compiler.compat.fixture.CurrentAdapter
 import io.akki.compiler.compat.fixture.CurrentFactory
 import io.akki.compiler.compat.fixture.ExhaustedFactory
 import io.akki.compiler.compat.fixture.FailingFactory
-import io.akki.compiler.compat.fixture.ForeignFactory
 import io.akki.compiler.compat.fixture.FutureAdapter
 import io.akki.compiler.compat.fixture.FutureFactory
 import io.akki.compiler.compat.fixture.MalformedFactory
-import io.akki.compiler.compat.fixture.ParameterizedFactory
-import io.akki.compiler.compat.fixture.PrivateFactory
 import io.akki.compiler.compat.fixture.RivalFactory
 import io.akki.compiler.compat.fixture.UnlinkedFactory
 import java.nio.file.Path
@@ -73,30 +69,12 @@ internal class CompilerCompatLoaderTest {
     }
 
     @Test
-    fun `fails on the selected adapter that is absent`() {
-        val failure = failure("9.0.0", AbsentFactory::class, CurrentFactory::class)
-
-        assertIs<ClassNotFoundException>(failure.cause)
-        assertContains(failure.message.orEmpty(), "The compiler adapter for Kotlin 9.0.0 cannot be created by")
-        assertContains(failure.message.orEmpty(), AbsentFactory::class.java.name)
-    }
-
-    @Test
-    fun `fails on the adapter that does not implement the contract`() {
-        assertIs<ClassCastException>(failure("9.0.0", ForeignFactory::class).cause)
-    }
-
-    @Test
-    fun `fails on the adapter without an accessible constructor`() {
-        assertIs<NoSuchMethodException>(failure("9.0.0", ParameterizedFactory::class).cause)
-        assertIs<IllegalAccessException>(failure("9.0.0", PrivateFactory::class).cause)
-    }
-
-    @Test
     fun `reports the exception of the adapter constructor as the cause`() {
-        val cause = assertIs<IllegalStateException>(failure("9.0.0", FailingFactory::class).cause)
+        val failure = failure("9.0.0", FailingFactory::class)
 
-        assertEquals("adapter constructor failed", cause.message)
+        assertEquals("adapter constructor failed", assertIs<IllegalStateException>(failure.cause).message)
+        assertContains(failure.message.orEmpty(), "The compiler adapter for Kotlin 9.0.0 cannot be created by")
+        assertContains(failure.message.orEmpty(), FailingFactory::class.java.name)
     }
 
     @Test

@@ -1,6 +1,5 @@
 package io.akki.compiler.compat
 
-import java.lang.reflect.InvocationTargetException
 import java.util.ServiceConfigurationError
 import java.util.ServiceLoader
 import org.jetbrains.kotlin.config.KotlinCompilerVersion
@@ -66,23 +65,13 @@ private fun discover(classLoader: ClassLoader?): List<CompilerCompat.Factory> = 
 
 private fun CompilerCompat.Factory.createAdapter(compiler: String): CompilerCompat = try {
     create()
-} catch (failure: InvocationTargetException) {
-    throw loadFailure(failure.targetException ?: failure, compiler)
-} catch (failure: ReflectiveOperationException) {
-    throw loadFailure(failure, compiler)
-} catch (failure: ClassCastException) {
-    throw loadFailure(failure, compiler)
 } catch (failure: LinkageError) {
-    throw loadFailure(failure, compiler)
-}
-
-private fun CompilerCompat.Factory.loadFailure(failure: Throwable, compiler: String): Throwable = when {
-    failure is LinkageError -> CompatLoadException(
+    throw CompatLoadException(
         "The compiler adapter for Kotlin $minVersion created by $origin does not link against Kotlin $compiler.",
         failure,
     )
-    failure.isFatal -> failure
-    else -> CompatLoadException("The compiler adapter for Kotlin $minVersion cannot be created by $origin.", failure)
+} catch (failure: Exception) {
+    throw CompatLoadException("The compiler adapter for Kotlin $minVersion cannot be created by $origin.", failure)
 }
 
 private val Throwable.isFatal: Boolean

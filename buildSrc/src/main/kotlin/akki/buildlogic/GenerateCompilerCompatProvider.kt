@@ -30,19 +30,21 @@ abstract class GenerateCompilerCompatProvider : DefaultTask() {
     @TaskAction
     fun generate() {
         files.delete { delete(sourceDirectory, resourceDirectory) }
-        val factory = factoryClassNameOf(implementationClassName.get())
+        val implementation = implementationClassName.get()
+        val factory = factoryClassNameOf(implementation)
         val packageName = factory.substringBeforeLast('.')
         val name = factory.substringAfterLast('.')
         sourceDirectory.file("${factory.replace('.', '/')}.kt").get().asFile.writeGenerated(
             """
             |package $packageName
             |
-            |import io.akki.compiler.compat.ReflectiveCompilerCompatFactory
+            |import io.akki.compiler.compat.CompilerCompat
             |
-            |public class $name : ReflectiveCompilerCompatFactory(
-            |    minVersion = "${minVersion.get()}",
-            |    implementationClassName = "${implementationClassName.get()}",
-            |)
+            |public class $name : CompilerCompat.Factory {
+            |    override val minVersion: String = "${minVersion.get()}"
+            |
+            |    override fun create(): CompilerCompat = ${implementation.substringAfterLast('.')}()
+            |}
             |
             """.trimMargin(),
         )

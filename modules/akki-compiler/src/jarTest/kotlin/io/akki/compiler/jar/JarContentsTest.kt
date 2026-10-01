@@ -61,18 +61,46 @@ internal class JarContentsTest {
         assertEquals(adapters.associate { it.minVersion to "${it.packageName}.CompilerCompatFactory" }, merged)
     }
 
-    private fun factories(jars: List<Path>): Map<String, String> =
-        URLClassLoader(jars.map { it.toUri().toURL() }.toTypedArray(), javaClass.classLoader).use { classLoader ->
-            val service = classLoader.loadClass("io.akki.compiler.compat.CompilerCompat\$Factory")
-            val minVersion = service.getMethod("getMinVersion")
-            ServiceLoader.load(service, classLoader).associate { factory ->
-                assertTrue(factory.javaClass.classLoader === classLoader, "${factory.javaClass} leaked into the tests")
-                minVersion.invoke(factory) as String to factory.javaClass.name
-            }
+    @Test
+    fun `creates the factories without loading an implementation`() {
+        val requested = RecordingClassLoader(compilerJar, javaClass.classLoader).use { classLoader ->
+            assertEquals(adapters.size, discover(classLoader).size)
+            classLoader.requested
         }
+
+        for (adapter in adapters) {
+            assertContains(requested, "${adapter.packageName}.CompilerCompatFactory")
+            assertTrue(adapter.implementation !in requested, requested.toString())
+        }
+    }
+
+    private fun factories(jars: List<Path>): Map<String, String> =
+        URLClassLoader(jars.map { it.toUri().toURL() }.toTypedArray(), javaClass.classLoader).use(::discover)
+
+    private fun discover(classLoader: ClassLoader): Map<String, String> {
+        val service = classLoader.loadClass("io.akki.compiler.compat.CompilerCompat\$Factory")
+        val minVersion = service.getMethod("getMinVersion")
+        return ServiceLoader.load(service, classLoader).associate { factory ->
+            assertTrue(factory.javaClass.classLoader === classLoader, "${factory.javaClass} leaked into the tests")
+            minVersion.invoke(factory) as String to factory.javaClass.name
+        }
+    }
 
     private fun text(name: String): String = entries.single { it.first == name }.second.decodeToString()
 
     private val String.file: String
         get() = "${replace('.', '/')}.class"
+
+    private class RecordingClassLoader(jar: Path, parent: ClassLoader) :
+        URLClassLoader(arrayOf(jar.toUri().toURL()), parent) {
+        private val requests = mutableListOf<String>()
+
+        val requested: List<String>
+            get() = synchronized(requests) { requests.toList() }
+
+        override fun loadClass(name: String, resolve: Boolean): Class<*> {
+            synchronized(requests) { requests += name }
+            return super.loadClass(name, resolve)
+        }
+    }
 }

@@ -13,12 +13,20 @@ import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.IrFile
 
 public interface CompilerCompat {
+    @CompatApi(
+        since = "2.4.0",
+        change = "ExtensionStorage.registerExtension takes ExtensionPointDescriptor, not ProjectExtensionDescriptor",
+    )
     public fun registerExtensions(
         storage: CompilerPluginRegistrar.ExtensionStorage,
         fir: FirExtensionRegistrar,
         ir: IrGenerationExtension,
     )
 
+    @CompatApi(
+        since = "2.4.0",
+        change = "IrDiagnosticReporter.at returns IrDiagnosticContext, not DiagnosticContextImpl",
+    )
     public fun <A : Any, B : Any> IrDiagnosticReporter.reportAt(
         element: IrElement,
         file: IrFile,
@@ -27,6 +35,10 @@ public interface CompilerCompat {
         second: B,
     )
 
+    @CompatApi(
+        since = "2.4.20",
+        change = "IrDiagnosticReporter.report of a sourceless diagnostic takes CompilerMessageSourceLocation",
+    )
     public fun IrDiagnosticReporter.reportWithoutSource(
         diagnostic: KtSourcelessDiagnosticFactory,
         message: String,
