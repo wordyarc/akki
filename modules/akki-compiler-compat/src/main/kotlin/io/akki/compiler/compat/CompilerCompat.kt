@@ -50,3 +50,6 @@ public interface CompilerCompat {
         public fun create(): CompilerCompat
     }
 }
+
+@Target(AnnotationTarget.FUNCTION)
+internal annotation class CompatApi(val since: String, val change: String)
