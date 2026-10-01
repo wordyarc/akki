@@ -4,6 +4,7 @@ package io.akki.compiler.fir
 
 import io.akki.compiler.AkkiErrors
 import io.akki.compiler.AkkiNames
+import io.akki.compiler.linked
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.reportOn
 import org.jetbrains.kotlin.fir.analysis.checkers.MppCheckerKind
@@ -19,10 +20,12 @@ import org.jetbrains.kotlin.fir.references.toResolvedCallableSymbol
 internal object NamedLoggerChecker : FirFunctionCallChecker(MppCheckerKind.Common) {
     context(context: CheckerContext, reporter: DiagnosticReporter)
     override fun check(expression: FirFunctionCall) {
-        if (expression.calleeReference.toResolvedCallableSymbol()?.callableId != AkkiNames.NAMED_ID) return
-        val argument = expression.arguments.singleOrNull()?.unwrapArgument() ?: return
-        val name = FirExpressionEvaluator.evaluateExpression(argument, context.session).stringValue() ?: return
-        if (name.isNotBlank()) return
-        reporter.reportOn(argument.source, AkkiErrors.BLANK_LOG_NAME)
+        linked {
+            if (expression.calleeReference.toResolvedCallableSymbol()?.callableId != AkkiNames.NAMED_ID) return
+            val argument = expression.arguments.singleOrNull()?.unwrapArgument() ?: return
+            val name = FirExpressionEvaluator.evaluateExpression(argument, context.session).stringValue() ?: return
+            if (name.isNotBlank()) return
+            reporter.reportOn(argument.source, AkkiErrors.BLANK_LOG_NAME)
+        }
     }
 }

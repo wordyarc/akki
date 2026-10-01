@@ -1,6 +1,7 @@
 package io.akki.compiler.fir
 
 import io.akki.compiler.AkkiErrors
+import io.akki.compiler.linked
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.declaration.DeclarationCheckers
 import org.jetbrains.kotlin.fir.analysis.checkers.declaration.FirPropertyChecker
@@ -27,7 +28,9 @@ internal class AkkiFirCheckers(session: FirSession) : FirAdditionalCheckersExten
 
 internal class AkkiFirExtensionRegistrar : FirExtensionRegistrar() {
     override fun ExtensionRegistrarContext.configurePlugin() {
-        +::AkkiFirCheckers
-        registerDiagnosticContainers(AkkiErrors)
+        linked {
+            +::AkkiFirCheckers
+            registerDiagnosticContainers(AkkiErrors)
+        }
     }
 }

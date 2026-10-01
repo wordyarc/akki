@@ -24,21 +24,27 @@ internal class CompatApiTest {
 
     @Test
     fun `names the compiler change behind every operation`() {
-        assertEquals(emptyList(), operations.filter { it.api == null }.map(Method::getName))
-        for (api in operations.mapNotNull { it.api }) assertTrue(api.change.isNotBlank(), api.since)
+        assertEquals(emptyList(), operations.filter { it.changes.isEmpty() }.map(Method::getName))
+        for (api in operations.flatMap { it.changes }) assertTrue(api.change.isNotBlank(), api.since)
     }
 
     @Test
     fun `dates every change by the minimum of an adapter`() {
-        assertEquals(emptyList(), operations.mapNotNull { it.api?.since }.filterNot(minimums::contains))
+        assertEquals(emptyList(), operations.flatMap { it.changes }.map { it.since }.filterNot(minimums::contains))
+        for (operation in operations) {
+            val since = operation.changes.map { it.since }
+
+            assertEquals(since.distinct(), since, operation.name)
+        }
     }
 
     @Test
-    fun `keeps no operation for a change that the oldest supported compiler already has`() {
-        val obsolete = operations.mapNotNull { operation ->
-            val api = operation.api ?: return@mapNotNull null
-            val changed = CompilerVersion.parseOrNull(api.since) ?: return@mapNotNull null
-            "${operation.name} since Kotlin ${api.since}: ${api.change}".takeIf { changed <= oldest }
+    fun `keeps no change that the oldest supported compiler already has`() {
+        val obsolete = operations.flatMap { operation ->
+            operation.changes.mapNotNull { api ->
+                val changed = CompilerVersion.parseOrNull(api.since) ?: return@mapNotNull null
+                "${operation.name} since Kotlin ${api.since}: ${api.change}".takeIf { changed <= oldest }
+            }
         }
 
         assertEquals(emptyList(), obsolete)
@@ -46,11 +52,11 @@ internal class CompatApiTest {
 
     @Test
     fun `keeps no adapter after the oldest without a change of the compiler API`() {
-        val changes = operations.mapNotNull { it.api?.since }.toSet()
+        val changes = operations.flatMap { it.changes }.mapTo(mutableSetOf()) { it.since }
 
         assertEquals(emptyList(), minimums.filterNot { it in changes || CompilerVersion.parseOrNull(it) == oldest })
     }
 
-    private val Method.api: CompatApi?
-        get() = getAnnotation(CompatApi::class.java)
+    private val Method.changes: List<CompatApi>
+        get() = getAnnotationsByType(CompatApi::class.java).toList()
 }

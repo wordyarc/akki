@@ -75,7 +75,11 @@ internal class AkkiCompilerPluginRegistrarTest {
         val failure = assertFails { register(isolatedRegistrar(), MessageCollector.NONE) }
 
         assertEquals(CompatLoadException::class.java.name, failure.javaClass.name)
-        assertEquals("No compiler adapter factories were found on the compiler plugin classpath.", failure.message)
+        assertEquals(
+            "akki: compiler plugin $AKKI_VERSION cannot start. " +
+                "No compiler adapter factories were found on the compiler plugin classpath.",
+            failure.message,
+        )
     }
 
     @Test
@@ -103,6 +107,32 @@ internal class AkkiCompilerPluginRegistrarTest {
                 failure,
             )
         }
+    }
+
+    @Test
+    fun `reports a compiler that the selected adapter cannot be created in`() {
+        assertEquals(emptySet(), register(isolatedRegistrar(UnloadableFactory::class), messages))
+
+        val (severity, failure) = messages.reported.single()
+        assertEquals(CompilerMessageSeverity.ERROR, severity)
+        val lines = failure.lines()
+        assertEquals(3, lines.size, failure)
+        val (headline, adapter, cause) = lines
+        assertEquals(
+            "akki: compiler plugin $AKKI_VERSION cannot start. Kotlin ${KotlinCompilerVersion.getVersion()} is " +
+                "not supported: the compiler plugin does not link against it. Kotlin releases up to " +
+                "$LATEST_TESTED_KOTLIN are tested.",
+            headline,
+        )
+        assertTrue(
+            adapter.startsWith(
+                "Caused by: ${CompatLoadException::class.java.name}: The compiler adapter for Kotlin 2.3.20-Beta1 " +
+                    "created by ${UnloadableFactory::class.java.name} from ",
+            ),
+            adapter,
+        )
+        assertTrue(adapter.endsWith("does not link against Kotlin ${KotlinCompilerVersion.getVersion()}."), adapter)
+        assertEquals("Caused by: java.lang.NoClassDefFoundError: org/jetbrains/kotlin/Removed", cause)
     }
 
     private fun register(registrar: CompilerPluginRegistrar, collector: MessageCollector?): Set<String> {

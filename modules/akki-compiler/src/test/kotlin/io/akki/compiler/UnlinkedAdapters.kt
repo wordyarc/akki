@@ -51,3 +51,9 @@ internal class MiscastFactory : CompilerCompat.Factory {
 
     override fun create(): CompilerCompat = MiscastAdapter()
 }
+
+internal class UnloadableFactory : CompilerCompat.Factory {
+    override val minVersion: String = "2.3.20-Beta1"
+
+    override fun create(): CompilerCompat = throw NoClassDefFoundError("org/jetbrains/kotlin/Removed")
+}

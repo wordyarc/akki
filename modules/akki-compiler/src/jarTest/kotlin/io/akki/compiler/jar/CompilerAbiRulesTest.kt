@@ -9,6 +9,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import org.objectweb.asm.AnnotationVisitor
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes.ACC_ABSTRACT
@@ -221,6 +222,37 @@ internal class CompilerAbiRulesTest {
             assertTrue(adapter.callsDelegate("fallback()V") && !adapter.forwards("fallback()V"), field)
             assertFalse(adapter.callsDelegate("overridden()V") || adapter.forwards("overridden()V"), field)
         }
+    }
+
+    @Test
+    fun `reads every change of an operation from its annotation and from the container of repeated ones`() {
+        val contract = classFile(CONTRACT, access = ACC_PUBLIC or ACC_INTERFACE or ACC_ABSTRACT) {
+            operation("once", COMPAT_API) { change("2.4.0-Beta1") }
+            operation("twice", COMPAT_API_CONTAINER) {
+                val changes = visitArray("value")
+                for (since in listOf("2.4.20-Beta1", "2.5.0-Beta1")) {
+                    changes.visitAnnotation(null, COMPAT_API).apply { change(since) }.visitEnd()
+                }
+                changes.visitEnd()
+            }
+            method("unchanged", "()V", ACC_PUBLIC or ACC_ABSTRACT)
+        }.getValue(CONTRACT)
+
+        assertEquals(
+            mapOf("once()V" to setOf("2.4.0-Beta1"), "twice()V" to setOf("2.4.20-Beta1", "2.5.0-Beta1")),
+            compatApiChanges(contract),
+        )
+    }
+
+    private fun ClassWriter.operation(name: String, annotation: String, values: AnnotationVisitor.() -> Unit) {
+        val method = visitMethod(ACC_PUBLIC or ACC_ABSTRACT, name, "()V", null, null)
+        method.visitAnnotation(annotation, true).apply(values).visitEnd()
+        method.visitEnd()
+    }
+
+    private fun AnnotationVisitor.change(since: String) {
+        visit("since", since)
+        visit("change", "the compiler API changed in Kotlin $since")
     }
 
     private fun adapter(name: String, field: String, members: ClassWriter.() -> Unit): ClassShape {

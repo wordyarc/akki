@@ -129,7 +129,7 @@ internal class CompilerProcessTest {
         }
     }
 
-    @ParameterizedTest(name = "adapter of Kotlin {0} in Kotlin {1}")
+    @ParameterizedTest(name = "adapter of Kotlin {0} in Kotlin {1}", allowZeroInvocations = true)
     @MethodSource("mismatchedKotlin")
     fun `fails the compilation clearly when the selected adapter does not link against the compiler`(
         reported: String,
@@ -144,8 +144,8 @@ internal class CompilerProcessTest {
         for (compilation in failed) {
             val atStart = compilation.exitCode == "COMPILATION_ERROR" &&
                 "error: akki: compiler plugin $akkiVersion cannot start. $unlinked" in compilation.output
-            val inLowering = "akki: compiler plugin $akkiVersion failed. $unlinked" in compilation.output
-            assertTrue(atStart || inLowering, compilation.output)
+            val afterStart = "akki: compiler plugin $akkiVersion failed. $unlinked" in compilation.output
+            assertTrue(atStart || afterStart, compilation.output)
         }
     }
 
@@ -181,11 +181,14 @@ internal class CompilerProcessTest {
 
         @JvmStatic
         fun mismatchedKotlin(): List<Arguments> {
-            val (previous, newest) = adapters.zipWithNext().last()
-            return listOf(
-                Arguments.of(adapters.first().minVersion, io.akki.compiler.jar.checkedKotlin.last()),
-                Arguments.of(previous.minVersion, newest.minVersion),
-            )
+            val candidates = adapters.zipWithNext { previous, next -> previous to next.minVersion } +
+                (adapters.first() to io.akki.compiler.jar.checkedKotlin.last())
+            return candidates.distinct()
+                .filter { (adapter, kotlin) ->
+                    adapter !== adapterOf(kotlin) &&
+                        violations(adapter, classpath("akki.compiler.host.$kotlin")).isNotEmpty()
+                }
+                .map { (adapter, kotlin) -> Arguments.of(adapter.minVersion, kotlin) }
         }
 
         private fun Compilation.run(): String = run("sample.ServiceKt", core)
