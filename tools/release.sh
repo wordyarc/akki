@@ -21,7 +21,8 @@ grep -qxF "akki.version=$snapshot" gradle.properties || die "gradle.properties i
 
 group=$(sed -n 's/^akki\.maven\.group=//p' gradle.properties)
 plugin=$(sed -n 's/^akki\.plugin\.id=//p' gradle.properties)
-stale=$(grep -F -e "$group:" -e "\"$plugin\"" README.md | grep -vF "$version\"" || true)
+versioned=$(grep -E -e "$group:[^\":]+:" -e "\"$plugin\"" -e '<akki\.version>' README.md || true)
+stale=$(grep -vF -e "$version\"" -e ">$version<" <<< "$versioned" || true)
 [[ $version == *-* || -z $stale ]] || die "README.md names another version: $stale"
 
 git tag -a -m "$tag" "$tag"

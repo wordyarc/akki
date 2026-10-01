@@ -20,7 +20,7 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
             it.isCanBeConsumed = false
             it.isCanBeResolved = false
         }
-        listOf(core, slf4j).forEach { module ->
+        listOf(core, "$core-jvm", slf4j).forEach { module ->
             target.dependencies.constraints.add(versions.name, module) { constraint ->
                 constraint.version { it.strictly(pluginVersion) }
                 constraint.because("Akki modules require the same version as the compiler plugin")

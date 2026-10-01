@@ -15,6 +15,7 @@ import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
+import org.junit.jupiter.params.provider.ValueSource
 
 class AkkiGradlePluginTest {
     @Test
@@ -407,8 +408,52 @@ class AkkiGradlePluginTest {
         assertTrue(output.contains("INFO  consumer.OrderService - received A-1"), output)
     }
 
+    @ParameterizedTest(name = "pomOnly={0}")
+    @ValueSource(booleans = [false, true])
+    fun `resolves every artifact of the BOM without a version`(pomOnly: Boolean, @TempDir projectDirectory: Path) {
+        publishRepository(projectDirectory)
+        projectDirectory.resolve("settings.gradle.kts").writeText(settings())
+        projectDirectory.resolve("build.gradle.kts").writeText(
+            """
+            plugins {
+                `java-library`
+            }
+
+            repositories {
+                mavenCentral()
+                maven {
+                    url = uri("$REPOSITORY")
+                    ${if (pomOnly) POM_ONLY else ""}
+                }
+            }
+
+            dependencies {
+                implementation(platform("$GROUP:akki-bom:$VERSION"))
+            ${BOM_ARTIFACTS.joinToString("\n") { """    implementation("$GROUP:$it")""" }}
+            }
+
+            tasks.register("resolveBom") {
+                doLast {
+                    configurations.getByName("runtimeClasspath").incoming.resolutionResult.allComponents
+                        .mapNotNull { it.moduleVersion }
+                        .filter { it.group == "$GROUP" }
+                        .forEach { println("AKKI " + it.name + "=" + it.version) }
+                }
+            }
+            """.trimIndent()
+        )
+
+        val output = GradleRunner.create()
+            .withProjectDir(projectDirectory.toFile())
+            .withArguments("resolveBom", "--console=plain")
+            .build()
+            .output
+
+        BOM_ARTIFACTS.forEach { assertContains(output, "AKKI $it=$VERSION\n") }
+    }
+
     @Test
-    fun `consumes published core and test APIs from common source sets`(@TempDir projectDirectory: Path) {
+    fun `consumes BOM-managed core and test APIs from common source sets`(@TempDir projectDirectory: Path) {
         publishRepository(projectDirectory)
         projectDirectory.resolve("settings.gradle.kts").writeText(settings())
         projectDirectory.resolve("build.gradle.kts").writeText(
@@ -427,11 +472,12 @@ class AkkiGradlePluginTest {
                 jvm()
                 sourceSets {
                     commonMain.dependencies {
-                        implementation("$GROUP:akki-core:$VERSION")
+                        implementation(project.dependencies.platform("$GROUP:akki-bom:$VERSION"))
+                        implementation("$GROUP:akki-core")
                     }
                     commonTest.dependencies {
                         implementation(kotlin("test"))
-                        implementation("$GROUP:akki-test:$VERSION")
+                        implementation("$GROUP:akki-test")
                     }
                 }
             }
@@ -458,6 +504,11 @@ class AkkiGradlePluginTest {
     @Test
     fun `locks core version against a newer transitive dependency`(@TempDir projectDirectory: Path) {
         checkCoreVersionLock(projectDirectory, transitive = true)
+    }
+
+    @Test
+    fun `locks the jvm artifact of core against a newer transitive dependency`(@TempDir projectDirectory: Path) {
+        checkCoreVersionLock(projectDirectory, transitive = true, artifact = "akki-core-jvm")
     }
 
     @Test
@@ -570,18 +621,18 @@ class AkkiGradlePluginTest {
         assertContains(output, "AKKI runtimeClasspath slf4j=$VERSION\n")
     }
 
-    private fun checkCoreVersionLock(projectDirectory: Path, transitive: Boolean) {
+    private fun checkCoreVersionLock(projectDirectory: Path, transitive: Boolean, artifact: String = "akki-core") {
         val repository = publishRepository(projectDirectory)
         val newerVersion = "999.0.0"
-        publish(repository, GROUP, "akki-core", path("akki.core.jar"), version = newerVersion)
+        publish(repository, GROUP, artifact, path("akki.core.jar"), version = newerVersion)
         publish(
             repository,
             "consumer",
             "library",
             path("akki.slf4j.jar"),
-            dependencies = listOf(Triple(GROUP, "akki-core", newerVersion)),
+            dependencies = listOf(Triple(GROUP, artifact, newerVersion)),
         )
-        val dependency = if (transitive) "consumer:library:$VERSION" else "$GROUP:akki-core:$newerVersion"
+        val dependency = if (transitive) "consumer:library:$VERSION" else "$GROUP:$artifact:$newerVersion"
         projectDirectory.resolve("settings.gradle.kts").writeText(settings())
         projectDirectory.resolve("build.gradle.kts").writeText(
             buildScript(consumer = Consumer.Bare) + "\n" +
@@ -611,9 +662,9 @@ class AkkiGradlePluginTest {
             assertContains(output, "AKKI compileClasspath core=$VERSION\n")
             assertContains(output, "AKKI runtimeClasspath core=$VERSION\n")
         } else {
-            assertContains(output, "Cannot find a version of '$GROUP:akki-core'")
+            assertContains(output, "Cannot find a version of '$GROUP:$artifact'")
             assertContains(output, "strictly $VERSION")
-            assertContains(output, "$GROUP:akki-core:$newerVersion")
+            assertContains(output, "$GROUP:$artifact:$newerVersion")
             assertContains(output, "Akki modules require the same version as the compiler plugin")
         }
     }
@@ -743,7 +794,7 @@ class AkkiGradlePluginTest {
             mavenCentral()
             maven {
                 url = uri("$REPOSITORY")
-                ${if (pomOnly) "metadataSources { mavenPom(); artifact(); ignoreGradleMetadataRedirection() }" else ""}
+                ${if (pomOnly) POM_ONLY else ""}
             }
         }
 
@@ -820,7 +871,11 @@ class AkkiGradlePluginTest {
 
         val VERSION: String = requireNotNull(System.getProperty("akki.version"))
 
+        val BOM_ARTIFACTS: List<String> = requireNotNull(System.getProperty("akki.bom.artifacts")).split(',')
+
         const val REPOSITORY: String = "repository"
+
+        const val POM_ONLY: String = "metadataSources { mavenPom(); artifact(); ignoreGradleMetadataRedirection() }"
 
         const val SLF4J_HINT: String = "Add an SLF4J 2 provider to the runtime classpath, for example logback-classic."
 

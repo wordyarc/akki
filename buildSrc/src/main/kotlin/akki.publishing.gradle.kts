@@ -1,11 +1,13 @@
 import akki.buildlogic.AwaitMavenCentral
 import akki.buildlogic.REPOSITORY_PATH
 import akki.buildlogic.REPOSITORY_URL
+import akki.buildlogic.checkBomArtifacts
 import akki.buildlogic.mavenGroup
 import akki.buildlogic.publishTestRepository
 import akki.buildlogic.unpublishTestFixtures
 import com.vanniktech.maven.publish.DeploymentValidation
 import com.vanniktech.maven.publish.GradlePublishPlugin
+import com.vanniktech.maven.publish.JavaPlatform
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinJvm
 import com.vanniktech.maven.publish.KotlinMultiplatform
@@ -54,12 +56,14 @@ mavenPublishing {
 afterEvaluate {
     val javadocJar = JavadocJar.Empty()
     val platform = when {
+        pluginManager.hasPlugin("java-platform") -> JavaPlatform()
         pluginManager.hasPlugin("com.gradle.plugin-publish") -> GradlePublishPlugin()
         pluginManager.hasPlugin("org.jetbrains.kotlin.multiplatform") -> KotlinMultiplatform(javadocJar)
         else -> KotlinJvm(javadocJar)
     }
     mavenPublishing.configure(platform)
     if (pluginManager.hasPlugin("java-test-fixtures")) unpublishTestFixtures()
+    if (platform !is JavaPlatform) checkBomArtifacts()
 }
 
 pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {

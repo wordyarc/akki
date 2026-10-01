@@ -33,6 +33,7 @@ caller line. An optional compile-time threshold removes calls below the selected
 * `akki-test`: captures test logs with `recordLogs { }` or `RecordingBackend`.
 * `akki-coroutines`: carries a `LogScope` in a coroutine context via `LogScope.asContextElement()`.
 * `akki-test-coroutines`: provides suspending `recordLogs { }` for coroutine tests.
+* `akki-bom`: supplies the version of every akki artifact to Gradle platforms and Maven `dependencyManagement`.
 
 ## Setup
 
@@ -63,6 +64,57 @@ To capture logs in tests:
 dependencies {
     testImplementation("io.github.wordyarc:akki-test:0.3.0")
 }
+```
+
+With `akki-bom` as a platform, akki modules are declared without a version. Keep the BOM at the version of the
+plugin; in a Kotlin Multiplatform source set, write `project.dependencies.platform(...)`:
+
+```kotlin
+dependencies {
+    testImplementation(platform("io.github.wordyarc:akki-bom:0.3.0"))
+    testImplementation("io.github.wordyarc:akki-test")
+    testImplementation("io.github.wordyarc:akki-test-coroutines")
+}
+```
+
+### Maven
+
+Import `akki-bom` and use the `-jvm` artifact of each multiplatform module (`akki-core-jvm`, `akki-test-jvm`,
+`akki-coroutines-jvm`, `akki-test-coroutines-jvm`). Set `-Xplugin` to the `akki-compiler` jar of the same version:
+
+```xml
+<properties>
+  <akki.version>0.3.0</akki.version>
+</properties>
+
+<dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>io.github.wordyarc</groupId>
+      <artifactId>akki-bom</artifactId>
+      <version>${akki.version}</version>
+      <type>pom</type>
+      <scope>import</scope>
+    </dependency>
+  </dependencies>
+</dependencyManagement>
+
+<dependencies>
+  <dependency>
+    <groupId>io.github.wordyarc</groupId>
+    <artifactId>akki-core-jvm</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>io.github.wordyarc</groupId>
+    <artifactId>akki-slf4j</artifactId>
+    <scope>runtime</scope>
+  </dependency>
+  <dependency>
+    <groupId>io.github.wordyarc</groupId>
+    <artifactId>akki-test-jvm</artifactId>
+    <scope>test</scope>
+  </dependency>
+</dependencies>
 ```
 
 ### Versions and Kotlin compatibility
@@ -172,8 +224,7 @@ that a task sets itself with `systemProperty` or `jvmArgs` takes precedence over
   not supported.
 * `log` and `logger()` compile without the plugin but throw when called. Use `Log.of` or `Log.named` in that case.
 * Plugin setup and akki dependencies are automatic in Gradle. With Maven, set `-Xplugin` to the `akki-compiler`
-  artifact. Add `akki-core` and `akki-slf4j` with the same akki version as the plugin; the compiler plugin reports
-  version mismatches.
+  artifact and import `akki-bom` of the same version; the compiler plugin reports a mismatched `akki-core`.
 * Accurate caller lines require the plugin. Inline wrappers around `log` produce synthetic line numbers. Java
   calls report `io.akki.Logger` unless that class is registered in logback's `frameworkPackages`.
 * Only a message passed as a lambda is lazy. Ordinary arguments, including fields, are evaluated even when the

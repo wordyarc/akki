@@ -1,3 +1,4 @@
+import akki.buildlogic.BOM_ARTIFACTS
 import akki.buildlogic.ClasspathSystemProperty
 import akki.buildlogic.REPOSITORY_URL
 import akki.buildlogic.gradlePluginId
@@ -13,8 +14,16 @@ plugins {
 description = "Gradle plugin that applies the akki compiler plugin, adds akki-core and akki-slf4j of the same " +
     "version and passes the configured logger name style to Test and JavaExec tasks"
 
-val testRepositories: Configuration =
-    testRepositoriesOf(":akki-core", ":akki-slf4j", ":akki-compiler", ":akki-gradle", ":akki-test")
+val testRepositories: Configuration = testRepositoriesOf(
+    ":akki-core",
+    ":akki-slf4j",
+    ":akki-compiler",
+    ":akki-gradle",
+    ":akki-test",
+    ":akki-coroutines",
+    ":akki-test-coroutines",
+    ":akki-bom",
+)
 
 val prepareTestRepository = tasks.register<Sync>("prepareTestRepository") {
     into(layout.buildDirectory.dir("test-repository"))
@@ -66,6 +75,7 @@ tasks.test {
     systemProperty("akki.maven.group", mavenGroup)
     systemProperty("akki.plugin.id", gradlePluginId)
     systemProperty("akki.version", project.version.toString())
+    systemProperty("akki.bom.artifacts", BOM_ARTIFACTS.joinToString(","))
     systemProperty("akki.kotlin.version", libs.versions.kotlin.get())
     systemProperty("akki.kotlin.tested", providers.gradleProperty("akki.kotlin.tested").get())
     systemProperty("akki.kotlin.rejected", providers.gradleProperty("akki.kotlin.rejected").get())

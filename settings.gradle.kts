@@ -36,6 +36,7 @@ listOf(
     "akki-test",
     "akki-coroutines",
     "akki-test-coroutines",
+    "akki-bom",
     "akki-benchmark",
     "test-utils",
 ).forEach { module ->
