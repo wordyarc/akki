@@ -14,10 +14,10 @@ public class RecordingBackend(
     public val records: List<LogRecord>
         get() = recorded.toList()
 
-    override fun bind(name: String): LoggerBinding {
+    override fun bind(loggerName: String): LoggerBinding {
         val sinks = Array(Level.entries.size) { ordinal ->
             val level = Level.entries[ordinal]
-            Sink { message, cause, fields -> recorded.add(LogRecord(name, level, message, cause, fields)) }
+            Sink { message, cause, fields -> recorded.add(LogRecord(loggerName, level, message, cause, fields)) }
         }
         return LoggerBinding { level -> if (level >= minLevel) sinks[level.ordinal] else null }
     }

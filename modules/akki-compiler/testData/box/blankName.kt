@@ -9,7 +9,7 @@ import kotlin.test.assertFailsWith
 
 private const val EMPTY = " "
 
-@Suppress("BLANK_LOG_NAME")
+@Suppress("BLANK_LOGGER_NAME")
 private fun blank(): Logger = Log.named(EMPTY)
 
 fun box(): String {

@@ -122,7 +122,7 @@ internal class CompilerProcessTest {
         assertEquals("COMPILATION_ERROR", blankName.exitCode, blankName.output)
         assertContains(
             blankName.output,
-            "BlankName.kt:8:37: error: [BLANK_LOG_NAME] 'Log.named' requires a non-blank logger name.",
+            "BlankName.kt:8:37: error: [BLANK_LOGGER_NAME] 'Log.named' requires a non-blank logger name.",
         )
     }
 

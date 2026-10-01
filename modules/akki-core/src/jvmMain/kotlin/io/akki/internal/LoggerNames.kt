@@ -1,8 +1,8 @@
 package io.akki.internal
 
 import io.akki.LOGGER_NAME_STYLE_PROPERTY_NAME
-import io.akki.LOGGER_NAME_STYLE_VALUE_JVM_CLASS
-import io.akki.LOGGER_NAME_STYLE_VALUE_SOURCE
+import io.akki.LOGGER_NAME_STYLE_PROPERTY_VALUE_JVM_CLASS
+import io.akki.LOGGER_NAME_STYLE_PROPERTY_VALUE_SOURCE
 import kotlin.reflect.KClass
 
 private const val FACADE_SUFFIX: String = "Kt"
@@ -26,13 +26,13 @@ internal enum class JvmLoggerNameStyle {
 
 private val configuredStyle: JvmLoggerNameStyle by lazy { parseJvmLoggerNameStyle(loggerNameStyleProperty()) }
 
-private val typeNames: ClassValue<String> = object : ClassValue<String>() {
+private val loggerNames: ClassValue<String> = object : ClassValue<String>() {
     override fun computeValue(type: Class<*>): String = loggerName(type, configuredStyle)
 }
 
 internal actual fun loggerName(kClass: KClass<*>): String = loggerName(kClass.java)
 
-internal fun loggerName(jClass: Class<*>): String = typeNames.get(jClass)
+internal fun loggerName(jClass: Class<*>): String = loggerNames.get(jClass)
 
 internal fun loggerName(jClass: Class<*>, style: JvmLoggerNameStyle): String {
     val owner = generateSequence(jClass) { it.logicalEnclosingOwner() }.last()
@@ -47,14 +47,14 @@ internal fun parseJvmLoggerNameStyle(value: String?): JvmLoggerNameStyle =
 
 private fun parseJvmLoggerNameStyleOrNull(value: String?): JvmLoggerNameStyle? =
     when (value?.trim()?.lowercase()?.replace('_', '-')?.ifEmpty { null }) {
-        null, LOGGER_NAME_STYLE_VALUE_SOURCE -> JvmLoggerNameStyle.SOURCE
-        LOGGER_NAME_STYLE_VALUE_JVM_CLASS -> JvmLoggerNameStyle.JVM_CLASS
+        null, LOGGER_NAME_STYLE_PROPERTY_VALUE_SOURCE -> JvmLoggerNameStyle.SOURCE
+        LOGGER_NAME_STYLE_PROPERTY_VALUE_JVM_CLASS -> JvmLoggerNameStyle.JVM_CLASS
         else -> null
     }
 
 private fun invalidLoggerNameStyle(value: String?): String =
     "invalid $LOGGER_NAME_STYLE_PROPERTY_NAME value '$value': " +
-        "expected '$LOGGER_NAME_STYLE_VALUE_SOURCE' or '$LOGGER_NAME_STYLE_VALUE_JVM_CLASS'"
+        "expected '$LOGGER_NAME_STYLE_PROPERTY_VALUE_SOURCE' or '$LOGGER_NAME_STYLE_PROPERTY_VALUE_JVM_CLASS'"
 
 private fun loggerNameStyleProperty(): String? =
     try {

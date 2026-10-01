@@ -11,7 +11,7 @@ internal object BackendRegistry {
         DefaultBackend("akki: backend discovery is in progress, writing to stderr at INFO."),
     )
     private val current = AtomicReference(initial)
-    private val reported = AtomicReference<LogBackend?>(null)
+    private val reportedBackend = AtomicReference<LogBackend?>(null)
 
     fun backend(): LogBackend {
         val previous = current.load()
@@ -29,15 +29,15 @@ internal object BackendRegistry {
                 false
             } else {
                 unbindLoggers(backend)
-                reported.compareAndSet(backend, null)
+                reportedBackend.compareAndSet(backend, null)
                 true
             }
         }
     }
 
     fun claimFailureReport(backend: LogBackend): Boolean {
-        val previous = reported.load()
-        return previous !== backend && reported.compareAndSet(previous, backend)
+        val previous = reportedBackend.load()
+        return previous !== backend && reportedBackend.compareAndSet(previous, backend)
     }
 
     private class BackendState(val backend: LogBackend)

@@ -67,5 +67,5 @@ private object CountingBackend : LogBackend {
 
     private val binding = LoggerBinding { level -> sink.takeIf { level >= Level.INFO } }
 
-    override fun bind(name: String): LoggerBinding = binding
+    override fun bind(loggerName: String): LoggerBinding = binding
 }

@@ -21,7 +21,7 @@ class InstallingBackend : LogBackend {
         Log.named("bootstrap").info("installed")
     }
 
-    override fun bind(name: String): LoggerBinding = discovered.bind(name)
+    override fun bind(loggerName: String): LoggerBinding = discovered.bind(loggerName)
 }
 
 fun box(): String {

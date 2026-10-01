@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory
 import org.slf4j.event.Level as Slf4jLevel
 
 public class Slf4jBackend : LogBackend {
-    override fun bind(name: String): LoggerBinding = Slf4jBinding(name)
+    override fun bind(loggerName: String): LoggerBinding = Slf4jBinding(loggerName)
 
     override fun toString(): String = "Slf4jBackend"
 }

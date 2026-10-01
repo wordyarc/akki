@@ -8,8 +8,8 @@ import org.gradle.process.CommandLineArgumentProvider
 import org.gradle.process.JavaForkOptions
 
 internal fun JavaForkOptions.passLoggerNameStyle(providers: ProviderFactory, style: Provider<LoggerNameStyle>) {
-    val explicit = providers.provider { hasLoggerNameStyle() }
-    jvmArgumentProviders.add(LoggerNameStyleArgument(style, explicit))
+    val overriddenByTask = providers.provider { hasLoggerNameStyle() }
+    jvmArgumentProviders.add(LoggerNameStyleArgument(style, overriddenByTask))
 }
 
 private fun JavaForkOptions.hasLoggerNameStyle(): Boolean =
@@ -18,10 +18,10 @@ private fun JavaForkOptions.hasLoggerNameStyle(): Boolean =
 
 internal class LoggerNameStyleArgument(
     @get:Input @get:Optional val style: Provider<LoggerNameStyle>,
-    @get:Input val explicit: Provider<Boolean>,
+    @get:Input val overriddenByTask: Provider<Boolean>,
 ) : CommandLineArgumentProvider {
     override fun asArguments(): List<String> =
-        if (explicit.get()) emptyList() else listOfNotNull(style.orNull?.argument)
+        if (overriddenByTask.get()) emptyList() else listOfNotNull(style.orNull?.argument)
 }
 
 private val LoggerNameStyle.argument: String

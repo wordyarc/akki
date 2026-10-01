@@ -5,10 +5,10 @@ import io.akki.*
 
 private const val EMPTY = " "
 
-fun named(): Logger = Log.named(<!BLANK_LOG_NAME!>""<!>)
+fun named(): Logger = Log.named(<!BLANK_LOGGER_NAME!>""<!>)
 
-fun namedByConstant(): Logger = Log.named(<!BLANK_LOG_NAME!>EMPTY<!>)
+fun namedByConstant(): Logger = Log.named(<!BLANK_LOGGER_NAME!>EMPTY<!>)
 
-fun namedByArgument(): Logger = Log.named(name = <!BLANK_LOG_NAME!>" "<!>)
+fun namedByArgument(): Logger = Log.named(name = <!BLANK_LOGGER_NAME!>" "<!>)
 
 fun namedFine(): Logger = Log.named("audit")

@@ -15,14 +15,14 @@ class JvmLoggerNameStylePropertyTest {
         assertContains(
             output,
             "java.lang.IllegalStateException: akki: invalid $LOGGER_NAME_STYLE_PROPERTY_NAME value 'binary': " +
-                "expected '$LOGGER_NAME_STYLE_VALUE_SOURCE' or '$LOGGER_NAME_STYLE_VALUE_JVM_CLASS'",
+                "expected '$LOGGER_NAME_STYLE_PROPERTY_VALUE_SOURCE' or '$LOGGER_NAME_STYLE_PROPERTY_VALUE_JVM_CLASS'",
         )
         assertFalse(output.contains("name="), output)
     }
 
     @Test
     fun `a known style names the logger`(): Unit {
-        val (exit, output) = probe(LOGGER_NAME_STYLE_VALUE_JVM_CLASS)
+        val (exit, output) = probe(LOGGER_NAME_STYLE_PROPERTY_VALUE_JVM_CLASS)
 
         assertEquals(0, exit, output)
         assertContains(output, "name=" + NameStyleProbe.Owner.Nested::class.java.name)

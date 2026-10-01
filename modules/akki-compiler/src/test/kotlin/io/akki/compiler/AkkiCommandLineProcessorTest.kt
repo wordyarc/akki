@@ -19,7 +19,7 @@ internal class AkkiCommandLineProcessorTest {
 
         processor.processOption(processor.pluginOptions.single(), "info", configuration)
 
-        assertEquals(MinLevel.INFO, configuration[MIN_LEVEL])
+        assertEquals(MinLevel.INFO, configuration[AkkiConfigurationKeys.MIN_LEVEL])
     }
 
     @Test

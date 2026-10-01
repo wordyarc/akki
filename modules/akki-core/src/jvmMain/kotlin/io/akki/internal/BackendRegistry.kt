@@ -12,7 +12,7 @@ import java.util.concurrent.locks.ReentrantLock
 internal fun discover(loader: ClassLoader): LogBackend {
     val services = Services(loader)
     val declared = services.load(LogBackend::class.java)
-    if (declared.isNotEmpty() || !services.complete) return chooseBackend(declared)
+    if (declared.isNotEmpty() || !services.isComplete) return chooseBackend(declared)
     val factories = services.load(LogBackendFactory::class.java)
     val created = factories.mapNotNull { it.tryCreateBackend() }
     if (created.isEmpty() && factories.isNotEmpty()) {
@@ -37,7 +37,7 @@ internal fun chooseBackend(declared: List<LogBackend>): LogBackend {
 
 private const val DISCOVERY_WAIT_MILLIS: Long = 1_000
 
-private val discovery = ReentrantLock()
+private val discoveryLock = ReentrantLock()
 
 @Volatile
 private var discovered: LogBackend? = null
@@ -47,19 +47,19 @@ private var stalled: Boolean = false
 
 internal actual fun discoverPlatformBackend(): LogBackend? {
     discovered?.let { return it }
-    if (discovery.isHeldByCurrentThread || !awaitDiscovery()) return null
+    if (discoveryLock.isHeldByCurrentThread || !awaitDiscovery()) return null
     try {
         return discovered ?: discover(LogBackend::class.java.classLoader).also { discovered = it }
     } finally {
-        discovery.unlock()
+        discoveryLock.unlock()
     }
 }
 
 private fun awaitDiscovery(): Boolean {
-    if (discovery.tryLock()) return true
+    if (discoveryLock.tryLock()) return true
     if (stalled) return false
     try {
-        if (discovery.tryLock(DISCOVERY_WAIT_MILLIS, TimeUnit.MILLISECONDS)) return true
+        if (discoveryLock.tryLock(DISCOVERY_WAIT_MILLIS, TimeUnit.MILLISECONDS)) return true
         stalled = true
     } catch (_: InterruptedException) {
         Thread.currentThread().interrupt()
@@ -78,7 +78,7 @@ private fun LogBackendFactory.tryCreateBackend(): LogBackend? =
     }
 
 private class Services(private val loader: ClassLoader) {
-    var complete: Boolean = true
+    var isComplete: Boolean = true
         private set
 
     fun <S : Any> load(type: Class<S>): List<S> {
@@ -96,7 +96,7 @@ private class Services(private val loader: ClassLoader) {
                         printlnToStdErr(
                             "akki: backend service enumeration interrupted by an I/O failure: $failure",
                         )
-                        complete = false
+                        isComplete = false
                         return found
                     }
                     if (failure !is ServiceConfigurationError && failure !is LinkageError) throw failure
@@ -108,7 +108,7 @@ private class Services(private val loader: ClassLoader) {
         } catch (failure: Throwable) {
             if (failure.isFatal) throw failure
             printlnToStdErr("akki: failed to discover backends\n${failure.stackTraceToString().trimEnd()}")
-            complete = false
+            isComplete = false
             return found
         }
     }

@@ -49,7 +49,7 @@ internal class LoggerCallLowering(
         return if (minLevel.clips(target.level.owner.name)) {
             clip(expression, target) ?: expression
         } else {
-            record(expression, target) ?: expression
+            lowerToEmit(expression, target) ?: expression
         }
     }
 
@@ -80,18 +80,18 @@ internal class LoggerCallLowering(
         }
     }
 
-    private fun record(call: IrCall, target: LoggerCall): IrExpression? {
+    private fun lowerToEmit(call: IrCall, target: LoggerCall): IrExpression? {
         val receiver = call.arguments[target.receiver.indexInParameters] ?: return null
         val message = call.arguments[target.message.indexInParameters] ?: return null
         val scope = currentScope?.scope?.scopeOwnerSymbol ?: return null
         val builder = DeclarationIrBuilder(context, scope, call.startOffset, call.endOffset)
         return with(builder) {
             irBlock(resultType = context.irBuiltIns.unitType) {
-                val selected = freeze(receiver, "logger")
+                val logger = freeze(receiver, "logger")
                 val emitted = emitArguments(call, target, message)
                 val sink = irTemporary(
                     irCall(symbols.sink).apply {
-                        arguments[0] = selected
+                        arguments[0] = logger
                         arguments[1] = IrGetEnumValueImpl(startOffset, endOffset, symbols.levelType, target.level)
                     },
                     "sink",

@@ -33,7 +33,7 @@ internal object AkkiErrors : KtDiagnosticsContainer() {
         this,
     )
 
-    val BLANK_LOG_NAME by error0<KtElement>()
+    val BLANK_LOGGER_NAME by error0<KtElement>()
 
     val INCOMPATIBLE_AKKI_CORE by errorWithoutSource()
 
@@ -68,7 +68,7 @@ internal object AkkiDefaultErrorMessages : BaseDiagnosticRendererFactory() {
             CommonRenderers.STRING,
         )
         map.put(
-            AkkiErrors.BLANK_LOG_NAME,
+            AkkiErrors.BLANK_LOGGER_NAME,
             "'Log.named' requires a non-blank logger name.",
         )
         map.put(AkkiErrors.INCOMPATIBLE_AKKI_CORE, MESSAGE_PLACEHOLDER)

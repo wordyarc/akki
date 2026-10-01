@@ -3,7 +3,7 @@ package io.akki.backend
 import io.akki.Level
 
 public fun interface LogBackend {
-    public fun bind(name: String): LoggerBinding
+    public fun bind(loggerName: String): LoggerBinding
 }
 
 public fun interface LoggerBinding {

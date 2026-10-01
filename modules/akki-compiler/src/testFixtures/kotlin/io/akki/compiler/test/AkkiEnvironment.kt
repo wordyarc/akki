@@ -3,7 +3,7 @@
 package io.akki.compiler.test
 
 import io.akki.compiler.AkkiCompilerPluginRegistrar
-import io.akki.compiler.MIN_LEVEL
+import io.akki.compiler.AkkiConfigurationKeys
 import java.io.File
 import org.jetbrains.kotlin.cli.jvm.config.addJvmClasspathRoots
 import org.jetbrains.kotlin.compiler.plugin.CompilerPluginRegistrar
@@ -55,7 +55,7 @@ private class AkkiEnvironmentConfigurator(testServices: TestServices) : Environm
         get() = listOf(AkkiDirectives)
 
     override fun DirectiveToConfigurationKeyExtractor.provideConfigurationKeys() {
-        register(AkkiDirectives.MIN_LEVEL, MIN_LEVEL)
+        register(AkkiDirectives.MIN_LEVEL, AkkiConfigurationKeys.MIN_LEVEL)
     }
 
     override fun configureCompilerConfiguration(configuration: CompilerConfiguration, module: TestModule) {

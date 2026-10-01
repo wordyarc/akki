@@ -49,7 +49,7 @@ class JvmBackendReleaseTest {
     }
 
     private class TemporaryBackend(private val failure: Failure) : LogBackend {
-        override fun bind(name: String): LoggerBinding {
+        override fun bind(loggerName: String): LoggerBinding {
             check(failure != Failure.BIND) { "failed bind" }
             return LoggerBinding {
                 check(failure != Failure.RESOLVE) { "failed resolve" }

@@ -7,4 +7,5 @@ import io.akki.LogScope
 public fun LogScope.detachedEntry(): LogScope.Entry = LogScope.Entry(this, null)
 
 @InternalAkkiApi
-public fun exchangeCurrentEntry(entry: LogScope.Entry?): LogScope.Entry? = currentEntry().also { setCurrentEntry(entry) }
+public fun exchangeCurrentScopeEntry(entry: LogScope.Entry?): LogScope.Entry? =
+    currentScopeEntry().also { setCurrentScopeEntry(entry) }

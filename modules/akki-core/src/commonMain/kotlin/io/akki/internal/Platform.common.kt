@@ -22,9 +22,9 @@ internal expect val Throwable.isFatal: Boolean
 
 internal expect val Throwable.isPermanent: Boolean
 
-internal expect fun currentEntry(): LogScope.Entry?
+internal expect fun currentScopeEntry(): LogScope.Entry?
 
-internal expect fun setCurrentEntry(entry: LogScope.Entry?)
+internal expect fun setCurrentScopeEntry(entry: LogScope.Entry?)
 
 internal expect class ScopeBindings() {
     operator fun get(name: String): LoggerBinding?

@@ -24,7 +24,7 @@ class ReentrantBackend : LogBackend {
         }.use { it.await() }
     }
 
-    override fun bind(name: String): LoggerBinding = recording.bind(name)
+    override fun bind(loggerName: String): LoggerBinding = recording.bind(loggerName)
 }
 
 fun box(): String {

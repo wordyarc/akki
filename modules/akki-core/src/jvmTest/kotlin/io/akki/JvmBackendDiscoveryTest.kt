@@ -346,16 +346,16 @@ class JvmBackendDiscoveryTest {
     }
 
     private class RecordingOnlyBackend : LogBackend {
-        override fun bind(name: String): LoggerBinding = LoggerBinding { Sink { _, _, _ -> } }
+        override fun bind(loggerName: String): LoggerBinding = LoggerBinding { Sink { _, _, _ -> } }
     }
 
     private class SilentBackend : LogBackend {
-        override fun bind(name: String): LoggerBinding = LoggerBinding { null }
+        override fun bind(loggerName: String): LoggerBinding = LoggerBinding { null }
     }
 }
 
 class DeclaredBackend : LogBackend {
-    override fun bind(name: String): LoggerBinding = LoggerBinding { null }
+    override fun bind(loggerName: String): LoggerBinding = LoggerBinding { null }
 }
 
 class ThrowingBackend : LogBackend {
@@ -363,7 +363,7 @@ class ThrowingBackend : LogBackend {
         error("broken constructor")
     }
 
-    override fun bind(name: String): LoggerBinding = LoggerBinding { null }
+    override fun bind(loggerName: String): LoggerBinding = LoggerBinding { null }
 }
 
 class FatalConstructorBackend : LogBackend {
@@ -371,7 +371,7 @@ class FatalConstructorBackend : LogBackend {
         throw StackOverflowError("fatal constructor")
     }
 
-    override fun bind(name: String): LoggerBinding = LoggerBinding { null }
+    override fun bind(loggerName: String): LoggerBinding = LoggerBinding { null }
 }
 
 class FatalConstructorFactory : LogBackendFactory {

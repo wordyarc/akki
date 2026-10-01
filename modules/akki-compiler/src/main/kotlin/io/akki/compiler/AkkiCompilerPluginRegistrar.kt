@@ -22,7 +22,7 @@ internal class AkkiCompilerPluginRegistrar : CompilerPluginRegistrar() {
     override fun ExtensionStorage.registerExtensions(configuration: CompilerConfiguration) {
         val messageCollector = configuration.messageCollectorOrNull()
         try {
-            register(load(messageCollector), configuration[MIN_LEVEL, MinLevel.DEFAULT])
+            register(load(messageCollector), configuration[AkkiConfigurationKeys.MIN_LEVEL, MinLevel.DEFAULT])
         } catch (failure: CompatLoadException) {
             messageCollector.reportStartFailure(failure)
         }

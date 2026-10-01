@@ -5,7 +5,7 @@ package io.akki.coroutines
 import io.akki.InternalAkkiApi
 import io.akki.LogScope
 import io.akki.internal.detachedEntry
-import io.akki.internal.exchangeCurrentEntry
+import io.akki.internal.exchangeCurrentScopeEntry
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.ThreadContextElement
@@ -17,10 +17,10 @@ private class LogScopeElement(private val scope: LogScope) :
     AbstractCoroutineContextElement(LogScopeElement) {
     private val entry = scope.detachedEntry()
 
-    override fun updateThreadContext(context: CoroutineContext): LogScope.Entry? = exchangeCurrentEntry(entry)
+    override fun updateThreadContext(context: CoroutineContext): LogScope.Entry? = exchangeCurrentScopeEntry(entry)
 
     override fun restoreThreadContext(context: CoroutineContext, oldState: LogScope.Entry?) {
-        exchangeCurrentEntry(oldState)
+        exchangeCurrentScopeEntry(oldState)
     }
 
     override fun toString(): String = "LogScopeElement($scope)"

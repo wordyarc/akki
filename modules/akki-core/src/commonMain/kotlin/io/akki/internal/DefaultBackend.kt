@@ -11,17 +11,17 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 internal class DefaultBackend(private val notice: String) : LogBackend {
     private val announced = AtomicBoolean(false)
 
-    override fun bind(name: String): LoggerBinding {
+    override fun bind(loggerName: String): LoggerBinding {
         val sinks = Array(Level.entries.size) { ordinal ->
             val level = Level.entries[ordinal]
-            Sink { message, cause, fields -> printlnToStdErr(format(level, name, message, cause, fields)) }
+            Sink { message, cause, fields -> printlnToStdErr(format(level, loggerName, message, cause, fields)) }
         }
         return LoggerBinding { level -> if (level >= THRESHOLD) sinks[level.ordinal] else null }
     }
 
     private fun format(
         level: Level,
-        name: String,
+        loggerName: String,
         message: String,
         cause: Throwable?,
         fields: Map<String, Any?>,
@@ -32,7 +32,7 @@ internal class DefaultBackend(private val notice: String) : LogBackend {
         }
         append(LABELS[level.ordinal])
         append(' ')
-        append(name)
+        append(loggerName)
         append(" - ")
         append(message)
         if (fields.isNotEmpty()) {

@@ -14,7 +14,7 @@ internal class LoggerImpl(override val name: String) : Logger() {
     private val binding = AtomicReference<Binding?>(null)
 
     override fun sink(level: Level): Sink? {
-        val scope = LogScope.currentOrNull() ?: return resolver().resolve(level)
+        val scope = LogScope.currentOrNull() ?: return backendBinding().resolve(level)
         return scope.binding(name).resolve(level)
     }
 
@@ -25,11 +25,11 @@ internal class LoggerImpl(override val name: String) : Logger() {
         if (previous?.backend === backend) binding.compareAndSet(previous, null)
     }
 
-    private fun resolver(): LoggerBinding {
+    private fun backendBinding(): LoggerBinding {
         val backend = BackendRegistry.backend()
         val previous = binding.load()
         previous?.takeIf { it.backend === backend }?.let { return it }
-        val delegate = bind(backend) ?: return NO_SINK
+        val delegate = bind(backend) ?: return FAILED
         val created = Binding(backend, delegate)
         var expected = previous
         while (!binding.compareAndSet(expected, created)) {
@@ -47,7 +47,7 @@ internal class LoggerImpl(override val name: String) : Logger() {
         } catch (failure: Throwable) {
             if (failure.isFatal) throw failure
             report(backend, failure)
-            if (failure.isPermanent) NO_SINK else null
+            if (failure.isPermanent) FAILED else null
         }
 
     private fun report(backend: LogBackend, failure: Throwable) {
@@ -65,20 +65,20 @@ internal class LoggerImpl(override val name: String) : Logger() {
     }
 
     private inner class Binding(val backend: LogBackend, private val delegate: LoggerBinding) : LoggerBinding {
-        val isFailed: Boolean get() = delegate === NO_SINK
+        val isFailed: Boolean get() = delegate === FAILED
 
         override fun resolve(level: Level): Sink? =
             try {
                 delegate.resolve(level)
             } catch (failure: Throwable) {
                 if (failure.isFatal) throw failure
-                if (failure.isPermanent) binding.compareAndSet(this, Binding(backend, NO_SINK))
+                if (failure.isPermanent) binding.compareAndSet(this, Binding(backend, FAILED))
                 report(backend, failure)
                 null
             }
     }
 
     private companion object {
-        val NO_SINK: LoggerBinding = LoggerBinding { null }
+        val FAILED: LoggerBinding = LoggerBinding { null }
     }
 }

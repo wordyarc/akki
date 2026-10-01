@@ -17,7 +17,7 @@ import org.jetbrains.kotlin.fir.expressions.arguments
 import org.jetbrains.kotlin.fir.expressions.unwrapArgument
 import org.jetbrains.kotlin.fir.references.toResolvedCallableSymbol
 
-internal object NamedLoggerChecker : FirFunctionCallChecker(MppCheckerKind.Common) {
+internal object LoggerNameChecker : FirFunctionCallChecker(MppCheckerKind.Common) {
     context(context: CheckerContext, reporter: DiagnosticReporter)
     override fun check(expression: FirFunctionCall) {
         linked {
@@ -26,7 +26,7 @@ internal object NamedLoggerChecker : FirFunctionCallChecker(MppCheckerKind.Commo
             val name = FirExpressionEvaluator.evaluateExpression(argument, context.session).constStringOrNull()
                 ?: return
             if (name.isNotBlank()) return
-            reporter.reportOn(argument.source, AkkiErrors.BLANK_LOG_NAME)
+            reporter.reportOn(argument.source, AkkiErrors.BLANK_LOGGER_NAME)
         }
     }
 }

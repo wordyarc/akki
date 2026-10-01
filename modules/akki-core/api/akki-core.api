@@ -103,8 +103,8 @@ public abstract class io/akki/Logger {
 
 public final class io/akki/LoggerNameStyleKt {
 	public static final field LOGGER_NAME_STYLE_PROPERTY_NAME Ljava/lang/String;
-	public static final field LOGGER_NAME_STYLE_VALUE_JVM_CLASS Ljava/lang/String;
-	public static final field LOGGER_NAME_STYLE_VALUE_SOURCE Ljava/lang/String;
+	public static final field LOGGER_NAME_STYLE_PROPERTY_VALUE_JVM_CLASS Ljava/lang/String;
+	public static final field LOGGER_NAME_STYLE_PROPERTY_VALUE_SOURCE Ljava/lang/String;
 }
 
 public abstract interface class io/akki/backend/LogBackend {
@@ -130,6 +130,6 @@ public abstract interface class io/akki/internal/LogBackendFactory {
 
 public final class io/akki/internal/ThreadContextKt {
 	public static final fun detachedEntry (Lio/akki/LogScope;)Lio/akki/LogScope$Entry;
-	public static final fun exchangeCurrentEntry (Lio/akki/LogScope$Entry;)Lio/akki/LogScope$Entry;
+	public static final fun exchangeCurrentScopeEntry (Lio/akki/LogScope$Entry;)Lio/akki/LogScope$Entry;
 }
 

@@ -55,7 +55,7 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
 
     val declarationLogger: IrSimpleFunctionSymbol = finder.findFunctions(AkkiNames.DECLARATION_LOGGER_ID)
         .singleOrNull { it.owner.hasShape(regularParameters = 2) }
-        ?: incompatible(DECLARATION_LOGGER_SIGNATURE)
+        ?: incompatibleCore(DECLARATION_LOGGER_SIGNATURE)
 
     val log: IrClassSymbol = finder.classOrFail(AkkiNames.LOG_ID)
 
@@ -74,7 +74,7 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
                 it.parameters[1].type.classOrNull?.owner?.classId == StandardClassIds.KClass
         }
         ?.symbol
-        ?: incompatible(OF_TYPE_SIGNATURE)
+        ?: incompatibleCore(OF_TYPE_SIGNATURE)
 
     val ofReifiedType: IrSimpleFunctionSymbol =
         log.functionOrFail(AkkiNames.OF, OF_REIFIED_SIGNATURE, parameters = 0).symbol
@@ -88,10 +88,10 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
 
     val emptyMap: IrSimpleFunctionSymbol = finder.findFunctions(AkkiNames.EMPTY_MAP_ID)
         .singleOrNull { it.owner.hasShape() }
-        ?: incompatible("kotlin.collections.emptyMap()")
+        ?: incompatibleCore("kotlin.collections.emptyMap()")
 
     val invoke: IrSimpleFunctionSymbol =
-        (context.irBuiltIns.functionN(0).invokeFun ?: incompatible("kotlin.Function0.invoke()")).symbol
+        (context.irBuiltIns.functionN(0).invokeFun ?: incompatibleCore("kotlin.Function0.invoke()")).symbol
 
     private val calls: Map<IrSimpleFunctionSymbol, LoggerCall> = buildMap {
         val function0 = context.irBuiltIns.functionN(0).symbol
@@ -166,47 +166,48 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
             val coreVersion =
                 finder.findProperties(AkkiNames.CORE_VERSION_ID).singleOrNull()?.owner?.constStringOrNull()
             if (coreVersion != null && coreVersion != AKKI_VERSION) {
-                return context.incompatible(
+                context.reportIncompatibleCore(
                     compat,
                     "Akki compiler plugin $AKKI_VERSION requires akki-core $AKKI_VERSION, but the compile " +
                         "classpath contains akki-core $coreVersion.",
                 )
+                return null
             }
             return try {
                 AkkiSymbols(context, finder)
-            } catch (failure: IncompatibleCore) {
-                context.incompatible(
+            } catch (failure: IncompatibleCoreException) {
+                context.reportIncompatibleCore(
                     compat,
                     "Akki compiler plugin $AKKI_VERSION found an incompatible akki-core on the compile classpath: " +
                         "its version is unknown and '${failure.signature}' is missing. " +
                         "Use akki-core $AKKI_VERSION.",
                 )
+                null
             }
         }
 
-        private fun IrPluginContext.incompatible(compat: CompilerCompat, message: String): AkkiSymbols? {
+        private fun IrPluginContext.reportIncompatibleCore(compat: CompilerCompat, message: String) {
             with(compat) {
                 diagnosticReporter.reportWithoutSource(
                     diagnostic = AkkiErrors.INCOMPATIBLE_AKKI_CORE,
                     message = message,
                 )
             }
-            return null
         }
     }
 }
 
-private class IncompatibleCore(val signature: String) : Exception(signature)
+private class IncompatibleCoreException(val signature: String) : Exception(signature)
 
-private fun incompatible(signature: String): Nothing = throw IncompatibleCore(signature)
+private fun incompatibleCore(signature: String): Nothing = throw IncompatibleCoreException(signature)
 
 private fun DeclarationFinder.classOrFail(id: ClassId): IrClassSymbol =
-    findClass(id) ?: incompatible(id.asFqNameString())
+    findClass(id) ?: incompatibleCore(id.asFqNameString())
 
 private fun IrClassSymbol.functionOrFail(name: Name, signature: String, parameters: Int): IrSimpleFunction =
     owner.functions.singleOrNull {
         it.name == name && it.hasShape(dispatchReceiver = true, regularParameters = parameters)
-    } ?: incompatible(signature)
+    } ?: incompatibleCore(signature)
 
 private fun IrSimpleFunction.parameter(name: Name): IrValueParameter? =
     nonDispatchParameters.singleOrNull { it.name == name }

@@ -1,8 +1,8 @@
 package consumer
 
 import io.akki.LOGGER_NAME_STYLE_PROPERTY_NAME
-import io.akki.LOGGER_NAME_STYLE_VALUE_JVM_CLASS
-import io.akki.LOGGER_NAME_STYLE_VALUE_SOURCE
+import io.akki.LOGGER_NAME_STYLE_PROPERTY_VALUE_JVM_CLASS
+import io.akki.LOGGER_NAME_STYLE_PROPERTY_VALUE_SOURCE
 import io.akki.Log
 
 class Owner {
@@ -15,7 +15,11 @@ fun main() {
     println("AKKI startup style=$startupStyle")
     System.setProperty(
         LOGGER_NAME_STYLE_PROPERTY_NAME,
-        if (startupStyle == LOGGER_NAME_STYLE_VALUE_SOURCE) LOGGER_NAME_STYLE_VALUE_JVM_CLASS else LOGGER_NAME_STYLE_VALUE_SOURCE,
+        if (startupStyle == LOGGER_NAME_STYLE_PROPERTY_VALUE_SOURCE) {
+            LOGGER_NAME_STYLE_PROPERTY_VALUE_JVM_CLASS
+        } else {
+            LOGGER_NAME_STYLE_PROPERTY_VALUE_SOURCE
+        },
     )
     val logger = Log.of<Owner.Nested>()
     check(logger === Log.of(Owner.Nested::class.java))

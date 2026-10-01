@@ -112,11 +112,11 @@ class BackendFailureTest {
         var attempts: Int = 0
             private set
 
-        override fun bind(name: String): LoggerBinding {
-            if (failing == Failing.BIND) fail(name)
+        override fun bind(loggerName: String): LoggerBinding {
+            if (failing == Failing.BIND) fail(loggerName)
             return LoggerBinding {
                 attempts++
-                if (failing == Failing.RESOLVE) fail(name)
+                if (failing == Failing.RESOLVE) fail(loggerName)
                 Sink { _, _, _ -> }
             }
         }
