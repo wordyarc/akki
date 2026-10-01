@@ -29,8 +29,10 @@ internal class AkkiFirCheckers(session: FirSession) : FirAdditionalCheckersExten
 internal class AkkiFirExtensionRegistrar : FirExtensionRegistrar() {
     override fun ExtensionRegistrarContext.configurePlugin() {
         linked {
-            +::AkkiFirCheckers
+            +::linkedCheckers
             registerDiagnosticContainers(AkkiErrors)
         }
     }
 }
+
+private fun linkedCheckers(session: FirSession): FirAdditionalCheckersExtension = linked { AkkiFirCheckers(session) }
