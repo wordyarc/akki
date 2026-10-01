@@ -40,7 +40,7 @@ internal abstract class FixtureFactory(final override val minVersion: String) : 
 
 internal class CurrentAdapter : InertAdapter()
 
-internal class CurrentFactory : FixtureFactory("2.3.20") {
+internal class CurrentFactory : FixtureFactory("2.3.20-Beta1") {
     override fun create(): CompilerCompat = CurrentAdapter()
 }
 
@@ -104,6 +104,6 @@ internal class MalformedFactory : FixtureFactory("nine") {
     override fun create(): CompilerCompat = CurrentAdapter()
 }
 
-internal class RivalFactory : FixtureFactory("2.3.20") {
+internal class RivalFactory : FixtureFactory("2.3.20-Beta1") {
     override fun create(): CompilerCompat = CurrentAdapter()
 }

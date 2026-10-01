@@ -10,9 +10,9 @@ public object CompilerCompatLoader {
 
     internal fun load(compiler: String?, classLoader: ClassLoader?, trace: (String) -> Unit = {}): CompilerCompat {
         if (compiler == null) throw CompatLoadException("The Kotlin compiler does not report its version.")
-        val current = CompilerVersion.parseCanonicalOrNull(compiler)
+        val current = CompilerVersion.parseOrNull(compiler)
             ?: throw CompatLoadException(
-                "Kotlin '$compiler' is not supported. Only stable MAJOR.MINOR.PATCH releases are recognized.",
+                "Kotlin '$compiler' is not supported. Only releases and their Beta and RC builds are recognized.",
             )
         val factory = selectFactory(current, discover(classLoader))
         val compat = factory.createAdapter(compiler)
@@ -33,7 +33,7 @@ internal fun selectFactory(
     }
 
     val candidates = factories.map { factory ->
-        val minimum = CompilerVersion.parseCanonicalOrNull(factory.minVersion)
+        val minimum = CompilerVersion.parseOrNull(factory.minVersion)
             ?: throw CompatLoadException(
                 "${factory.origin} declares an invalid minimum Kotlin version '${factory.minVersion}'.",
             )

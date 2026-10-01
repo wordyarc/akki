@@ -14,7 +14,7 @@ import org.junit.jupiter.params.provider.MethodSource
 
 internal class CompilerProcessTest {
     @ParameterizedTest(name = "Kotlin {0}")
-    @MethodSource("testedKotlin")
+    @MethodSource("checkedKotlin")
     fun `loads the adapter of the running compiler`(kotlin: String) {
         val adapter = adapterOf(kotlin)
 
@@ -26,7 +26,7 @@ internal class CompilerProcessTest {
     }
 
     @ParameterizedTest(name = "Kotlin {0}")
-    @MethodSource("testedKotlin")
+    @MethodSource("checkedKotlin")
     fun `generates a logger that records under the name of its class`(kotlin: String) {
         val plain = supported(kotlin).plain
 
@@ -37,7 +37,7 @@ internal class CompilerProcessTest {
     }
 
     @ParameterizedTest(name = "Kotlin {0}")
-    @MethodSource("testedKotlin")
+    @MethodSource("checkedKotlin")
     fun `removes the records below the threshold of the command line and reports them`(kotlin: String) {
         val clipped = supported(kotlin).clipped
 
@@ -51,7 +51,7 @@ internal class CompilerProcessTest {
     }
 
     @ParameterizedTest(name = "Kotlin {0}")
-    @MethodSource("testedKotlin")
+    @MethodSource("checkedKotlin")
     fun `rejects an unknown threshold of the command line`(kotlin: String) {
         val unknown = supported(kotlin).unknownThreshold
 
@@ -64,7 +64,7 @@ internal class CompilerProcessTest {
     }
 
     @ParameterizedTest(name = "Kotlin {0}")
-    @MethodSource("testedKotlin")
+    @MethodSource("checkedKotlin")
     fun `reports a core of another version`(kotlin: String) {
         val stale = supported(kotlin).staleCore
 
@@ -77,7 +77,7 @@ internal class CompilerProcessTest {
     }
 
     @ParameterizedTest(name = "Kotlin {0}")
-    @MethodSource("testedKotlin")
+    @MethodSource("checkedKotlin")
     fun `reports a core without a version`(kotlin: String) {
         val incomplete = supported(kotlin).incompleteCore
 
@@ -90,7 +90,7 @@ internal class CompilerProcessTest {
     }
 
     @ParameterizedTest(name = "Kotlin {0}")
-    @MethodSource("testedKotlin")
+    @MethodSource("checkedKotlin")
     fun `reports a reference to the contextual logger`(kotlin: String) {
         val reference = supported(kotlin).reference
 
@@ -102,7 +102,7 @@ internal class CompilerProcessTest {
     }
 
     @ParameterizedTest(name = "Kotlin {0}")
-    @MethodSource("testedKotlin")
+    @MethodSource("checkedKotlin")
     fun `keeps nothing of the earlier compilations of its process`(kotlin: String) {
         val repeated = supported(kotlin).repeated
 
@@ -153,7 +153,7 @@ internal class CompilerProcessTest {
         private val rejected = ConcurrentHashMap<String, List<Compilation>>()
 
         @JvmStatic
-        fun testedKotlin(): List<String> = io.akki.compiler.jar.testedKotlin
+        fun checkedKotlin(): List<String> = io.akki.compiler.jar.checkedKotlin
 
         @JvmStatic
         fun rejectedKotlin(): List<String> = io.akki.compiler.jar.rejectedKotlin

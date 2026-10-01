@@ -62,12 +62,13 @@ val coreRuntime: Configuration = configurations.create("coreRuntime") {
     isCanBeResolved = true
 }
 
-val compilerHosts: Map<String, Configuration> = (testedKotlin + rejectedKotlin).associateWith { version ->
-    configurations.create("compilerHost-$version") {
-        isCanBeConsumed = false
-        isCanBeResolved = true
+val compilerHosts: Map<String, Configuration> =
+    (testedKotlin + rejectedKotlin + adapters.map { it.minVersion }).distinct().associateWith { version ->
+        configurations.create("compilerHost-$version") {
+            isCanBeConsumed = false
+            isCanBeResolved = true
+        }
     }
-}
 
 val jarTestSources: SourceSet = sourceSets.create("jarTest") {
     resources.srcDir("src/jarTest/data")
@@ -102,6 +103,7 @@ dependencies {
     jarTestSources.implementationConfigurationName(libs.kotlin.test.junit5)
     jarTestSources.implementationConfigurationName(libs.junit.jupiter)
     jarTestSources.implementationConfigurationName(libs.asm)
+    jarTestSources.implementationConfigurationName(libs.kotlin.tooling.core)
     jarTestSources.runtimeOnlyConfigurationName(libs.junit.platform.launcher)
     coreRuntime(project(":akki-core"))
     compilerHosts.forEach { (version, host) -> host("org.jetbrains.kotlin:kotlin-compiler:$version") }

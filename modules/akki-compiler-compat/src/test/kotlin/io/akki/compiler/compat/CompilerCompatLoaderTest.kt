@@ -131,18 +131,34 @@ internal class CompilerCompatLoaderTest {
         assertContains(malformed.message.orEmpty(), "declares an invalid minimum Kotlin version 'nine'")
 
         val ambiguous = failure("2.4.0", CurrentFactory::class, RivalFactory::class)
-        assertContains(ambiguous.message.orEmpty(), "Several factories declare the minimum Kotlin version 2.3.20")
+        assertContains(ambiguous.message.orEmpty(), "Several factories declare the minimum Kotlin version 2.3.20-Beta1")
         assertContains(ambiguous.message.orEmpty(), CurrentFactory::class.java.name)
         assertContains(ambiguous.message.orEmpty(), RivalFactory::class.java.name)
     }
 
     @Test
-    fun `rejects a compiler version that is not a stable release`() {
-        for (version in listOf("2.5.0-RC", "2.4.20-dev-1234", "2.4.0-ij261-64", "2.4", "")) {
+    fun `places Beta and RC compilers before their release`() {
+        val classLoader = AdapterClassLoader.of(directory, CurrentFactory::class, FutureFactory::class)
+        val expected = mapOf(
+            "2.3.20-Beta1" to CurrentAdapter::class,
+            "2.4.0-RC" to CurrentAdapter::class,
+            "9.0.0-Beta1" to CurrentAdapter::class,
+            "9.0.0-RC2" to CurrentAdapter::class,
+            "9.0.0" to FutureAdapter::class,
+        )
+
+        for ((version, adapter) in expected) {
+            assertEquals(adapter.java.name, CompilerCompatLoader.load(version, classLoader).javaClass.name, version)
+        }
+    }
+
+    @Test
+    fun `rejects a compiler version that is neither a release nor its Beta or RC build`() {
+        for (version in listOf("2.4.20-dev-1234", "2.4.0-ij261-64", "2.4.20-SNAPSHOT", "2.4", "")) {
             val failure = failure(version, CurrentFactory::class)
 
             assertEquals(
-                "Kotlin '$version' is not supported. Only stable MAJOR.MINOR.PATCH releases are recognized.",
+                "Kotlin '$version' is not supported. Only releases and their Beta and RC builds are recognized.",
                 failure.message,
             )
             assertNull(failure.cause)
@@ -158,9 +174,14 @@ internal class CompilerCompatLoaderTest {
 
     @Test
     fun `rejects a compiler older than every adapter`() {
-        val failure = failure("2.3.10", CurrentFactory::class, FutureFactory::class)
+        for (version in listOf("2.3.10", "2.3.10-RC")) {
+            val failure = failure(version, CurrentFactory::class, FutureFactory::class)
 
-        assertEquals("Kotlin 2.3.10 is not supported. The oldest supported version is 2.3.20.", failure.message)
+            assertEquals(
+                "Kotlin $version is not supported. The oldest supported version is 2.3.20-Beta1.",
+                failure.message,
+            )
+        }
     }
 
     @Test
@@ -168,12 +189,12 @@ internal class CompilerCompatLoaderTest {
         val classLoader = AdapterClassLoader.of(directory, CurrentFactory::class, FutureFactory::class)
         val traced = mutableListOf<String>()
 
-        CompilerCompatLoader.load("2.4.10", classLoader, traced::add)
+        CompilerCompatLoader.load("2.4.10-RC2", classLoader, traced::add)
 
         val message = traced.single()
         assertContains(
             message,
-            "Kotlin 2.4.10 uses ${CurrentAdapter::class.java.name}, the compiler adapter for Kotlin 2.3.20 " +
+            "Kotlin 2.4.10-RC2 uses ${CurrentAdapter::class.java.name}, the compiler adapter for Kotlin 2.3.20-Beta1 " +
                 "created by ${CurrentFactory::class.java.name} from ",
         )
     }
@@ -189,7 +210,7 @@ internal class CompilerCompatLoaderTest {
     fun `reads the version of the compiler on the classpath and finds no factories in the contract`() {
         val failure = assertFailsWith<CompatLoadException> { CompilerCompatLoader.load() }
 
-        assertNotNull(CompilerVersion.parseCanonicalOrNull(assertNotNull(KotlinCompilerVersion.getVersion())))
+        assertNotNull(CompilerVersion.parseOrNull(assertNotNull(KotlinCompilerVersion.getVersion())))
         assertEquals("No compiler adapter factories were found on the compiler plugin classpath.", failure.message)
     }
 

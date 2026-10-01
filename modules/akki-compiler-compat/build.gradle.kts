@@ -1,4 +1,5 @@
 import akki.buildlogic.compileAgainstCompilerApi
+import akki.buildlogic.compilerAdapters
 import akki.buildlogic.compilerApiBaseline
 
 plugins {
@@ -20,4 +21,9 @@ kotlin {
 
 dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-compiler:$compilerApiBaseline")
+    testImplementation(libs.kotlin.tooling.core)
+}
+
+tasks.test {
+    systemProperty("akki.compiler.minimums", compilerAdapters.joinToString(",") { it.minVersion })
 }

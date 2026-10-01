@@ -16,7 +16,7 @@ internal class CompilerAbiTest {
         .decodeToString().lines().filter(String::isNotEmpty).mapTo(mutableSetOf()) { it.replace('.', '/') }
 
     @ParameterizedTest(name = "Kotlin {0}")
-    @MethodSource("testedKotlin")
+    @MethodSource("checkedKotlin")
     fun `resolves every reference of the plugin with the selected adapter`(kotlin: String) {
         val plugin = pluginWith(adapterOf(kotlin))
 
@@ -26,7 +26,7 @@ internal class CompilerAbiTest {
     }
 
     @ParameterizedTest(name = "Kotlin {0}")
-    @MethodSource("testedKotlin")
+    @MethodSource("checkedKotlin")
     fun `reports every reference into the compiler once the compiler is missing`(kotlin: String) {
         val plugin = pluginWith(adapterOf(kotlin))
         val libraries = host(kotlin).filterNot { it.fileName.toString().startsWith("kotlin-compiler-") }
@@ -62,6 +62,6 @@ internal class CompilerAbiTest {
 
     private companion object {
         @JvmStatic
-        fun testedKotlin(): List<String> = io.akki.compiler.jar.testedKotlin
+        fun checkedKotlin(): List<String> = io.akki.compiler.jar.checkedKotlin
     }
 }

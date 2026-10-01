@@ -47,8 +47,9 @@ providers.fileContents(layout.rootDirectory.file("modules/akki-compiler-compat/a
     .lineSequence()
     .map { it.substringBefore('=').trim() }
     .filterNot { it.isEmpty() || it.startsWith('#') }
-    .forEach { version ->
-        include(":akki-compiler-compat:kotlin-$version")
-        project(":akki-compiler-compat:kotlin-$version").projectDir =
-            file("modules/akki-compiler-compat/kotlin-$version")
+    .map { it.substringBefore('-') }
+    .forEach { release ->
+        include(":akki-compiler-compat:kotlin-$release")
+        project(":akki-compiler-compat:kotlin-$release").projectDir =
+            file("modules/akki-compiler-compat/kotlin-$release")
     }

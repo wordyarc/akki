@@ -4,25 +4,38 @@ internal data class CompilerVersion(
     val major: Int,
     val minor: Int,
     val patch: Int,
+    val maturity: Maturity = Maturity.STABLE,
+    val number: Int? = null,
 ) : Comparable<CompilerVersion> {
+    enum class Maturity(val classifier: String?) {
+        BETA("Beta"),
+        RC("RC"),
+        STABLE(null),
+    }
+
     init {
         require(major >= 0 && minor >= 0 && patch >= 0)
+        require(number == null || maturity != Maturity.STABLE && number > 0)
     }
 
     override fun compareTo(other: CompilerVersion): Int =
-        compareValuesBy(this, other, { it.major }, { it.minor }, { it.patch })
+        compareValuesBy(this, other, { it.major }, { it.minor }, { it.patch }, { it.maturity }, { it.number })
 
-    override fun toString(): String = "$major.$minor.$patch"
+    override fun toString(): String =
+        "$major.$minor.$patch" + maturity.classifier?.let { "-$it${number ?: ""}" }.orEmpty()
 
     companion object {
-        private val canonical = Regex("""(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)""")
+        private val pattern = Regex("""(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(Beta|RC)([1-9]\d*)?)?""")
 
-        fun parseCanonicalOrNull(value: String): CompilerVersion? {
-            val match = canonical.matchEntire(value) ?: return null
-            val major = match.groupValues[1].toIntOrNull() ?: return null
-            val minor = match.groupValues[2].toIntOrNull() ?: return null
-            val patch = match.groupValues[3].toIntOrNull() ?: return null
-            return CompilerVersion(major, minor, patch)
+        fun parseOrNull(value: String): CompilerVersion? {
+            val (major, minor, patch, classifier, number) = pattern.matchEntire(value)?.destructured ?: return null
+            return CompilerVersion(
+                major = major.toIntOrNull() ?: return null,
+                minor = minor.toIntOrNull() ?: return null,
+                patch = patch.toIntOrNull() ?: return null,
+                maturity = Maturity.entries.single { it.classifier == classifier.ifEmpty { null } },
+                number = if (number.isEmpty()) null else number.toIntOrNull() ?: return null,
+            )
         }
     }
 }

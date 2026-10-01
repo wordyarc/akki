@@ -10,9 +10,9 @@ plugins {
 
 val adapter = compilerAdapter
 
-description = "Adapter of the akki compiler plugin to the compiler API of Kotlin ${adapter.minVersion}"
+description = "Adapter of the akki compiler plugin to the compiler API of Kotlin ${adapter.release}"
 
-compileAgainstCompilerApi(adapter.minVersion)
+compileAgainstCompilerApi(adapter.release)
 
 dependencies {
     api(project(COMPILER_COMPAT_PROJECT))

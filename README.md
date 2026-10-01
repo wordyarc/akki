@@ -73,8 +73,8 @@ these can include support for an additional Kotlin release.
 
 The plugin depends on the Kotlin compiler, whose API changes between releases. `akki-compiler` contains an adapter
 for each compiler API it supports and selects one by the version of the compiler that runs it, so Gradle, Maven and
-the command line use the same artifact. In a compiler older than every adapter, or in a pre-release one, the plugin
-fails the compilation and names the oldest supported version.
+the command line use the same artifact. Beta and RC builds of Kotlin are accepted too, dev builds are not. In a
+compiler older than every adapter the plugin fails the compilation and names the oldest supported version.
 
 | akki    | Kotlin                                          | Compiler plugin            |
 |---------|-------------------------------------------------|----------------------------|
@@ -168,7 +168,8 @@ that a task sets itself with `systemProperty` or `jvmArgs` takes precedence over
 ## Limitations
 
 * Only JVM compilations are supported. Android needs minSdk 34 and has not been tested.
-* Supported Kotlin releases are listed in the compatibility table. Pre-release compilers are not supported.
+* Supported Kotlin releases are listed in the compatibility table. Beta and RC builds are accepted, dev builds are
+  not supported.
 * `log` and `logger()` compile without the plugin but throw when called. Use `Log.of` or `Log.named` in that case.
 * Plugin setup and akki dependencies are automatic in Gradle. With Maven, set `-Xplugin` to the `akki-compiler`
   artifact. Add `akki-core` and `akki-slf4j` with the same akki version as the plugin; the compiler plugin reports

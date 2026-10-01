@@ -14,7 +14,7 @@ import org.jetbrains.kotlin.ir.declarations.IrFile
 
 public interface CompilerCompat {
     @CompatApi(
-        since = "2.4.0",
+        since = "2.4.0-Beta1",
         change = "ExtensionStorage.registerExtension takes ExtensionPointDescriptor, not ProjectExtensionDescriptor",
     )
     public fun registerExtensions(
@@ -24,7 +24,7 @@ public interface CompilerCompat {
     )
 
     @CompatApi(
-        since = "2.4.0",
+        since = "2.4.0-Beta1",
         change = "IrDiagnosticReporter.at returns IrDiagnosticContext, not DiagnosticContextImpl",
     )
     public fun <A : Any, B : Any> IrDiagnosticReporter.reportAt(
@@ -36,7 +36,7 @@ public interface CompilerCompat {
     )
 
     @CompatApi(
-        since = "2.4.20",
+        since = "2.4.20-Beta1",
         change = "IrDiagnosticReporter.report of a sourceless diagnostic takes CompilerMessageSourceLocation",
     )
     public fun IrDiagnosticReporter.reportWithoutSource(
