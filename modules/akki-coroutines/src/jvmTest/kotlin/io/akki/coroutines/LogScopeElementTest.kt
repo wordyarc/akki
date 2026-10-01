@@ -29,13 +29,13 @@ class LogScopeElementTest {
         withContext(scope.asContextElement()) {
             logger.info("caller")
             withContext(Dispatchers.Default) {
-                assertSame(scope, LogScope.current())
+                assertSame(scope, LogScope.currentOrNull())
                 logger.info("default")
             }
             withContext(Dispatchers.IO) { logger.info("io") }
         }
 
-        assertNull(LogScope.current())
+        assertNull(LogScope.currentOrNull())
         assertEquals(listOf("caller", "default", "io"), backend.records.map { it.message })
     }
 
@@ -79,13 +79,13 @@ class LogScopeElementTest {
 
         withContext(scope.asContextElement()) {
             val entry = manual.enter()
-            assertSame(manual, LogScope.current())
+            assertSame(manual, LogScope.currentOrNull())
             yield()
-            assertSame(scope, LogScope.current())
+            assertSame(scope, LogScope.currentOrNull())
             assertFailsWith<IllegalStateException> { entry.close() }
         }
 
-        assertNull(LogScope.current())
+        assertNull(LogScope.currentOrNull())
     }
 
     @Test
@@ -95,11 +95,11 @@ class LogScopeElementTest {
         Executors.newSingleThreadExecutor().asCoroutineDispatcher().use { thread ->
             val released = CompletableDeferred<Unit>()
             val scoped = async(thread + scope.asContextElement()) {
-                assertSame(scope, LogScope.current())
+                assertSame(scope, LogScope.currentOrNull())
                 released.await()
-                LogScope.current()
+                LogScope.currentOrNull()
             }
-            val unscoped = async(thread) { LogScope.current() }
+            val unscoped = async(thread) { LogScope.currentOrNull() }
 
             assertNull(unscoped.await())
             released.complete(Unit)

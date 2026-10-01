@@ -9,12 +9,12 @@ import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrGetField
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 
-internal fun IrExpression.stringConstant(): String? = when (this) {
+internal fun IrExpression.constStringOrNull(): String? = when (this) {
     is IrConst -> value as? String
-    is IrCall -> symbol.owner.correspondingPropertySymbol?.owner?.constantString()
-    is IrGetField -> symbol.owner.correspondingPropertySymbol?.owner?.constantString()
+    is IrCall -> symbol.owner.correspondingPropertySymbol?.owner?.constStringOrNull()
+    is IrGetField -> symbol.owner.correspondingPropertySymbol?.owner?.constStringOrNull()
     else -> null
 }
 
-internal fun IrProperty.constantString(): String? =
+internal fun IrProperty.constStringOrNull(): String? =
     takeIf { isConst }?.backingField?.initializer?.expression?.let { (it as? IrConst)?.value as? String }

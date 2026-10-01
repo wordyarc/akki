@@ -3,7 +3,7 @@ package io.akki.test
 import io.akki.Level
 
 public class LogRecord(
-    public val name: String,
+    public val loggerName: String,
     public val level: Level,
     public val message: String,
     public val cause: Throwable? = null,
@@ -14,7 +14,7 @@ public class LogRecord(
     override fun equals(other: Any?): Boolean =
         this === other || (
             other is LogRecord &&
-                name == other.name &&
+                loggerName == other.loggerName &&
                 level == other.level &&
                 message == other.message &&
                 cause == other.cause &&
@@ -22,7 +22,7 @@ public class LogRecord(
             )
 
     override fun hashCode(): Int {
-        var result = name.hashCode()
+        var result = loggerName.hashCode()
         result = 31 * result + level.hashCode()
         result = 31 * result + message.hashCode()
         result = 31 * result + (cause?.hashCode() ?: 0)
@@ -31,5 +31,5 @@ public class LogRecord(
     }
 
     override fun toString(): String =
-        "LogRecord(name=$name, level=$level, message=$message, cause=$cause, fields=$fields)"
+        "LogRecord(loggerName=$loggerName, level=$level, message=$message, cause=$cause, fields=$fields)"
 }

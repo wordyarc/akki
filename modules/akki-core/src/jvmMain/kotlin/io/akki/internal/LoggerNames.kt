@@ -27,15 +27,15 @@ internal enum class JvmLoggerNameStyle {
 private val configuredStyle: JvmLoggerNameStyle by lazy { parseJvmLoggerNameStyle(loggerNameStyleProperty()) }
 
 private val typeNames: ClassValue<String> = object : ClassValue<String>() {
-    override fun computeValue(type: Class<*>): String = platformTypeName(type, configuredStyle)
+    override fun computeValue(type: Class<*>): String = loggerName(type, configuredStyle)
 }
 
-internal actual fun platformTypeName(type: KClass<*>): String = platformTypeName(type.java)
+internal actual fun loggerName(kClass: KClass<*>): String = loggerName(kClass.java)
 
-internal fun platformTypeName(type: Class<*>): String = typeNames.get(type)
+internal fun loggerName(jClass: Class<*>): String = typeNames.get(jClass)
 
-internal fun platformTypeName(type: Class<*>, style: JvmLoggerNameStyle): String {
-    val owner = generateSequence(type) { it.logicalEnclosingOwner() }.last()
+internal fun loggerName(jClass: Class<*>, style: JvmLoggerNameStyle): String {
+    val owner = generateSequence(jClass) { it.logicalEnclosingOwner() }.last()
     return when (style) {
         JvmLoggerNameStyle.SOURCE -> owner.sourceName()
         JvmLoggerNameStyle.JVM_CLASS -> owner.name
@@ -141,7 +141,7 @@ private inline fun <T : Any> ignoringMalformedClass(read: () -> T?): T? =
         null
     }
 
-internal actual fun platformDeclarationName(sourceName: String, jvmClassName: String): String =
+internal actual fun loggerName(sourceName: String, jvmClassName: String): String =
     when (configuredStyle) {
         JvmLoggerNameStyle.SOURCE -> sourceName
         JvmLoggerNameStyle.JVM_CLASS -> jvmClassName

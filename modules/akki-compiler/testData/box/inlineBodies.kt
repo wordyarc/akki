@@ -112,7 +112,7 @@ fun box(): String {
         listOf(file, file, file, "fixture.Multifile", service, service, service, service, service, service, service),
         names,
     )
-    assertEquals(listOf(service to "parsing Int"), records.map { it.name to it.message })
+    assertEquals(listOf(service to "parsing Int"), records.map { it.loggerName to it.message })
     assertEquals(
         listOf(file, file, service, service, "fixture.Hidden"),
         listOf(

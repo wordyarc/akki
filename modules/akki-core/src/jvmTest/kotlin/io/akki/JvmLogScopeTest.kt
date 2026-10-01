@@ -21,7 +21,7 @@ class JvmLogScopeTest {
         Log.install(installed).use {
             LogScope(scoped).run {
                 thread {
-                    assertNull(LogScope.current())
+                    assertNull(LogScope.currentOrNull())
                     logger.info("worker")
                 }.join()
                 logger.info("owner")
@@ -57,7 +57,7 @@ class JvmLogScopeTest {
             "akki: logging scopes must be exited on their own thread in reverse order",
             (failure as IllegalStateException).message,
         )
-        assertNull(LogScope.current())
+        assertNull(LogScope.currentOrNull())
     }
 
     @Test
@@ -70,7 +70,7 @@ class JvmLogScopeTest {
         try {
             thread {
                 scope.enter().use { runCatching { entry.close() }.onFailure { failure = it } }
-                workerScope = LogScope.current()
+                workerScope = LogScope.currentOrNull()
             }.join()
         } finally {
             entry.close()
@@ -81,7 +81,7 @@ class JvmLogScopeTest {
             (failure as IllegalStateException).message,
         )
         assertNull(workerScope)
-        assertNull(LogScope.current())
+        assertNull(LogScope.currentOrNull())
     }
 
     private fun allocatedBytes(block: () -> Unit): Long {

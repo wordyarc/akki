@@ -28,7 +28,7 @@ internal object BackendRegistry {
             if (!current.compareAndSet(installed, previous)) {
                 false
             } else {
-                releasePlatformBackend(backend)
+                unbindLoggers(backend)
                 reported.compareAndSet(backend, null)
                 true
             }

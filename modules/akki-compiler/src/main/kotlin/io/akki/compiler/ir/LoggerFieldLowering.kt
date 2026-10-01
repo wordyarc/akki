@@ -99,7 +99,7 @@ internal class LoggerFieldLowering(
             .declarationLogger(namingOwner().declarationName(isJvm))
 
     private fun IrCall.namedField(): IrField? {
-        val name = arguments.lastOrNull()?.stringConstant()?.takeIf { it.isNotBlank() } ?: return null
+        val name = arguments.lastOrNull()?.constStringOrNull()?.takeIf { it.isNotBlank() } ?: return null
         return fieldOwner().loggerField("named:$name", contextual = false) {
             irCall(symbols.named).apply {
                 arguments[0] = irGetObject(symbols.log)

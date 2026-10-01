@@ -74,7 +74,7 @@ fun box(): String {
     assertEquals(loggers, fixture.pluginless.loggers())
     assertEquals("fixture.library.Owner:Int", Owner().reified<Int>())
     val records = recordLogs { Owner().record("inlined") }
-    assertEquals(listOf("fixture.library.Owner" to "inlined"), records.map { it.name to it.message })
+    assertEquals(listOf("fixture.library.Owner" to "inlined"), records.map { it.loggerName to it.message })
 
     assertSame(runtime("inline-audit"), named())
     val nested = runtime(Owner.Nested::class)

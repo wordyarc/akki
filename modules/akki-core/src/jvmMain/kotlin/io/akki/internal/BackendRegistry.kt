@@ -26,7 +26,7 @@ internal fun chooseBackend(declared: List<LogBackend>): LogBackend {
     val ordered = declared.sortedBy { it::class.java.name }
     val chosen = ordered.first()
     if (ordered.size > 1) {
-        printError(
+        printlnToStdErr(
             ordered.joinToString(
                 prefix = "akki: multiple backends on the classpath, using ${chosen::class.java.name}: ",
             ) { it::class.java.name },
@@ -73,7 +73,7 @@ private fun LogBackendFactory.tryCreateBackend(): LogBackend? =
         createBackend()
     } catch (failure: Throwable) {
         if (failure.isFatal) throw failure
-        printError("akki: ignoring a failed backend factory ${javaClass.name}: $failure")
+        printlnToStdErr("akki: ignoring a failed backend factory ${javaClass.name}: $failure")
         null
     }
 
@@ -93,19 +93,21 @@ private class Services(private val loader: ClassLoader) {
                     val cause = (failure as? ServiceConfigurationError)?.cause
                     if (cause != null && cause.isFatal) throw cause
                     if (cause is IOException) {
-                        printError("akki: backend service enumeration interrupted by an I/O failure: $failure")
+                        printlnToStdErr(
+                            "akki: backend service enumeration interrupted by an I/O failure: $failure",
+                        )
                         complete = false
                         return found
                     }
                     if (failure !is ServiceConfigurationError && failure !is LinkageError) throw failure
-                    printError(
+                    printlnToStdErr(
                         "akki: ignoring a broken backend service declaration\n${failure.stackTraceToString().trimEnd()}",
                     )
                 }
             }
         } catch (failure: Throwable) {
             if (failure.isFatal) throw failure
-            printError("akki: failed to discover backends\n${failure.stackTraceToString().trimEnd()}")
+            printlnToStdErr("akki: failed to discover backends\n${failure.stackTraceToString().trimEnd()}")
             complete = false
             return found
         }

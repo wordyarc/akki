@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 private val entries = ThreadLocal<LogScope.Entry?>()
 
-internal actual fun printError(message: String): Unit = System.err.println(message)
+internal actual fun printlnToStdErr(message: String): Unit = System.err.println(message)
 
 internal actual val Throwable.isFatal: Boolean get() = this is VirtualMachineError
 

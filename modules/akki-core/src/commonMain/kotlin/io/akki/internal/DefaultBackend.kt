@@ -14,12 +14,12 @@ internal class DefaultBackend(private val notice: String) : LogBackend {
     override fun bind(name: String): LoggerBinding {
         val sinks = Array(Level.entries.size) { ordinal ->
             val level = Level.entries[ordinal]
-            Sink { message, cause, fields -> printError(record(level, name, message, cause, fields)) }
+            Sink { message, cause, fields -> printlnToStdErr(format(level, name, message, cause, fields)) }
         }
         return LoggerBinding { level -> if (level >= THRESHOLD) sinks[level.ordinal] else null }
     }
 
-    private fun record(
+    private fun format(
         level: Level,
         name: String,
         message: String,

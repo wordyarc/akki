@@ -2,7 +2,7 @@ package io.akki
 
 import io.akki.internal.JvmLoggerNameStyle
 import io.akki.internal.parseJvmLoggerNameStyle
-import io.akki.internal.platformTypeName
+import io.akki.internal.loggerName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -57,8 +57,8 @@ class JvmLoggerNamesTest {
 
     @Test
     fun `SOURCE style uses Kotlin names for mapped types`(): Unit {
-        assertEquals("kotlin.String", platformTypeName(String::class.java, JvmLoggerNameStyle.SOURCE))
-        assertEquals("java.lang.String", platformTypeName(String::class.java, JvmLoggerNameStyle.JVM_CLASS))
+        assertEquals("kotlin.String", loggerName(String::class.java, JvmLoggerNameStyle.SOURCE))
+        assertEquals("java.lang.String", loggerName(String::class.java, JvmLoggerNameStyle.JVM_CLASS))
         assertEquals(byStyle("kotlin.String", "java.lang.String"), Log.of<String>().name)
         assertSame(Log.of<String>(), Log.of(String::class.java))
     }

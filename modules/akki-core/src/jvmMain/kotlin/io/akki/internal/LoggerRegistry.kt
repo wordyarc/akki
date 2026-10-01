@@ -8,6 +8,6 @@ private val loggers: ConcurrentHashMap<String, LoggerImpl> = ConcurrentHashMap()
 
 internal actual fun getOrCreateLogger(name: String): Logger = loggers.getOrPut(name) { LoggerImpl(name) }
 
-internal actual fun releasePlatformBackend(backend: LogBackend) {
-    loggers.values.forEach { it.release(backend) }
+internal actual fun unbindLoggers(backend: LogBackend) {
+    loggers.values.forEach { it.unbind(backend) }
 }

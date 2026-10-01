@@ -10,13 +10,13 @@ internal expect fun getOrCreateLogger(name: String): Logger
 
 internal expect fun discoverPlatformBackend(): LogBackend?
 
-internal expect fun releasePlatformBackend(backend: LogBackend)
+internal expect fun unbindLoggers(backend: LogBackend)
 
-internal expect fun platformDeclarationName(sourceName: String, jvmClassName: String): String
+internal expect fun loggerName(sourceName: String, jvmClassName: String): String
 
-internal expect fun platformTypeName(type: KClass<*>): String
+internal expect fun loggerName(kClass: KClass<*>): String
 
-internal expect fun printError(message: String)
+internal expect fun printlnToStdErr(message: String)
 
 internal expect val Throwable.isFatal: Boolean
 

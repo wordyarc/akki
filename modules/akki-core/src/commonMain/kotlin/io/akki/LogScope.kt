@@ -15,7 +15,7 @@ import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 import kotlin.jvm.JvmStatic
 
-private val used = AtomicBoolean(false)
+private val anyScopeCreated = AtomicBoolean(false)
 
 public inline fun <T> withLogScope(scope: LogScope, crossinline block: () -> T): T {
     contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
@@ -26,7 +26,7 @@ public class LogScope(public val backend: LogBackend) {
     private val bindings = ScopeBindings()
 
     init {
-        if (!used.load()) used.store(true)
+        if (!anyScopeCreated.load()) anyScopeCreated.store(true)
     }
 
     public fun enter(): Entry = Entry(this, currentEntry()).also(::setCurrentEntry)
@@ -57,6 +57,6 @@ public class LogScope(public val backend: LogBackend) {
 
     public companion object {
         @JvmStatic
-        public fun current(): LogScope? = if (used.load()) currentEntry()?.scope else null
+        public fun currentOrNull(): LogScope? = if (anyScopeCreated.load()) currentEntry()?.scope else null
     }
 }

@@ -4,18 +4,18 @@ import io.akki.backend.LogBackend
 import io.akki.internal.BackendRegistry
 import io.akki.internal.akkiError
 import io.akki.internal.getLogger
-import io.akki.internal.platformTypeName
+import io.akki.internal.loggerName
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.reflect.KClass
 
 public actual object Log {
     @JvmStatic
-    public actual fun of(kClass: KClass<*>): Logger = getLogger(platformTypeName(kClass))
+    public actual fun of(kClass: KClass<*>): Logger = getLogger(loggerName(kClass))
 
     public actual inline fun <reified T : Any> of(): Logger = of(T::class)
 
     @JvmStatic
-    public fun of(type: Class<*>): Logger = getLogger(platformTypeName(type))
+    public fun of(jClass: Class<*>): Logger = getLogger(loggerName(jClass))
 
     @JvmStatic
     public actual fun named(name: String): Logger = getLogger(name)

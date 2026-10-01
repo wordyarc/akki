@@ -163,7 +163,8 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
         fun find(context: IrPluginContext, compat: CompilerCompat): AkkiSymbols? {
             val finder = context.finderForBuiltins()
             finder.findClass(AkkiNames.LOGGER_ID) ?: return null
-            val coreVersion = finder.findProperties(AkkiNames.CORE_VERSION_ID).singleOrNull()?.owner?.constantString()
+            val coreVersion =
+                finder.findProperties(AkkiNames.CORE_VERSION_ID).singleOrNull()?.owner?.constStringOrNull()
             if (coreVersion != null && coreVersion != AKKI_VERSION) {
                 return context.incompatible(
                     compat,

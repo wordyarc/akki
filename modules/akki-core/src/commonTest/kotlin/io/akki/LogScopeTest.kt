@@ -50,9 +50,9 @@ class LogScopeTest {
     fun `current names the entered scope`(): Unit {
         val scope = LogScope(RecordingBackend())
 
-        assertNull(LogScope.current())
-        withLogScope(scope) { assertSame(scope, LogScope.current()) }
-        assertNull(LogScope.current())
+        assertNull(LogScope.currentOrNull())
+        withLogScope(scope) { assertSame(scope, LogScope.currentOrNull()) }
+        assertNull(LogScope.currentOrNull())
     }
 
     @Test
@@ -61,7 +61,7 @@ class LogScopeTest {
 
         assertFailsWith<IllegalStateException> { withLogScope(scope) { error("failed") } }
 
-        assertNull(LogScope.current())
+        assertNull(LogScope.currentOrNull())
     }
 
     @Test
@@ -77,7 +77,7 @@ class LogScopeTest {
             first.close()
         }
 
-        assertNull(LogScope.current())
+        assertNull(LogScope.currentOrNull())
     }
 
     @Test
@@ -89,13 +89,13 @@ class LogScopeTest {
         try {
             val failure = assertFailsWith<IllegalStateException> { outer.close() }
             assertEquals("akki: logging scopes must be exited on their own thread in reverse order", failure.message)
-            assertSame(scope, LogScope.current())
+            assertSame(scope, LogScope.currentOrNull())
         } finally {
             inner.close()
             outer.close()
         }
 
-        assertNull(LogScope.current())
+        assertNull(LogScope.currentOrNull())
     }
 
     @Test
@@ -105,7 +105,7 @@ class LogScopeTest {
         entry.close()
         entry.close()
 
-        assertNull(LogScope.current())
+        assertNull(LogScope.currentOrNull())
     }
 
     @Test

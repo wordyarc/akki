@@ -14,13 +14,13 @@ internal class LoggerImpl(override val name: String) : Logger() {
     private val binding = AtomicReference<Binding?>(null)
 
     override fun sink(level: Level): Sink? {
-        val scope = LogScope.current() ?: return resolver().resolve(level)
+        val scope = LogScope.currentOrNull() ?: return resolver().resolve(level)
         return scope.binding(name).resolve(level)
     }
 
     override fun toString(): String = "Logger($name)"
 
-    fun release(backend: LogBackend) {
+    fun unbind(backend: LogBackend) {
         val previous = binding.load()
         if (previous?.backend === backend) binding.compareAndSet(previous, null)
     }
@@ -57,7 +57,7 @@ internal class LoggerImpl(override val name: String) : Logger() {
         } else {
             "records are dropped while it keeps failing"
         }
-        printError(
+        printlnToStdErr(
             "akki: the backend failed to resolve logger '$name', $consequence, " +
                 "and only this first failure is reported\n" +
                 failure.stackTraceToString().trimEnd(),

@@ -5,8 +5,8 @@ public final class io/akki/test/LogRecord {
 	public final fun getCause ()Ljava/lang/Throwable;
 	public final fun getFields ()Ljava/util/Map;
 	public final fun getLevel ()Lio/akki/Level;
+	public final fun getLoggerName ()Ljava/lang/String;
 	public final fun getMessage ()Ljava/lang/String;
-	public final fun getName ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }

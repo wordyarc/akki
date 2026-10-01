@@ -20,17 +20,17 @@ internal class AkkiCompilerPluginRegistrar : CompilerPluginRegistrar() {
     override val supportsK2: Boolean = true
 
     override fun ExtensionStorage.registerExtensions(configuration: CompilerConfiguration) {
-        val messages = configuration.messages()
+        val messageCollector = configuration.messageCollectorOrNull()
         try {
-            register(load(messages), configuration[MIN_LEVEL, MinLevel.DEFAULT])
+            register(load(messageCollector), configuration[MIN_LEVEL, MinLevel.DEFAULT])
         } catch (failure: CompatLoadException) {
-            messages.reportStartFailure(failure)
+            messageCollector.reportStartFailure(failure)
         }
     }
 
-    private fun load(messages: MessageCollector?): CompilerCompat = try {
+    private fun load(messageCollector: MessageCollector?): CompilerCompat = try {
         CompilerCompatLoader.load { selection ->
-            messages?.report(CompilerMessageSeverity.LOGGING, "$PLUGIN starts. $selection", null)
+            messageCollector?.report(CompilerMessageSeverity.LOGGING, "$PLUGIN starts. $selection", null)
         }
     } catch (failure: CompatLoadException) {
         throw if (failure.cause is LinkageError) unlinked(failure) else failure
@@ -55,7 +55,7 @@ private const val CANNOT_START: String = "$PLUGIN cannot start."
 
 private fun unlinked(failure: Throwable): CompatLoadException = CompatLoadException(unlinkedCompiler(), failure)
 
-private fun CompilerConfiguration.messages(): MessageCollector? = try {
+private fun CompilerConfiguration.messageCollectorOrNull(): MessageCollector? = try {
     get(CommonConfigurationKeys.MESSAGE_COLLECTOR_KEY)
 } catch (failure: LinkageError) {
     throw CompatLoadException("$CANNOT_START ${unlinkedCompiler()}", failure)

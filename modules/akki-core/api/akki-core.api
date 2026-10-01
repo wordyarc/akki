@@ -36,14 +36,14 @@ public final class io/akki/Log$Installation : java/lang/AutoCloseable {
 public final class io/akki/LogScope {
 	public static final field Companion Lio/akki/LogScope$Companion;
 	public fun <init> (Lio/akki/backend/LogBackend;)V
-	public static final fun current ()Lio/akki/LogScope;
+	public static final fun currentOrNull ()Lio/akki/LogScope;
 	public final fun enter ()Lio/akki/LogScope$Entry;
 	public final fun getBackend ()Lio/akki/backend/LogBackend;
 	public fun toString ()Ljava/lang/String;
 }
 
 public final class io/akki/LogScope$Companion {
-	public final fun current ()Lio/akki/LogScope;
+	public final fun currentOrNull ()Lio/akki/LogScope;
 }
 
 public final class io/akki/LogScope$Entry : java/lang/AutoCloseable {

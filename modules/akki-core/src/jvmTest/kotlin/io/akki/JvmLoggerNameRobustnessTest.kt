@@ -2,7 +2,7 @@ package io.akki
 
 import io.akki.internal.JvmLoggerNameStyle
 import io.akki.internal.isCompanion
-import io.akki.internal.platformTypeName
+import io.akki.internal.loggerName
 import java.io.File
 import java.util.zip.ZipFile
 import kotlin.metadata.ClassKind
@@ -21,7 +21,7 @@ class JvmLoggerNameRobustnessTest {
 
         for (type in types) {
             for (style in JvmLoggerNameStyle.entries) {
-                val name = platformTypeName(type, style)
+                val name = loggerName(type, style)
                 assertTrue(name.isNotBlank(), "${type.name} resolved to a blank name in $style")
             }
         }

@@ -2,12 +2,12 @@ package io.akki.slf4j
 
 import io.akki.backend.Sink
 import org.slf4j.Logger
-import org.slf4j.event.Level
 import org.slf4j.spi.CallerBoundaryAware
+import org.slf4j.event.Level as Slf4jLevel
 
 internal class Slf4jSink(
     private val logger: Logger,
-    private val level: Level,
+    private val level: Slf4jLevel,
 ) : Sink {
     override fun emit(message: String, cause: Throwable?, fields: Map<String, Any?>) {
         val event = logger.atLevel(level)

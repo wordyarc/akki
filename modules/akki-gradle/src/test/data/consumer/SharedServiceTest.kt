@@ -10,7 +10,7 @@ class SharedServiceTest {
         val records = recordLogs { SharedService().handle() }
 
         assertEquals(1, records.size)
-        assertEquals("consumer.SharedService", records.single().name)
+        assertEquals("consumer.SharedService", records.single().loggerName)
         assertEquals("received from commonMain", records.single().message)
     }
 }

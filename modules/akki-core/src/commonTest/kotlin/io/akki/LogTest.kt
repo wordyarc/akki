@@ -69,7 +69,7 @@ class LogTest {
         }
 
         assertEquals(Level.entries, backend.records.map { it.level })
-        assertTrue(backend.records.all { it.name == "checkout" })
+        assertTrue(backend.records.all { it.loggerName == "checkout" })
         assertEquals(listOf("trace", "debug", "info", "warn", "error"), backend.records.map { it.message })
         assertTrue(backend.records.all { it.fields == fields })
     }
