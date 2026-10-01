@@ -73,7 +73,7 @@ internal class CompilerAbiTest {
 
     @Test
     fun `creates the delegate of every adapter but the oldest with the factory of the previous adapter`() {
-        assertTrue(implementation(adapters.first()).members.keys.none { it.startsWith(DELEGATE) })
+        assertFalse(implementation(adapters.first()).delegates)
         for ((previous, adapter) in adapters.zipWithNext()) {
             val constructor = implementation(adapter).methodReferences.getValue("<init>()V")
             val factory = MemberReference(previous.factory.internalName, "<init>", "()V", false, false, false)
@@ -104,7 +104,7 @@ internal class CompilerAbiTest {
 
     private fun chain(adapter: Adapter): List<Adapter> {
         val previous = adapters.getOrNull(adapters.indexOf(adapter) - 1)
-        val delegates = implementation(adapter).members.keys.any { it.startsWith(DELEGATE) }
+        val delegates = implementation(adapter).delegates
         return listOf(adapter) + if (delegates && previous != null) chain(previous) else emptyList()
     }
 
@@ -112,18 +112,12 @@ internal class CompilerAbiTest {
         val chain = chain(adapter)
         return chain.withIndex().associate { (index, delegate) ->
             delegate.implementation.internalName to operations.filterTo(mutableSetOf()) { operation ->
-                chain.take(index).any { !implementation(it).forwards(operation) }
+                chain.take(index).any { !implementation(it).callsDelegate(operation) }
             }
         }
     }
 
     private fun implementation(adapter: Adapter): ClassShape = shapes.getValue(adapter.implementation.internalName)
-
-    private fun ClassShape.forwards(operation: String): Boolean {
-        val references = methodReferences[operation].orEmpty().filterIsInstance<MemberReference>()
-        return references.any { it.owner == name && it.isField && it.name.startsWith(DELEGATE) } &&
-            references.any { it.owner == CONTRACT && it.signature == operation }
-    }
 
     private fun changes(): Map<String, String> {
         val changes = mutableMapOf<String, String>()
@@ -161,11 +155,7 @@ internal class CompilerAbiTest {
         className.startsWith("${packageName.internalName}/")
 
     private companion object {
-        const val CONTRACT: String = "io/akki/compiler/compat/CompilerCompat"
-
         const val COMPAT_API: String = "Lio/akki/compiler/compat/CompatApi;"
-
-        const val DELEGATE: String = "\$\$delegate_"
 
         @JvmStatic
         fun checkedKotlin(): List<String> = io.akki.compiler.jar.checkedKotlin

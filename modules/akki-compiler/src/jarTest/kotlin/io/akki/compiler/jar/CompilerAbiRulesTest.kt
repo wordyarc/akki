@@ -6,6 +6,8 @@ import java.util.jar.JarOutputStream
 import kotlin.io.path.outputStream
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.MethodVisitor
@@ -196,6 +198,43 @@ internal class CompilerAbiRulesTest {
             listOf("plugin/Delegate: host/Base.missing()V is missing"),
             violations(plugin, skipped = mapOf("plugin/Delegate" to setOf("unused()V"))),
         )
+    }
+
+    @Test
+    fun `recognizes a forwarding to the delegate field of either form`() {
+        for (field in listOf("\$\$delegate_0", "delegate")) {
+            val adapter = adapter("plugin/Adapter", field) {
+                method("forwarded", "()V") {
+                    forward("plugin/Adapter", field, "forwarded")
+                }
+                method("fallback", "()V") {
+                    forward("plugin/Adapter", field, "fallback")
+                    call(INVOKEVIRTUAL, "host/Base", "greet", "()V")
+                }
+                method("overridden", "()V") {
+                    call(INVOKEVIRTUAL, "host/Base", "greet", "()V")
+                }
+            }
+
+            assertTrue(adapter.delegates, field)
+            assertTrue(adapter.forwards("forwarded()V"), field)
+            assertTrue(adapter.callsDelegate("fallback()V") && !adapter.forwards("fallback()V"), field)
+            assertFalse(adapter.callsDelegate("overridden()V") || adapter.forwards("overridden()V"), field)
+        }
+    }
+
+    private fun adapter(name: String, field: String, members: ClassWriter.() -> Unit): ClassShape {
+        val bytes = classFile(name, interfaces = listOf(CONTRACT)) {
+            visitField(ACC_PRIVATE or ACC_FINAL, field, "L$CONTRACT;", null, null).visitEnd()
+            members()
+        }.getValue(name)
+        return ClassShape.read(bytes, withReferences = true)
+    }
+
+    private fun MethodVisitor.forward(owner: String, field: String, operation: String) {
+        visitVarInsn(ALOAD, 0)
+        visitFieldInsn(GETFIELD, owner, field, "L$CONTRACT;")
+        visitMethodInsn(INVOKEINTERFACE, CONTRACT, operation, "()V", true)
     }
 
     private fun violations(
