@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     implementation(libs.kotlin.gradle.plugin)
+    implementation(libs.kotlin.tooling.core)
     implementation(libs.kotlin.power.assert.gradle.plugin)
     implementation(libs.kotlin.allopen.gradle.plugin)
     implementation(libs.kotlinx.benchmark.gradle.plugin)

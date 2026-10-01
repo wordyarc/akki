@@ -33,7 +33,7 @@ internal class ClassShape(
     val superName: String?,
     val interfaces: List<String>,
     val members: Map<String, Int>,
-    val references: Set<Reference>,
+    val methodReferences: Map<String, Set<Reference>>,
 ) {
     val isInterface: Boolean
         get() = access and Opcodes.ACC_INTERFACE != 0
@@ -41,22 +41,31 @@ internal class ClassShape(
     val isAbstract: Boolean
         get() = access and Opcodes.ACC_ABSTRACT != 0
 
+    val isFinal: Boolean
+        get() = access and Opcodes.ACC_FINAL != 0
+
+    val isPublic: Boolean
+        get() = access and Opcodes.ACC_PUBLIC != 0
+
     val packageName: String
         get() = name.substringBeforeLast('/', "")
+
+    fun references(skipped: Set<String> = emptySet()): Set<Reference> =
+        (listOfNotNull(superName) + interfaces).mapTo(linkedSetOf<Reference>(), ::TypeReference) +
+            methodReferences.filterKeys { it !in skipped }.values.flatten()
 
     companion object {
         fun read(bytes: ByteArray, withReferences: Boolean): ClassShape {
             val reader = ClassReader(bytes)
             val collector = Collector(withReferences)
             reader.accept(collector, if (withReferences) ClassReader.SKIP_DEBUG else ClassReader.SKIP_CODE)
-            val supertypes = listOfNotNull(reader.superName) + reader.interfaces
             return ClassShape(
                 name = reader.className,
                 access = reader.access,
                 superName = reader.superName,
                 interfaces = reader.interfaces.toList(),
                 members = collector.members,
-                references = collector.references + supertypes.map(::TypeReference),
+                methodReferences = collector.methodReferences,
             )
         }
     }
@@ -65,7 +74,7 @@ internal class ClassShape(
 private class Collector(private val withReferences: Boolean) : ClassVisitor(Opcodes.ASM9) {
     val members = mutableMapOf<String, Int>()
 
-    val references = mutableSetOf<Reference>()
+    val methodReferences = mutableMapOf<String, MutableSet<Reference>>()
 
     override fun visitField(
         access: Int,
@@ -86,7 +95,8 @@ private class Collector(private val withReferences: Boolean) : ClassVisitor(Opco
         exceptions: Array<out String>?,
     ): MethodVisitor? {
         members["$name$descriptor"] = access
-        return if (withReferences) Instructions(references) else null
+        if (!withReferences) return null
+        return Instructions(methodReferences.getOrPut("$name$descriptor", ::linkedSetOf))
     }
 }
 

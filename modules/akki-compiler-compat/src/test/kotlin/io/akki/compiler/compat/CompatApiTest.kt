@@ -12,6 +12,16 @@ internal class CompatApiTest {
     private val minimums: List<String> =
         requireNotNull(System.getProperty("akki.compiler.minimums")) { "missing -Dakki.compiler.minimums" }.split(',')
 
+    private val oldest: CompilerVersion
+        get() = minimums.map { assertNotNull(CompilerVersion.parseOrNull(it), it) }.min()
+
+    @Test
+    fun `recognizes every minimum in the order of the build`() {
+        val versions = minimums.map { assertNotNull(CompilerVersion.parseOrNull(it), "'$it' is not recognized") }
+
+        assertEquals(versions.sorted(), versions)
+    }
+
     @Test
     fun `names the compiler change behind every operation`() {
         assertEquals(emptyList(), operations.filter { it.api == null }.map(Method::getName))
@@ -25,7 +35,6 @@ internal class CompatApiTest {
 
     @Test
     fun `keeps no operation for a change that the oldest supported compiler already has`() {
-        val oldest = minimums.map { assertNotNull(CompilerVersion.parseOrNull(it), it) }.min()
         val obsolete = operations.mapNotNull { operation ->
             val api = operation.api ?: return@mapNotNull null
             val changed = CompilerVersion.parseOrNull(api.since) ?: return@mapNotNull null
@@ -33,6 +42,13 @@ internal class CompatApiTest {
         }
 
         assertEquals(emptyList(), obsolete)
+    }
+
+    @Test
+    fun `keeps no adapter after the oldest without a change of the compiler API`() {
+        val changes = operations.mapNotNull { it.api?.since }.toSet()
+
+        assertEquals(emptyList(), minimums.filterNot { it in changes || CompilerVersion.parseOrNull(it) == oldest })
     }
 
     private val Method.api: CompatApi?

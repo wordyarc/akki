@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalCompilerApi::class)
 
-package io.akki.compiler.compat.k2420
+package io.akki.compiler
 
 import io.akki.compiler.compat.CompilerCompat
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
@@ -9,21 +9,17 @@ import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
 import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactory2
 import org.jetbrains.kotlin.diagnostics.KtSourcelessDiagnosticFactory
 import org.jetbrains.kotlin.fir.extensions.FirExtensionRegistrar
-import org.jetbrains.kotlin.fir.extensions.FirExtensionRegistrarAdapter
 import org.jetbrains.kotlin.ir.IrDiagnosticReporter
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.IrFile
 
-public class CompilerCompatImpl : CompilerCompat {
+internal abstract class FailingRegistration(private val failure: () -> Throwable) : CompilerCompat {
     override fun registerExtensions(
         storage: CompilerPluginRegistrar.ExtensionStorage,
         fir: FirExtensionRegistrar,
         ir: IrGenerationExtension,
     ) {
-        with(storage) {
-            FirExtensionRegistrarAdapter.registerExtension(fir)
-            IrGenerationExtension.registerExtension(ir)
-        }
+        throw failure()
     }
 
     override fun <A : Any, B : Any> IrDiagnosticReporter.reportAt(
@@ -32,14 +28,26 @@ public class CompilerCompatImpl : CompilerCompat {
         diagnostic: KtDiagnosticFactory2<A, B>,
         first: A,
         second: B,
-    ) {
-        at(element, file).report(diagnostic, first, second)
-    }
+    ) = Unit
 
     override fun IrDiagnosticReporter.reportWithoutSource(
         diagnostic: KtSourcelessDiagnosticFactory,
         message: String,
-    ) {
-        report(diagnostic, message, location = null)
-    }
+    ) = Unit
+}
+
+internal class UnlinkedAdapter : FailingRegistration({ NoSuchMethodError("registerExtension") })
+
+internal class MiscastAdapter : FailingRegistration({ ClassCastException("ProjectExtensionDescriptor") })
+
+internal class UnlinkedFactory : CompilerCompat.Factory {
+    override val minVersion: String = "2.3.20-Beta1"
+
+    override fun create(): CompilerCompat = UnlinkedAdapter()
+}
+
+internal class MiscastFactory : CompilerCompat.Factory {
+    override val minVersion: String = "2.3.20-Beta1"
+
+    override fun create(): CompilerCompat = MiscastAdapter()
 }

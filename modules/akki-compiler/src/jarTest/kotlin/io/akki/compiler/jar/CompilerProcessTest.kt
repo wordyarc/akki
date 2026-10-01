@@ -10,6 +10,7 @@ import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.CleanupMode
 import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 
 internal class CompilerProcessTest {
@@ -128,6 +129,26 @@ internal class CompilerProcessTest {
         }
     }
 
+    @ParameterizedTest(name = "adapter of Kotlin {0} in Kotlin {1}")
+    @MethodSource("mismatchedKotlin")
+    fun `fails the compilation clearly when the selected adapter does not link against the compiler`(
+        reported: String,
+        kotlin: String,
+    ) {
+        val compilations = mismatched(reported, kotlin)
+        val unlinked = "Kotlin $reported is not supported: the compiler plugin does not link against it. " +
+            "Kotlin releases up to $latestTestedKotlin are tested."
+
+        val failed = compilations.filter { it.exitCode != "OK" }
+        assertTrue(failed.isNotEmpty(), compilations.joinToString("\n") { it.output })
+        for (compilation in failed) {
+            val atStart = compilation.exitCode == "COMPILATION_ERROR" &&
+                "error: akki: compiler plugin $akkiVersion cannot start. $unlinked" in compilation.output
+            val inLowering = "akki: compiler plugin $akkiVersion failed. $unlinked" in compilation.output
+            assertTrue(atStart || inLowering, compilation.output)
+        }
+    }
+
     private class Supported(
         val verbose: Compilation,
         val plain: Compilation,
@@ -158,6 +179,15 @@ internal class CompilerProcessTest {
         @JvmStatic
         fun rejectedKotlin(): List<String> = io.akki.compiler.jar.rejectedKotlin
 
+        @JvmStatic
+        fun mismatchedKotlin(): List<Arguments> {
+            val (previous, newest) = adapters.zipWithNext().last()
+            return listOf(
+                Arguments.of(adapters.first().minVersion, io.akki.compiler.jar.checkedKotlin.last()),
+                Arguments.of(previous.minVersion, newest.minVersion),
+            )
+        }
+
         private fun Compilation.run(): String = run("sample.ServiceKt", core)
 
         private fun supported(kotlin: String): Supported = supported.computeIfAbsent(kotlin) {
@@ -177,6 +207,16 @@ internal class CompilerProcessTest {
                 incompleteCore = process.compile("incompleteUser", user, withIncomplete, *plugin),
                 reference = process.compile("reference", listOf("Reference.kt"), core, *plugin),
                 repeated = process.compile("repeated", service, core, *plugin),
+            ).also { process.run() }
+        }
+
+        private fun mismatched(reported: String, kotlin: String): List<Compilation> {
+            val process = CompilerProcess(kotlin, workspace.resolve("$reported-in-$kotlin"), reportedVersion = reported)
+            val stale = process.compile("stale", listOf("Logger.kt", "AkkiVersion.kt"), libraries)
+            return listOf(
+                process.compile("plain", listOf("Service.kt"), core, *plugin),
+                process.compile("clipped", listOf("Service.kt"), core, *plugin, *option("minLevel", "info")),
+                process.compile("staleUser", listOf("User.kt"), libraries.plusElement(stale.classes), *plugin),
             ).also { process.run() }
         }
 

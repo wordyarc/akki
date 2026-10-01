@@ -9,15 +9,20 @@ internal class CompilerAbi(private val plugin: Map<String, ClassShape>, host: Li
 
     private val shapes = HashMap<String, ClassShape?>(plugin)
 
-    fun violations(checked: Set<String> = plugin.keys): List<String> = checked.map(plugin::getValue).flatMap { shape ->
-        val broken = shape.references.filterNot { it.owner.isPlatform }.mapNotNull { shape.violation(it) }
-        (broken + shape.unimplemented()).map { "${shape.name}: $it" }
+    fun violations(
+        checked: Set<String> = plugin.keys,
+        skipped: Map<String, Set<String>> = emptyMap(),
+    ): List<String> = checked.map(plugin::getValue).flatMap { shape ->
+        val references = shape.references(skipped[shape.name].orEmpty()).filterNot { it.owner.isPlatform }
+        val broken = references.mapNotNull { shape.violation(it) }
+        (broken + shape.inheritance() + shape.unimplemented()).map { "${shape.name}: $it" }
     }.distinct()
 
     override fun close() = jars.forEach(JarFile::close)
 
     private fun ClassShape.violation(reference: Reference): String? {
         val owner = find(reference.owner) ?: return "${reference.owner} is missing"
+        if (!owner.isPublic && owner.packageName != packageName) return "${reference.owner} is package-private"
         if (reference !is MemberReference) return null
         val member = "${reference.owner}.${reference.signature}"
         if (reference.inInterface != null && reference.inInterface != owner.isInterface) {
@@ -29,7 +34,9 @@ internal class CompilerAbi(private val plugin: Map<String, ClassShape>, host: Li
             (access and Opcodes.ACC_STATIC != 0) != reference.isStatic ->
                 "$member is ${if (reference.isStatic) "not static" else "static"}"
             access and Opcodes.ACC_PRIVATE != 0 && declaring !== this -> "$member is private"
-            access and visible == 0 && declaring.packageName != packageName -> "$member is package-private"
+            declaring.packageName == packageName -> null
+            access and visible == 0 -> "$member is package-private"
+            access and Opcodes.ACC_PROTECTED != 0 && declaring !in lineage() -> "$member is protected"
             else -> null
         }
     }
@@ -39,10 +46,32 @@ internal class CompilerAbi(private val plugin: Map<String, ClassShape>, host: Li
         return candidates.firstOrNull { reference.signature in it.members }
     }
 
+    private fun ClassShape.inheritance(): List<String> {
+        val superclass = superName?.let(::find)
+        val implemented = interfaces.mapNotNull(::find).filterNot(ClassShape::isInterface)
+        val ancestry = ancestry().drop(1)
+        val overridden = members.filter { (signature, access) -> '(' in signature && access and notInherited == 0 }
+            .keys
+            .filterNot { it.startsWith('<') }
+            .flatMap { signature ->
+                ancestry.filter { it.overridesFinal(signature, packageName) }.map { "${it.name}.$signature is final" }
+            }
+        return listOfNotNull(
+            superclass?.takeIf(ClassShape::isFinal)?.let { "${it.name} is final" },
+            superclass?.takeIf(ClassShape::isInterface)?.let { "${it.name} is extended, but it is an interface" },
+        ) + implemented.map { "${it.name} is implemented, but it is a class" } + overridden
+    }
+
+    private fun ClassShape.overridesFinal(signature: String, overridingPackage: String): Boolean {
+        val access = members[signature] ?: return false
+        return access and Opcodes.ACC_FINAL != 0 && access and notInherited == 0 &&
+            (access and visible != 0 || packageName == overridingPackage)
+    }
+
     private fun ClassShape.unimplemented(): List<String> {
         if (isInterface || isAbstract) return emptyList()
         val ancestry = ancestry()
-        val lineage = generateSequence(this) { it.superName?.let(::find) }.toSet()
+        val lineage = lineage().toSet()
         val implemented = ancestry.filter { it in lineage || it.isInterface }
             .flatMap { shape -> shape.members.filterValues { it and notImplementing == 0 }.keys }
             .toSet()
@@ -52,6 +81,8 @@ internal class CompilerAbi(private val plugin: Map<String, ClassShape>, host: Li
                 .map { "${shape.name}.$it is not implemented" }
         }
     }
+
+    private fun ClassShape.lineage(): List<ClassShape> = generateSequence(this) { it.superName?.let(::find) }.toList()
 
     private fun ClassShape.ancestry(): List<ClassShape> {
         val ancestry = linkedSetOf(this)
@@ -86,6 +117,8 @@ internal class CompilerAbi(private val plugin: Map<String, ClassShape>, host: Li
         const val visible: Int = Opcodes.ACC_PUBLIC or Opcodes.ACC_PROTECTED or Opcodes.ACC_PRIVATE
 
         const val notImplementing: Int = Opcodes.ACC_ABSTRACT or Opcodes.ACC_STATIC or Opcodes.ACC_PRIVATE
+
+        const val notInherited: Int = Opcodes.ACC_STATIC or Opcodes.ACC_PRIVATE
 
         val platformPackages = listOf("java/", "javax/", "jdk/", "sun/")
     }

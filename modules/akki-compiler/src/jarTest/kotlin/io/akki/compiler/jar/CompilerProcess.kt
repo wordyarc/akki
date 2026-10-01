@@ -3,7 +3,10 @@ package io.akki.compiler.jar
 import java.io.File
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
+import java.util.jar.JarEntry
+import java.util.jar.JarOutputStream
 import kotlin.io.path.createDirectories
+import kotlin.io.path.outputStream
 import kotlin.io.path.readText
 import kotlin.io.path.writeLines
 import kotlin.io.path.writeText
@@ -23,7 +26,11 @@ internal class Compilation(private val directory: Path) {
     fun run(mainClass: String, classpath: List<Path>): String = java(listOf(classes) + classpath, mainClass)
 }
 
-internal class CompilerProcess(private val kotlin: String, private val directory: Path) {
+internal class CompilerProcess(
+    private val kotlin: String,
+    private val directory: Path,
+    private val reportedVersion: String = kotlin,
+) {
     private val compilations = mutableListOf<Path>()
 
     fun compile(name: String, sources: List<String>, classpath: List<Path>, vararg options: String): Compilation {
@@ -49,9 +56,21 @@ internal class CompilerProcess(private val kotlin: String, private val directory
     }
 
     fun run() {
-        val driver = classpath("akki.compiler.driver") + classpath("akki.compiler.host.$kotlin")
+        val compiler = classpath("akki.compiler.host.$kotlin")
+        val reported = if (reportedVersion == kotlin) emptyList() else listOf(versionOverride())
+        val driver = classpath("akki.compiler.driver") + reported + compiler
         val output = java(driver, "io.akki.compiler.host.CompilerHost", compilations.map(Path::toString))
-        assertEquals("host $kotlin", output.lineSequence().first(), output)
+        assertEquals("host $reportedVersion", output.lineSequence().first(), output)
+    }
+
+    private fun versionOverride(): Path {
+        val jar = directory.createDirectories().resolve("compiler-version.jar")
+        JarOutputStream(jar.outputStream()).use { output ->
+            output.putNextEntry(JarEntry("META-INF/compiler.version"))
+            output.write(reportedVersion.toByteArray())
+            output.closeEntry()
+        }
+        return jar
     }
 }
 

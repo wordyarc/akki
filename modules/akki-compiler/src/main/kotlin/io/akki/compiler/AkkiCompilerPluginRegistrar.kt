@@ -3,6 +3,7 @@
 package io.akki.compiler
 
 import io.akki.compiler.compat.CompatLoadException
+import io.akki.compiler.compat.CompilerCompat
 import io.akki.compiler.compat.CompilerCompatLoader
 import io.akki.compiler.fir.AkkiFirExtensionRegistrar
 import io.akki.compiler.ir.AkkiIrGenerationExtension
@@ -20,29 +21,34 @@ internal class AkkiCompilerPluginRegistrar : CompilerPluginRegistrar() {
 
     override fun ExtensionStorage.registerExtensions(configuration: CompilerConfiguration) {
         val messages = configuration.get(CommonConfigurationKeys.MESSAGE_COLLECTOR_KEY)
-        val compat = try {
-            CompilerCompatLoader.load { selection ->
+        try {
+            val compat = CompilerCompatLoader.load { selection ->
                 messages?.report(CompilerMessageSeverity.LOGGING, "$PLUGIN starts. $selection", null)
             }
+            register(compat, configuration[MIN_LEVEL, MinLevel.DEFAULT])
         } catch (failure: CompatLoadException) {
             messages.reportStartFailure(failure)
-            return
         }
-        compat.registerExtensions(
-            storage = this,
-            fir = AkkiFirExtensionRegistrar(),
-            ir = AkkiIrGenerationExtension(
-                minLevel = configuration[MIN_LEVEL, MinLevel.DEFAULT],
-                compat = compat,
-            ),
-        )
+    }
+
+    private fun ExtensionStorage.register(compat: CompilerCompat, minLevel: MinLevel) {
+        try {
+            compat.registerExtensions(
+                storage = this,
+                fir = AkkiFirExtensionRegistrar(),
+                ir = AkkiIrGenerationExtension(minLevel, compat),
+            )
+        } catch (failure: LinkageError) {
+            throw CompatLoadException(unlinkedCompiler(), failure)
+        } catch (failure: ClassCastException) {
+            throw CompatLoadException(unlinkedCompiler(), failure)
+        }
     }
 }
 
-private const val PLUGIN: String = "akki: compiler plugin $AKKI_VERSION"
-
 private fun MessageCollector?.reportStartFailure(failure: CompatLoadException) {
-    if (this == null || this === MessageCollector.NONE) throw failure
+    if (this == null) return
+    if (this === MessageCollector.NONE) throw failure
     val causes = generateSequence(failure.cause, Throwable::cause).joinToString("") { "\nCaused by: $it" }
     report(CompilerMessageSeverity.ERROR, "$PLUGIN cannot start. ${failure.message}$causes", null)
 }

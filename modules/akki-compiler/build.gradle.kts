@@ -1,14 +1,18 @@
-import akki.buildlogic.COMPILER_ADAPTERS_MANIFEST
 import akki.buildlogic.COMPILER_COMPAT_PROJECT
 import akki.buildlogic.COMPILER_COMPAT_SERVICE
 import akki.buildlogic.ClasspathSystemProperty
 import akki.buildlogic.MergeCompilerCompatServices
+import akki.buildlogic.checkLatestCompilerApi
 import akki.buildlogic.compileAgainstCompilerApi
 import akki.buildlogic.compilerAdapters
 import akki.buildlogic.compilerApiBaseline
 import akki.buildlogic.generateVersionConstant
 import akki.buildlogic.jvmClassTest
+import akki.buildlogic.latestTestedKotlin
 import akki.buildlogic.onTargetJdk
+import akki.buildlogic.rejectedKotlin
+import akki.buildlogic.testedKotlin
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("akki.kotlin-jvm")
@@ -20,12 +24,19 @@ plugins {
 description = "Kotlin compiler plugin for akki: logger fields for the log intrinsic, direct backend calls and the " +
     "compile-time level threshold"
 
-generateVersionConstant(packageName = "io.akki.compiler", sourceSet = "main")
+generateVersionConstant(
+    packageName = "io.akki.compiler",
+    sourceSet = "main",
+    constants = mapOf("LATEST_TESTED_KOTLIN" to latestTestedKotlin),
+)
 compileAgainstCompilerApi(compilerApiBaseline)
+val latestCompilerApiSources: SourceSet = checkLatestCompilerApi()
+
+tasks.named<KotlinCompile>(latestCompilerApiSources.getCompileTaskName("kotlin")) {
+    compilerOptions.optIn.add("org.jetbrains.kotlin.config.MessageCollectorAccess")
+}
 
 val adapters = compilerAdapters
-val testedKotlin: List<String> = providers.gradleProperty("akki.kotlin.tested").get().split(',')
-val rejectedKotlin: List<String> = providers.gradleProperty("akki.kotlin.rejected").get().split(',')
 
 val embeddedCompat: Configuration = configurations.create("embeddedCompat") {
     isCanBeConsumed = false
@@ -62,6 +73,11 @@ val coreRuntime: Configuration = configurations.create("coreRuntime") {
     isCanBeResolved = true
 }
 
+val embeddableCompilerHost: Configuration = configurations.create("embeddableCompilerHost") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+
 val compilerHosts: Map<String, Configuration> =
     (testedKotlin + rejectedKotlin + adapters.map { it.minVersion }).distinct().associateWith { version ->
         configurations.create("compilerHost-$version") {
@@ -78,6 +94,7 @@ val jarTestTasks: Set<String> = setOf(jarTestSources.name, onTargetJdk(jarTestSo
 
 dependencies {
     compileOnly(project(COMPILER_COMPAT_PROJECT))
+    latestCompilerApiSources.compileOnlyConfigurationName(project(COMPILER_COMPAT_PROJECT))
     embeddedCompat(project(COMPILER_COMPAT_PROJECT))
     adapters.forEach { adapter ->
         embeddedCompat(project(adapter.projectPath))
@@ -107,6 +124,7 @@ dependencies {
     jarTestSources.runtimeOnlyConfigurationName(libs.junit.platform.launcher)
     coreRuntime(project(":akki-core"))
     compilerHosts.forEach { (version, host) -> host("org.jetbrains.kotlin:kotlin-compiler:$version") }
+    embeddableCompilerHost("org.jetbrains.kotlin:kotlin-compiler-embeddable:$latestTestedKotlin")
 }
 
 val embeddedAdapters: FileCollection = embeddedCompat.incoming.artifactView {
@@ -197,8 +215,7 @@ val jarTest = tasks.register<Test>(jarTestSources.name) {
         "its behaviour in a process of each of them"
     testClassesDirs = jarTestSources.output.classesDirs
     classpath = jarTestSources.runtimeClasspath
-    val manifest = isolated.rootProject.projectDirectory.file(COMPILER_ADAPTERS_MANIFEST)
-    jvmArgumentProviders.add(ClasspathSystemProperty("akki.compiler.adapters", files(manifest)))
+    systemProperty("akki.compiler.adapters", adapters.joinToString(","))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.compiler.jar", files(tasks.jar)))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.compiler.embedded", embeddedCompat))
     val driver = files(jarTestSources.java.classesDirectory)
@@ -207,6 +224,7 @@ val jarTest = tasks.register<Test>(jarTestSources.name) {
     compilerHosts.forEach { (version, host) ->
         jvmArgumentProviders.add(ClasspathSystemProperty("akki.compiler.host.$version", host))
     }
+    jvmArgumentProviders.add(ClasspathSystemProperty("akki.compiler.embeddable", embeddableCompilerHost))
     systemProperty("akki.kotlin.tested", testedKotlin.joinToString(","))
     systemProperty("akki.kotlin.rejected", rejectedKotlin.joinToString(","))
     systemProperty("akki.version", project.version.toString())

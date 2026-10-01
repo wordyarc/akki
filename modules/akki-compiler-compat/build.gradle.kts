@@ -1,3 +1,4 @@
+import akki.buildlogic.checkLatestCompilerApi
 import akki.buildlogic.compileAgainstCompilerApi
 import akki.buildlogic.compilerAdapters
 import akki.buildlogic.compilerApiBaseline
@@ -10,6 +11,7 @@ plugins {
 description = "Contract between the akki compiler plugin and its adapters to the compiler API of each Kotlin release"
 
 compileAgainstCompilerApi(compilerApiBaseline)
+checkLatestCompilerApi()
 
 java {
     withSourcesJar()

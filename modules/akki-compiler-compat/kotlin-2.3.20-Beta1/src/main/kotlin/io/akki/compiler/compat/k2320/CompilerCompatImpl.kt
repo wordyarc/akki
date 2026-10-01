@@ -14,7 +14,7 @@ import org.jetbrains.kotlin.ir.IrDiagnosticReporter
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.IrFile
 
-public class CompilerCompatImpl : CompilerCompat {
+internal class CompilerCompatImpl : CompilerCompat {
     override fun registerExtensions(
         storage: CompilerPluginRegistrar.ExtensionStorage,
         fir: FirExtensionRegistrar,

@@ -3,18 +3,18 @@
 package io.akki.compiler.compat.k240
 
 import io.akki.compiler.compat.CompilerCompat
+import io.akki.compiler.compat.k2320.CompilerCompatFactory as Delegate
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.compiler.plugin.CompilerPluginRegistrar
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
 import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactory2
-import org.jetbrains.kotlin.diagnostics.KtSourcelessDiagnosticFactory
 import org.jetbrains.kotlin.fir.extensions.FirExtensionRegistrar
 import org.jetbrains.kotlin.fir.extensions.FirExtensionRegistrarAdapter
 import org.jetbrains.kotlin.ir.IrDiagnosticReporter
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.IrFile
 
-public class CompilerCompatImpl : CompilerCompat {
+internal class CompilerCompatImpl : CompilerCompat by Delegate().create() {
     override fun registerExtensions(
         storage: CompilerPluginRegistrar.ExtensionStorage,
         fir: FirExtensionRegistrar,
@@ -34,12 +34,5 @@ public class CompilerCompatImpl : CompilerCompat {
         second: B,
     ) {
         at(element, file).report(diagnostic, first, second)
-    }
-
-    override fun IrDiagnosticReporter.reportWithoutSource(
-        diagnostic: KtSourcelessDiagnosticFactory,
-        message: String,
-    ) {
-        report(diagnostic, message)
     }
 }

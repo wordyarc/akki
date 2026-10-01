@@ -10,8 +10,10 @@ import org.junit.jupiter.api.io.TempDir
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes.ACC_ABSTRACT
+import org.objectweb.asm.Opcodes.ACC_FINAL
 import org.objectweb.asm.Opcodes.ACC_INTERFACE
 import org.objectweb.asm.Opcodes.ACC_PRIVATE
+import org.objectweb.asm.Opcodes.ACC_PROTECTED
 import org.objectweb.asm.Opcodes.ACC_PUBLIC
 import org.objectweb.asm.Opcodes.ACC_STATIC
 import org.objectweb.asm.Opcodes.ALOAD
@@ -20,6 +22,8 @@ import org.objectweb.asm.Opcodes.GETSTATIC
 import org.objectweb.asm.Opcodes.INVOKEINTERFACE
 import org.objectweb.asm.Opcodes.INVOKESTATIC
 import org.objectweb.asm.Opcodes.INVOKEVIRTUAL
+import org.objectweb.asm.Opcodes.NEW
+import org.objectweb.asm.Opcodes.POP
 import org.objectweb.asm.Opcodes.RETURN
 import org.objectweb.asm.Opcodes.V17
 
@@ -136,7 +140,68 @@ internal class CompilerAbiRulesTest {
         )
     }
 
-    private fun violations(plugin: Map<String, ByteArray>): List<String> {
+    @Test
+    fun `reports protected members outside subclasses and package-private classes of another package`() {
+        val plugin = classFile("plugin/Outsider") {
+            method("use", "()V") {
+                call(INVOKEVIRTUAL, "host/Base", "guarded", "()V")
+                visitTypeInsn(NEW, "host/Hidden")
+                visitInsn(POP)
+            }
+        } + classFile("plugin/Subclass", superName = "host/Base") {
+            method("use", "()V") {
+                call(INVOKEVIRTUAL, "host/Base", "guarded", "()V")
+            }
+        }
+
+        assertEquals(
+            listOf(
+                "plugin/Outsider: host/Base.guarded()V is protected",
+                "plugin/Outsider: host/Hidden is package-private",
+            ),
+            violations(plugin),
+        )
+    }
+
+    @Test
+    fun `reports supertypes that cannot be extended or implemented`() {
+        val plugin = classFile("plugin/ExtendsFinal", superName = "host/Closed") +
+            classFile("plugin/OverridesFinal", superName = "host/Opened") { method("locked", "()V") } +
+            classFile("plugin/ExtendsInterface", superName = "host/Marker") +
+            classFile("plugin/ImplementsClass", interfaces = listOf("host/Holder"))
+
+        assertEquals(
+            listOf(
+                "plugin/ExtendsFinal: host/Closed is final",
+                "plugin/OverridesFinal: host/Opened.locked()V is final",
+                "plugin/ExtendsInterface: host/Marker is extended, but it is an interface",
+                "plugin/ImplementsClass: host/Holder is implemented, but it is a class",
+            ),
+            violations(plugin),
+        )
+    }
+
+    @Test
+    fun `skips the methods that the caller excludes`() {
+        val plugin = classFile("plugin/Delegate") {
+            method("unused", "()V") {
+                call(INVOKEVIRTUAL, "host/Base", "absent", "()V")
+            }
+            method("used", "()V") {
+                call(INVOKEVIRTUAL, "host/Base", "missing", "()V")
+            }
+        }
+
+        assertEquals(
+            listOf("plugin/Delegate: host/Base.missing()V is missing"),
+            violations(plugin, skipped = mapOf("plugin/Delegate" to setOf("unused()V"))),
+        )
+    }
+
+    private fun violations(
+        plugin: Map<String, ByteArray>,
+        skipped: Map<String, Set<String>> = emptyMap(),
+    ): List<String> {
         val host = directory.resolve("host.jar")
         JarOutputStream(host.outputStream()).use { jar ->
             hostClasses().forEach { (name, bytes) ->
@@ -146,24 +211,37 @@ internal class CompilerAbiRulesTest {
             }
         }
         val shapes = plugin.mapValues { (_, bytes) -> ClassShape.read(bytes, withReferences = true) }
-        return CompilerAbi(shapes, listOf(host)).use(CompilerAbi::violations)
+        return CompilerAbi(shapes, listOf(host)).use { it.violations(skipped = skipped) }
     }
 
-    private fun hostClasses(): Map<String, ByteArray> =
+    private fun hostClasses(): Map<String, ByteArray> = listOf(
         classFile("host/Base") {
             method("greet", "()V")
             method("create", "()V", ACC_PUBLIC or ACC_STATIC)
             method("secret", "()V", ACC_PRIVATE)
             method("local", "()V", 0)
-        } + classFile("host/Api", access = ACC_PUBLIC or ACC_INTERFACE or ACC_ABSTRACT) {
+            method("guarded", "()V", ACC_PROTECTED)
+        },
+        classFile("host/Hidden", access = 0) {
+            method("<init>", "()V")
+        },
+        classFile("host/Closed", access = ACC_PUBLIC or ACC_FINAL),
+        classFile("host/Opened") {
+            method("locked", "()V", ACC_PUBLIC or ACC_FINAL)
+        },
+        classFile("host/Marker", access = ACC_PUBLIC or ACC_INTERFACE or ACC_ABSTRACT),
+        classFile("host/Api", access = ACC_PUBLIC or ACC_INTERFACE or ACC_ABSTRACT) {
             method("run", "()V", ACC_PUBLIC or ACC_ABSTRACT)
             method("ready", "()V")
-        } + classFile("host/Template", access = ACC_PUBLIC or ACC_ABSTRACT) {
+        },
+        classFile("host/Template", access = ACC_PUBLIC or ACC_ABSTRACT) {
             method("build", "()V", ACC_PUBLIC or ACC_ABSTRACT)
-        } + classFile("host/Holder") {
+        },
+        classFile("host/Holder") {
             visitField(ACC_PUBLIC or ACC_STATIC, "COUNT", "I", null, null).visitEnd()
             visitField(ACC_PUBLIC, "name", "Ljava/lang/String;", null, null).visitEnd()
-        }
+        },
+    ).reduce(Map<String, ByteArray>::plus)
 
     private fun classFile(
         name: String,

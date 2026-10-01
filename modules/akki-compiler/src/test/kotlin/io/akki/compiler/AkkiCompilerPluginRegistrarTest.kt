@@ -7,8 +7,11 @@ import io.akki.compiler.compat.CompilerCompat
 import io.akki.compiler.fir.AkkiFirExtensionRegistrar
 import io.akki.compiler.ir.AkkiIrGenerationExtension
 import java.net.URL
+import java.nio.file.Path
 import java.util.Collections
 import java.util.Enumeration
+import kotlin.io.path.writeLines
+import kotlin.reflect.KClass
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -23,8 +26,12 @@ import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.config.KotlinCompilerVersion
 import org.jetbrains.kotlin.config.MessageCollectorAccess
 import org.jetbrains.kotlin.config.messageCollector
+import org.junit.jupiter.api.io.TempDir
 
 internal class AkkiCompilerPluginRegistrarTest {
+    @TempDir
+    lateinit var directory: Path
+
     private val messages = RecordingCollector()
 
     @Test
@@ -51,7 +58,7 @@ internal class AkkiCompilerPluginRegistrarTest {
 
     @Test
     fun `reports an error and registers nothing when no adapter can be loaded`() {
-        val registered = register(registrarWithoutAdapters(), messages)
+        val registered = register(isolatedRegistrar(), messages)
 
         assertEquals(emptySet(), registered)
         val (severity, failure) = messages.reported.single()
@@ -64,12 +71,37 @@ internal class AkkiCompilerPluginRegistrarTest {
     }
 
     @Test
-    fun `fails when no adapter can be loaded and nothing collects messages`() {
-        for (collector in listOf(null, MessageCollector.NONE)) {
-            val failure = assertFails { register(registrarWithoutAdapters(), collector) }
+    fun `fails when no adapter can be loaded and the message collector discards errors`() {
+        val failure = assertFails { register(isolatedRegistrar(), MessageCollector.NONE) }
 
-            assertEquals(CompatLoadException::class.java.name, failure.javaClass.name)
-            assertEquals("No compiler adapter factories were found on the compiler plugin classpath.", failure.message)
+        assertEquals(CompatLoadException::class.java.name, failure.javaClass.name)
+        assertEquals("No compiler adapter factories were found on the compiler plugin classpath.", failure.message)
+    }
+
+    @Test
+    fun `registers nothing without a message collector when no adapter can be loaded`() {
+        assertEquals(emptySet(), register(isolatedRegistrar(), collector = null))
+    }
+
+    @Test
+    fun `reports a compiler that the selected adapter does not link against`() {
+        val adapters = mapOf(
+            UnlinkedFactory::class to "java.lang.NoSuchMethodError: registerExtension",
+            MiscastFactory::class to "java.lang.ClassCastException: ProjectExtensionDescriptor",
+        )
+
+        for ((factory, cause) in adapters) {
+            messages.clear()
+
+            assertEquals(emptySet(), register(isolatedRegistrar(factory), messages))
+            val (severity, failure) = messages.reported.last()
+            assertEquals(CompilerMessageSeverity.ERROR, severity)
+            assertEquals(
+                "akki: compiler plugin $AKKI_VERSION cannot start. Kotlin ${KotlinCompilerVersion.getVersion()} is " +
+                    "not supported: the compiler plugin does not link against it. Kotlin releases up to " +
+                    "$LATEST_TESTED_KOTLIN are tested.\nCaused by: $cause",
+                failure,
+            )
         }
     }
 
@@ -81,8 +113,9 @@ internal class AkkiCompilerPluginRegistrarTest {
         return storage.registeredExtensions.values.flatten().mapTo(mutableSetOf()) { it.javaClass.name }
     }
 
-    private fun registrarWithoutAdapters(): CompilerPluginRegistrar {
-        val registrar = PluginWithoutAdapters().loadClass(AkkiCompilerPluginRegistrar::class.java.name)
+    private fun isolatedRegistrar(vararg factories: KClass<out CompilerCompat.Factory>): CompilerPluginRegistrar {
+        val providers = directory.resolve("providers").writeLines(factories.map { it.java.name })
+        val registrar = IsolatedPlugin(providers.toUri().toURL()).loadClass(AkkiCompilerPluginRegistrar::class.java.name)
         assertTrue(registrar != AkkiCompilerPluginRegistrar::class.java)
         return registrar.getDeclaredConstructor().newInstance() as CompilerPluginRegistrar
     }
@@ -103,7 +136,8 @@ internal class AkkiCompilerPluginRegistrarTest {
         }
     }
 
-    private class PluginWithoutAdapters : ClassLoader(PluginWithoutAdapters::class.java.classLoader) {
+    private class IsolatedPlugin(private val providers: URL) :
+        ClassLoader(IsolatedPlugin::class.java.classLoader) {
         override fun loadClass(name: String, resolve: Boolean): Class<*> {
             if (!name.startsWith(PLUGIN_PACKAGE)) return super.loadClass(name, resolve)
             synchronized(getClassLoadingLock(name)) {
@@ -115,7 +149,7 @@ internal class AkkiCompilerPluginRegistrarTest {
         }
 
         override fun getResources(name: String): Enumeration<URL> =
-            if (name == SERVICE) Collections.emptyEnumeration() else super.getResources(name)
+            if (name == SERVICE) Collections.enumeration(listOf(providers)) else super.getResources(name)
 
         private companion object {
             const val PLUGIN_PACKAGE: String = "io.akki.compiler."

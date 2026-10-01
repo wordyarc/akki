@@ -51,5 +51,5 @@ public interface CompilerCompat {
     }
 }
 
-@Target(AnnotationTarget.FUNCTION)
+@Target(AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER)
 internal annotation class CompatApi(val since: String, val change: String)
