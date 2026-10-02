@@ -6,7 +6,7 @@ import akki.buildlogic.previousCompilerAdapter
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("akki.kotlin-jvm")
+    id("akki.compiler-api")
 }
 
 val adapter = compilerAdapter

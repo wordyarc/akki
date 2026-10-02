@@ -4,7 +4,7 @@ import akki.buildlogic.compilerAdapters
 import akki.buildlogic.compilerApiBaseline
 
 plugins {
-    id("akki.kotlin-jvm")
+    id("akki.compiler-api")
     id("org.jetbrains.kotlinx.kover")
 }
 

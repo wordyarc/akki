@@ -3,9 +3,11 @@ package io.akki.compiler.jar
 import java.net.URLClassLoader
 import java.nio.file.Path
 import java.util.ServiceLoader
+import kotlin.io.path.readText
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 internal class JarContentsTest {
@@ -51,6 +53,15 @@ internal class JarContentsTest {
 
         assertEquals(emptyList(), foreign)
         for (file in metadata) assertContains(names, file)
+    }
+
+    @Test
+    fun `publishes no dependencies`() {
+        val pom = classpath("akki.compiler.pom").single().readText()
+        val module = classpath("akki.compiler.module").single().readText()
+
+        assertFalse("<dependency>" in pom, pom)
+        assertFalse("\"dependencies\"" in module, module)
     }
 
     @Test

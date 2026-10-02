@@ -15,7 +15,7 @@ import akki.buildlogic.testedKotlin
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("akki.kotlin-jvm")
+    id("akki.compiler-api")
     id("akki.publishing")
     id("org.jetbrains.kotlinx.kover")
     `java-test-fixtures`
@@ -211,12 +211,16 @@ jvmClassTest(tasks.test) {
 
 val jarTest = tasks.register<Test>(jarTestSources.name) {
     group = LifecycleBasePlugin.VERIFICATION_GROUP
-    description = "Checks the published jar: its contents, its references into every tested Kotlin compiler and " +
-        "its behaviour in a process of each of them"
+    description = "Checks the published jar: its contents, its dependencies, its references into every tested " +
+        "Kotlin compiler and its behaviour in a process of each of them"
     testClassesDirs = jarTestSources.output.classesDirs
     classpath = jarTestSources.runtimeClasspath
     systemProperty("akki.compiler.adapters", adapters.joinToString(","))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.compiler.jar", files(tasks.jar)))
+    val pom = files({ tasks.getByName("generatePomFileForMavenPublication") })
+    jvmArgumentProviders.add(ClasspathSystemProperty("akki.compiler.pom", pom))
+    val module = files({ tasks.getByName("generateMetadataFileForMavenPublication") })
+    jvmArgumentProviders.add(ClasspathSystemProperty("akki.compiler.module", module))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.compiler.embedded", embeddedCompat))
     val driver = files(jarTestSources.java.classesDirectory)
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.compiler.driver", driver))
