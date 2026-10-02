@@ -23,7 +23,8 @@ internal class Compilation(private val directory: Path) {
     val output: String
         get() = directory.resolve("output").readText()
 
-    fun run(mainClass: String, classpath: List<Path>): String = java(listOf(classes) + classpath, mainClass)
+    fun run(mainClass: String, classpath: List<Path>, vararg jvmOptions: String): String =
+        java(listOf(classes) + classpath, mainClass, jvmOptions = jvmOptions.toList())
 }
 
 internal class CompilerProcess(
@@ -34,10 +35,19 @@ internal class CompilerProcess(
     private val compilations = mutableListOf<Path>()
 
     fun compile(name: String, sources: List<String>, classpath: List<Path>, vararg options: String): Compilation {
+        val texts = sources.associateWith { source ->
+            requireNotNull(javaClass.getResource("/sources/$source")) { "no source $source" }.readText()
+        }
+        return compile(name, texts, classpath, *options)
+    }
+
+    fun compile(name: String, sources: Map<String, String>, classpath: List<Path>, vararg options: String): Compilation {
         val compilation = directory.resolve(name)
-        val files = sources.map { source ->
-            val text = requireNotNull(javaClass.getResource("/sources/$source")) { "no source $source" }.readText()
-            compilation.resolve("sources").createDirectories().resolve(source).apply { writeText(text) }
+        val files = sources.map { (path, text) ->
+            compilation.resolve("sources").resolve(path).apply {
+                parent.createDirectories()
+                writeText(text)
+            }
         }
         val arguments = listOf(
             "-no-stdlib",
@@ -78,9 +88,15 @@ internal val plugin: Array<String> = arrayOf("-Xplugin=$compilerJar")
 
 internal fun option(name: String, value: String): Array<String> = arrayOf("-P", "plugin:io.akki:$name=$value")
 
-private fun java(classpath: List<Path>, mainClass: String, arguments: List<String> = emptyList()): String {
+private fun java(
+    classpath: List<Path>,
+    mainClass: String,
+    arguments: List<String> = emptyList(),
+    jvmOptions: List<String> = emptyList(),
+): String {
     val java = Path.of(property("java.home"), "bin", "java").toString()
-    val command = listOf(java, "-cp", classpath.joinToString(File.pathSeparator), mainClass) + arguments
+    val command = listOf(java) + jvmOptions + listOf("-cp", classpath.joinToString(File.pathSeparator), mainClass) +
+        arguments
     val output = File.createTempFile("process", ".log")
     val process = ProcessBuilder(command).redirectErrorStream(true).redirectOutput(output).start()
     val finished = process.waitFor(5, TimeUnit.MINUTES)

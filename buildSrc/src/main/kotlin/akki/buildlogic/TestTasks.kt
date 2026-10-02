@@ -27,8 +27,8 @@ internal fun Test.copyTestsFrom(source: Test) {
     jvmArgumentProviders.addAll(source.jvmArgumentProviders.filterIsInstance<ClasspathSystemProperty>())
     systemProperties(source.systemProperties)
     filter {
-        setIncludePatterns(*source.filter.includePatterns.toTypedArray())
-        setExcludePatterns(*source.filter.excludePatterns.toTypedArray())
+        source.filter.includePatterns.forEach { includeTestsMatching(it) }
+        source.filter.excludePatterns.forEach { excludeTestsMatching(it) }
     }
     shouldRunAfter(source)
 }

@@ -225,6 +225,10 @@ val jarTest = tasks.register<Test>(jarTestSources.name) {
     val driver = files(jarTestSources.java.classesDirectory)
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.compiler.driver", driver))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.core.classpath", coreRuntime))
+    jvmArgumentProviders.add(ClasspathSystemProperty("akki.test.data", files(testData)))
+    jvmArgumentProviders.add(ClasspathSystemProperty("akki.fixture.classpath", fixtureRuntime))
+    val fixtureLibraries = compilerTestLibraries.filter { it.name.matches(Regex("kotlin-(stdlib|test)-\\d.*\\.jar")) }
+    jvmArgumentProviders.add(ClasspathSystemProperty("akki.fixture.libraries", fixtureLibraries))
     compilerHosts.forEach { (version, host) ->
         jvmArgumentProviders.add(ClasspathSystemProperty("akki.compiler.host.$version", host))
     }
@@ -234,6 +238,10 @@ val jarTest = tasks.register<Test>(jarTestSources.name) {
     systemProperty("akki.version", project.version.toString())
     systemProperty("akki.jvm.target", libs.versions.jvm.target.get())
     shouldRunAfter(tasks.test)
+}
+
+tasks.withType<Test>().matching { it.name == onTargetJdk(jarTestSources.name) }.configureEach {
+    filter.excludeTestsMatching("*.BoxFixtureTest")
 }
 
 tasks.check {
