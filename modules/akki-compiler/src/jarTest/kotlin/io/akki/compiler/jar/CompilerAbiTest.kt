@@ -44,6 +44,15 @@ internal class CompilerAbiTest {
     }
 
     @Test
+    fun `refers to no CliOption, whose constructor changes with every new parameter`() {
+        val cliOption = "org/jetbrains/kotlin/compiler/plugin/CliOption"
+
+        val referring = pluginShapes.values.filter { shape -> shape.references().any { it.owner == cliOption } }
+
+        assertEquals(emptyList(), referring.map(ClassShape::name))
+    }
+
+    @Test
     fun `creates the delegate of every adapter but the oldest with the factory of the previous adapter`() {
         assertFalse(implementation(adapters.first()).delegates)
         for ((previous, adapter) in adapters.zipWithNext()) {

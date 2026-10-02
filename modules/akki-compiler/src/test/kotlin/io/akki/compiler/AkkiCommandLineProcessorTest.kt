@@ -6,12 +6,23 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import org.jetbrains.kotlin.compiler.plugin.CliOptionProcessingException
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
 import org.jetbrains.kotlin.config.CompilerConfiguration
 
 internal class AkkiCommandLineProcessorTest {
     private val processor = AkkiCommandLineProcessor()
+
+    @Test
+    fun `declares the threshold as one optional option given at most once`() {
+        val option = processor.pluginOptions.single()
+
+        assertEquals("minLevel", option.optionName)
+        assertEquals("trace|debug|info|warn|error|off", option.valueDescription)
+        assertFalse(option.required)
+        assertFalse(option.allowMultipleOccurrences)
+    }
 
     @Test
     fun `stores the threshold under its configuration key`() {

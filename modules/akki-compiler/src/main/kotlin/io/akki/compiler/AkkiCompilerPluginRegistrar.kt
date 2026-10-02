@@ -51,8 +51,6 @@ internal class AkkiCompilerPluginRegistrar : CompilerPluginRegistrar() {
     }
 }
 
-private const val CANNOT_START: String = "$PLUGIN cannot start."
-
 private fun unlinked(failure: Throwable): CompatLoadException = CompatLoadException(unlinkedCompiler(), failure)
 
 private fun CompilerConfiguration.messageCollectorOrNull(): MessageCollector? = try {
