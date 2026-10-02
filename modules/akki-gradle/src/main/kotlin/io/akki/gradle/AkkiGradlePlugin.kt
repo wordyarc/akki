@@ -13,8 +13,8 @@ import org.jetbrains.kotlin.gradle.plugin.SubpluginOption
 
 public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
     override fun apply(target: Project) {
-        val extension = target.extensions.create(EXTENSION, AkkiExtension::class.java)
-        val versions = target.configurations.create(VERSIONS) {
+        val extension = target.extensions.create(EXTENSION_NAME, AkkiExtension::class.java)
+        val versions = target.configurations.create(VERSIONS_CONFIGURATION_NAME) {
             it.description =
                 "Pins $core and $slf4j to the compiler plugin version in compilations using the plugin"
             it.isCanBeConsumed = false
@@ -49,7 +49,7 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
             implementation("$core:$pluginVersion")
             runtimeOnly("$slf4j:$pluginVersion")
         }
-        val versions = project.configurations.getByName(VERSIONS)
+        val versions = project.configurations.getByName(VERSIONS_CONFIGURATION_NAME)
         listOfNotNull(kotlinCompilation.compileDependencyConfigurationName, kotlinCompilation.runtimeDependencyConfigurationName)
             .forEach { name -> project.configurations.named(name) { it.extendsFrom(versions) } }
         val minLevel = project.extensions.getByType(AkkiExtension::class.java).compilerOptions.minLevel
@@ -68,11 +68,11 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
             "akki: minLevel=${level.name.lowercase()}, lower-level records are removed from the bytecode; " +
                 "runtime logging configuration cannot restore them"
 
-        const val EXTENSION: String = "akki"
+        const val EXTENSION_NAME: String = "akki"
         const val MIN_LEVEL_OPTION: String = "minLevel"
         const val COMPILER_PLUGIN_ID: String = "io.akki"
         const val COMPILER_ARTIFACT: String = "akki-compiler"
-        const val VERSIONS: String = "akkiVersions"
+        const val VERSIONS_CONFIGURATION_NAME: String = "akkiVersions"
 
         val properties: Properties by lazy {
             val resource = requireNotNull(

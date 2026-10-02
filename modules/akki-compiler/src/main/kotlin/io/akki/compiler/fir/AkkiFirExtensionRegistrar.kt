@@ -16,7 +16,7 @@ internal class AkkiFirCheckers(session: FirSession) : FirAdditionalCheckersExten
     override val expressionCheckers: ExpressionCheckers = object : ExpressionCheckers() {
         override val callableReferenceAccessCheckers:
             Set<FirExpressionChecker<FirCallableReferenceAccess>> =
-            setOf(LevelReferenceChecker, ContextualLoggerReferenceChecker)
+            setOf(LevelMethodReferenceChecker, ContextualLoggerReferenceChecker)
 
         override val functionCallCheckers: Set<FirFunctionCallChecker> = setOf(LoggerNameChecker)
     }

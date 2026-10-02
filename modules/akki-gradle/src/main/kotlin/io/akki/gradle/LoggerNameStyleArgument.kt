@@ -13,8 +13,8 @@ internal fun JavaForkOptions.passLoggerNameStyle(providers: ProviderFactory, sty
 }
 
 private fun JavaForkOptions.hasLoggerNameStyle(): Boolean =
-    LOGGER_NAME_STYLE_PROPERTY in systemProperties ||
-        jvmArgs.orEmpty().any { it.substringBefore('=') == "-D$LOGGER_NAME_STYLE_PROPERTY" }
+    LOGGER_NAME_STYLE_PROPERTY_NAME in systemProperties ||
+        jvmArgs.orEmpty().any { it.substringBefore('=') == "-D$LOGGER_NAME_STYLE_PROPERTY_NAME" }
 
 internal class LoggerNameStyleArgument(
     @get:Input @get:Optional val style: Provider<LoggerNameStyle>,
@@ -25,6 +25,6 @@ internal class LoggerNameStyleArgument(
 }
 
 private val LoggerNameStyle.argument: String
-    get() = "-D$LOGGER_NAME_STYLE_PROPERTY=${name.lowercase().replace('_', '-')}"
+    get() = "-D$LOGGER_NAME_STYLE_PROPERTY_NAME=${name.lowercase().replace('_', '-')}"
 
-private const val LOGGER_NAME_STYLE_PROPERTY: String = "io.akki.loggerNameStyle"
+private const val LOGGER_NAME_STYLE_PROPERTY_NAME: String = "io.akki.loggerNameStyle"

@@ -8,16 +8,16 @@ import kotlin.reflect.KClass
 private const val FACADE_SUFFIX: String = "Kt"
 private const val MULTIFILE_PART_DELIMITER: String = "__"
 
-private const val CLASS_KIND: Int = 1
-private const val FILE_FACADE_KIND: Int = 2
-private const val MULTI_FILE_CLASS_PART_KIND: Int = 5
+private const val METADATA_KIND_CLASS: Int = 1
+private const val METADATA_KIND_FILE_FACADE: Int = 2
+private const val METADATA_KIND_MULTIFILE_CLASS_PART: Int = 5
 
 private const val UTF8_MODE_MARKER: Char = '\u0000'
 private const val CLASS_FLAGS_TAG: Int = 8
 private const val DEFAULT_CLASS_FLAGS: Int = 6
 private const val CLASS_KIND_FLAGS_OFFSET: Int = 6
 private const val CLASS_KIND_FLAGS_MASK: Int = 7
-private const val COMPANION_OBJECT_CLASS_KIND: Int = 6
+private const val CLASS_KIND_COMPANION_OBJECT: Int = 6
 
 internal enum class JvmLoggerNameStyle {
     SOURCE,
@@ -35,7 +35,7 @@ internal actual fun loggerName(kClass: KClass<*>): String = loggerName(kClass.ja
 internal fun loggerName(jClass: Class<*>): String = loggerNames.get(jClass)
 
 internal fun loggerName(jClass: Class<*>, style: JvmLoggerNameStyle): String {
-    val owner = generateSequence(jClass) { it.logicalEnclosingOwner() }.last()
+    val owner = generateSequence(jClass) { ignoringMalformedClass { it.enclosingOwner() } }.last()
     return when (style) {
         JvmLoggerNameStyle.SOURCE -> owner.sourceName()
         JvmLoggerNameStyle.JVM_CLASS -> owner.name
@@ -63,8 +63,6 @@ private fun loggerNameStyleProperty(): String? =
         null
     }
 
-private fun Class<*>.logicalEnclosingOwner(): Class<*>? = ignoringMalformedClass { enclosingOwner() }
-
 private fun Class<*>.enclosingOwner(): Class<*>? {
     superclass?.takeIf(Class<*>::isEnum)?.let { return it }
     if (canonicalName == null) return enclosingClass ?: indyHost()
@@ -73,9 +71,9 @@ private fun Class<*>.enclosingOwner(): Class<*>? {
 
 internal val Class<*>.isCompanion: Boolean
     get() {
-        val metadata = kotlinMetadata?.takeIf { it.kind == CLASS_KIND } ?: return false
+        val metadata = kotlinMetadata?.takeIf { it.kind == METADATA_KIND_CLASS } ?: return false
         val flags = metadata.data1.classFlags() ?: return false
-        return flags ushr CLASS_KIND_FLAGS_OFFSET and CLASS_KIND_FLAGS_MASK == COMPANION_OBJECT_CLASS_KIND
+        return flags ushr CLASS_KIND_FLAGS_OFFSET and CLASS_KIND_FLAGS_MASK == CLASS_KIND_COMPANION_OBJECT
     }
 
 private fun Array<String>.classFlags(): Int? {
@@ -114,14 +112,14 @@ private fun Class<*>.indyHost(): Class<*>? {
 private fun Class<*>.sourceName(): String {
     val metadata = kotlinMetadata
     return when (metadata?.kind) {
-        FILE_FACADE_KIND, MULTI_FILE_CLASS_PART_KIND -> fileClassName(metadata)
+        METADATA_KIND_FILE_FACADE, METADATA_KIND_MULTIFILE_CLASS_PART -> fileClassName(metadata)
         else -> ignoringMalformedClass { kotlin.qualifiedName } ?: name
     }
 }
 
 private fun Class<*>.fileClassName(metadata: Metadata): String {
     val shortName = name.substringAfterLast('.')
-    val partName = if (metadata.kind == MULTI_FILE_CLASS_PART_KIND) {
+    val partName = if (metadata.kind == METADATA_KIND_MULTIFILE_CLASS_PART) {
         shortName.removePrefix(metadata.extraString.substringAfterLast('/') + MULTIFILE_PART_DELIMITER)
     } else {
         shortName

@@ -21,9 +21,9 @@ internal fun discover(loader: ClassLoader): LogBackend {
     return chooseBackend(created)
 }
 
-internal fun chooseBackend(declared: List<LogBackend>): LogBackend {
-    if (declared.isEmpty()) return DefaultBackend("$NO_BACKEND $ADD_BACKEND")
-    val ordered = declared.sortedBy { it::class.java.name }
+internal fun chooseBackend(backends: List<LogBackend>): LogBackend {
+    if (backends.isEmpty()) return DefaultBackend("$NO_BACKEND $ADD_BACKEND")
+    val ordered = backends.sortedBy { it::class.java.name }
     val chosen = ordered.first()
     if (ordered.size > 1) {
         printlnToStdErr(

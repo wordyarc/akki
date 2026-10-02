@@ -97,7 +97,7 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
         val function0 = context.irBuiltIns.functionN(0).symbol
         val overloads = logger.owner.functions.groupBy(IrSimpleFunction::name)
         for (entry in level.owner.declarations.filterIsInstance<IrEnumEntry>()) {
-            for (overload in overloads[AkkiNames.levelName(entry.name)].orEmpty()) {
+            for (overload in overloads[AkkiNames.levelMethod(entry.name)].orEmpty()) {
                 val call = overload.loggerCall(context, entry.symbol, function0) ?: continue
                 put(overload.symbol, call)
             }

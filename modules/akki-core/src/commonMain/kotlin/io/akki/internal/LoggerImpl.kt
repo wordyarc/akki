@@ -21,17 +21,17 @@ internal class LoggerImpl(override val name: String) : Logger() {
     override fun toString(): String = "Logger($name)"
 
     fun unbind(backend: LogBackend) {
-        val previous = binding.load()
-        if (previous?.backend === backend) binding.compareAndSet(previous, null)
+        val current = binding.load()
+        if (current?.backend === backend) binding.compareAndSet(current, null)
     }
 
     private fun backendBinding(): LoggerBinding {
         val backend = BackendRegistry.backend()
-        val previous = binding.load()
-        previous?.takeIf { it.backend === backend }?.let { return it }
+        val cached = binding.load()
+        cached?.takeIf { it.backend === backend }?.let { return it }
         val delegate = bind(backend) ?: return FAILED
         val created = Binding(backend, delegate)
-        var expected = previous
+        var expected = cached
         while (!binding.compareAndSet(expected, created)) {
             val current = binding.load()
             if (current?.backend !== backend) return created

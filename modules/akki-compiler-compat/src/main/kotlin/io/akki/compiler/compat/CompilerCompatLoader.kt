@@ -8,17 +8,22 @@ public object CompilerCompatLoader {
     public fun load(trace: (String) -> Unit = {}): CompilerCompat =
         load(KotlinCompilerVersion.getVersion(), CompilerCompat.Factory::class.java.classLoader, trace)
 
-    internal fun load(compiler: String?, classLoader: ClassLoader?, trace: (String) -> Unit = {}): CompilerCompat {
-        if (compiler == null) throw CompatLoadException("The Kotlin compiler does not report its version.")
-        val current = CompilerVersion.parseOrNull(compiler)
+    internal fun load(
+        compilerVersion: String?,
+        classLoader: ClassLoader?,
+        trace: (String) -> Unit = {},
+    ): CompilerCompat {
+        if (compilerVersion == null) throw CompatLoadException("The Kotlin compiler does not report its version.")
+        val current = CompilerVersion.parseOrNull(compilerVersion)
             ?: throw CompatLoadException(
-                "Kotlin '$compiler' is not supported. Only releases and their Beta and RC builds are recognized.",
+                "Kotlin '$compilerVersion' is not supported. " +
+                    "Only releases and their Beta and RC builds are recognized.",
             )
         val factory = selectFactory(current, discover(classLoader))
-        val compat = factory.createAdapter(compiler)
+        val compat = factory.createAdapter(compilerVersion)
         trace(
-            "Kotlin $compiler uses ${compat.javaClass.name}, the compiler adapter for Kotlin ${factory.minVersion} " +
-                "created by ${factory.origin}.",
+            "Kotlin $compilerVersion uses ${compat.javaClass.name}, " +
+                "the compiler adapter for Kotlin ${factory.minVersion} created by ${factory.origin}.",
         )
         return compat
     }
@@ -63,11 +68,12 @@ private fun discover(classLoader: ClassLoader?): List<CompilerCompat.Factory> = 
     throw CompatLoadException("Compiler adapter factories cannot be discovered.", failure)
 }
 
-private fun CompilerCompat.Factory.createAdapter(compiler: String): CompilerCompat = try {
+private fun CompilerCompat.Factory.createAdapter(compilerVersion: String): CompilerCompat = try {
     create()
 } catch (failure: LinkageError) {
     throw CompatLoadException(
-        "The compiler adapter for Kotlin $minVersion created by $origin does not link against Kotlin $compiler.",
+        "The compiler adapter for Kotlin $minVersion created by $origin " +
+            "does not link against Kotlin $compilerVersion.",
         failure,
     )
 } catch (failure: Exception) {

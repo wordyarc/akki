@@ -41,7 +41,7 @@ internal object AkkiNames {
 
     fun loggerField(index: Int): Name = Name.identifier("${LOGGER_FIELD.asString()}\$$index")
 
-    fun levelName(entry: Name): Name = Name.identifier(entry.asString().lowercase())
+    fun levelMethod(level: Name): Name = Name.identifier(level.asString().lowercase())
 
     private fun FqName.classId(name: String): ClassId = ClassId(this, Name.identifier(name))
 }

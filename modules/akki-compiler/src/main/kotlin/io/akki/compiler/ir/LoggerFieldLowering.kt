@@ -46,7 +46,7 @@ import org.jetbrains.kotlin.ir.util.parents
 import org.jetbrains.kotlin.load.java.JavaDescriptorVisibilities
 import org.jetbrains.kotlin.platform.jvm.isJvm
 
-private enum class Entry {
+private enum class EntryPoint {
     CONTEXTUAL,
     NAMED,
     TYPE,
@@ -72,23 +72,23 @@ internal class LoggerFieldLowering(
 
     override fun visitCall(expression: IrCall): IrExpression {
         expression.transformChildrenVoid()
-        val entry = expression.entry() ?: return expression
-        if (isInlined()) return if (entry == Entry.CONTEXTUAL) expression.lookup() else expression
-        val field = expression.loggerField(entry) ?: return expression
+        val entryPoint = expression.entryPoint() ?: return expression
+        if (isInlined()) return if (entryPoint == EntryPoint.CONTEXTUAL) expression.lookup() else expression
+        val field = expression.loggerField(entryPoint) ?: return expression
         return expression.reading(field)
     }
 
-    private fun IrCall.entry(): Entry? = when {
-        symbol == symbols.named -> Entry.NAMED
-        symbol == symbols.ofType || symbol == symbols.ofReifiedType -> Entry.TYPE
-        symbols.isCallSite(symbol.owner) -> Entry.CONTEXTUAL
+    private fun IrCall.entryPoint(): EntryPoint? = when {
+        symbol == symbols.named -> EntryPoint.NAMED
+        symbol == symbols.ofType || symbol == symbols.ofReifiedType -> EntryPoint.TYPE
+        symbols.isCallSite(symbol.owner) -> EntryPoint.CONTEXTUAL
         else -> null
     }
 
-    private fun IrCall.loggerField(entry: Entry): IrField? = when (entry) {
-        Entry.CONTEXTUAL -> contextualField()
-        Entry.NAMED -> namedField()
-        Entry.TYPE -> typeField()
+    private fun IrCall.loggerField(entryPoint: EntryPoint): IrField? = when (entryPoint) {
+        EntryPoint.CONTEXTUAL -> contextualField()
+        EntryPoint.NAMED -> namedField()
+        EntryPoint.TYPE -> typeField()
     }
 
     private fun contextualField(): IrField =
@@ -100,7 +100,7 @@ internal class LoggerFieldLowering(
 
     private fun IrCall.namedField(): IrField? {
         val name = arguments.lastOrNull()?.constStringOrNull()?.takeIf { it.isNotBlank() } ?: return null
-        return fieldOwner().loggerField("named:$name", contextual = false) {
+        return fieldOwner().getOrCreateLoggerField("named:$name", contextual = false) {
             irCall(symbols.named).apply {
                 arguments[0] = irGetObject(symbols.log)
                 arguments[1] = irString(name)
@@ -116,7 +116,9 @@ internal class LoggerFieldLowering(
     }
 
     private fun IrDeclarationContainer.declarationField(name: DeclarationName, contextual: Boolean): IrField =
-        loggerField("declaration:${name.sourceName}|${name.jvmClassName}", contextual) { declarationLogger(name) }
+        getOrCreateLoggerField("declaration:${name.sourceName}|${name.jvmClassName}", contextual) {
+            declarationLogger(name)
+        }
 
     private fun IrCall.referencedClass(): IrClass? {
         val type = typeArguments.firstOrNull() ?: (arguments.lastOrNull() as? IrClassReference)?.classType
@@ -160,12 +162,12 @@ internal class LoggerFieldLowering(
         val owner = namingOwner() as? IrClass ?: return currentFile
         return when {
             isJvm -> holders.getOrPut(owner) { owner.createLoggerHolder() }
-            owner.isJvmInterface -> currentFile
+            owner.isInterfaceOrAnnotation -> currentFile
             else -> owner
         }
     }
 
-    private val IrClass.isJvmInterface: Boolean
+    private val IrClass.isInterfaceOrAnnotation: Boolean
         get() = isInterface || isAnnotationClass
 
     private fun IrClass.createLoggerHolder(): IrClass = context.irFactory.buildClass {
@@ -184,7 +186,7 @@ internal class LoggerFieldLowering(
 
     private fun IrClass.isHoisted(): Boolean = isLocal || isCompanion || isEnumEntry
 
-    private fun IrDeclarationContainer.loggerField(
+    private fun IrDeclarationContainer.getOrCreateLoggerField(
         key: String,
         contextual: Boolean,
         initializer: DeclarationIrBuilder.() -> IrExpression,
