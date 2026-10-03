@@ -2,6 +2,7 @@
 
 package io.akki.compiler
 
+import io.akki.compiler.compat.breaksLinkage
 import org.jetbrains.kotlin.compiler.plugin.AbstractCliOption
 import org.jetbrains.kotlin.compiler.plugin.CliOptionProcessingException
 import org.jetbrains.kotlin.compiler.plugin.CommandLineProcessor
@@ -49,7 +50,8 @@ internal class AkkiCommandLineProcessor : CommandLineProcessor {
         try {
             configuration.put(AkkiConfigurationKeys.MIN_LEVEL, level)
         } catch (failure: LinkageError) {
-            throw CliOptionProcessingException("$CANNOT_START ${unlinkedCompiler()}", failure)
+            if (!failure.breaksLinkage) throw failure
+            throw CliOptionProcessingException("$CANNOT_START ${unlinkedCompiler()}${causeLines(failure)}", failure)
         }
     }
 

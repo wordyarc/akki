@@ -5,6 +5,7 @@ package io.akki.compiler
 import io.akki.compiler.compat.CompatLoadException
 import io.akki.compiler.compat.CompilerCompat
 import io.akki.compiler.compat.CompilerCompatLoader
+import io.akki.compiler.compat.breaksLinkage
 import io.akki.compiler.fir.AkkiFirExtensionRegistrar
 import io.akki.compiler.ir.AkkiIrGenerationExtension
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
@@ -22,7 +23,7 @@ internal class AkkiCompilerPluginRegistrar : CompilerPluginRegistrar() {
     override fun ExtensionStorage.registerExtensions(configuration: CompilerConfiguration) {
         val messageCollector = configuration.messageCollectorOrNull()
         try {
-            register(load(messageCollector), configuration[AkkiConfigurationKeys.MIN_LEVEL, MinLevel.DEFAULT])
+            register(load(messageCollector), configuration)
         } catch (failure: CompatLoadException) {
             messageCollector.reportStartFailure(failure)
         }
@@ -33,17 +34,19 @@ internal class AkkiCompilerPluginRegistrar : CompilerPluginRegistrar() {
             messageCollector?.report(CompilerMessageSeverity.LOGGING, "$PLUGIN starts. $selection", null)
         }
     } catch (failure: CompatLoadException) {
-        throw if (failure.cause is LinkageError) unlinked(failure) else failure
+        throw if (failure.cause?.breaksLinkage == true) unlinked(failure) else failure
     }
 
-    private fun ExtensionStorage.register(compat: CompilerCompat, minLevel: MinLevel) {
+    private fun ExtensionStorage.register(compat: CompilerCompat, configuration: CompilerConfiguration) {
         try {
+            val minLevel = configuration[AkkiConfigurationKeys.MIN_LEVEL, MinLevel.DEFAULT]
             compat.registerExtensions(
                 storage = this,
                 fir = AkkiFirExtensionRegistrar(),
                 ir = AkkiIrGenerationExtension(minLevel, compat),
             )
         } catch (failure: LinkageError) {
+            if (!failure.breaksLinkage) throw failure
             throw unlinked(failure)
         } catch (failure: ClassCastException) {
             throw unlinked(failure)
@@ -56,6 +59,7 @@ private fun unlinked(failure: Throwable): CompatLoadException = CompatLoadExcept
 private fun CompilerConfiguration.messageCollectorOrNull(): MessageCollector? = try {
     get(CommonConfigurationKeys.MESSAGE_COLLECTOR_KEY)
 } catch (failure: LinkageError) {
+    if (!failure.breaksLinkage) throw failure
     throw CompatLoadException("$CANNOT_START ${unlinkedCompiler()}", failure)
 }
 
@@ -63,6 +67,5 @@ private fun MessageCollector?.reportStartFailure(failure: CompatLoadException) {
     if (this == null) return
     val message = "$CANNOT_START ${failure.message}"
     if (this === MessageCollector.NONE) throw CompatLoadException(message, failure.cause)
-    val causes = generateSequence(failure.cause, Throwable::cause).joinToString("") { "\nCaused by: $it" }
-    report(CompilerMessageSeverity.ERROR, message + causes, null)
+    report(CompilerMessageSeverity.ERROR, message + causeLines(failure.cause), null)
 }

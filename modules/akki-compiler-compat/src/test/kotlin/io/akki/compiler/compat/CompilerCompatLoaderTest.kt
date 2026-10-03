@@ -10,6 +10,8 @@ import io.akki.compiler.compat.fixture.FutureAdapter
 import io.akki.compiler.compat.fixture.FutureFactory
 import io.akki.compiler.compat.fixture.MalformedFactory
 import io.akki.compiler.compat.fixture.RivalFactory
+import io.akki.compiler.compat.fixture.UninitializableAdapter
+import io.akki.compiler.compat.fixture.UninitializableFactory
 import io.akki.compiler.compat.fixture.UnlinkedFactory
 import java.nio.file.Path
 import java.util.ServiceConfigurationError
@@ -69,12 +71,23 @@ internal class CompilerCompatLoaderTest {
     }
 
     @Test
-    fun `reports the exception of the adapter constructor as the cause`() {
-        val failure = failure("9.0.0", FailingFactory::class)
+    fun `rethrows the exception of the adapter constructor`() {
+        val classLoader = AdapterClassLoader.of(directory, FailingFactory::class)
 
-        assertEquals("adapter constructor failed", assertIs<IllegalStateException>(failure.cause).message)
-        assertContains(failure.message.orEmpty(), "The compiler adapter for Kotlin 9.0.0 cannot be created by")
-        assertContains(failure.message.orEmpty(), FailingFactory::class.java.name)
+        val failure = assertFailsWith<IllegalStateException> { CompilerCompatLoader.load("9.0.0", classLoader) }
+
+        assertEquals("adapter constructor failed", failure.message)
+    }
+
+    @Test
+    fun `rethrows the failed static initializer of the adapter and every later failure of its class`() {
+        val classLoader = AdapterClassLoader.of(directory, UninitializableFactory::class)
+
+        val failed = assertFailsWith<ExceptionInInitializerError> { CompilerCompatLoader.load("9.0.0", classLoader) }
+        val uninitialized = assertFailsWith<NoClassDefFoundError> { CompilerCompatLoader.load("9.0.0", classLoader) }
+
+        assertEquals("adapter initializer failed", assertIs<IllegalStateException>(failed.cause).message)
+        assertContains(uninitialized.message.orEmpty(), UninitializableAdapter::class.java.name)
     }
 
     @Test

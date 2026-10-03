@@ -71,13 +71,12 @@ private fun discover(classLoader: ClassLoader?): List<CompilerCompat.Factory> = 
 private fun CompilerCompat.Factory.createAdapter(compilerVersion: String): CompilerCompat = try {
     create()
 } catch (failure: LinkageError) {
+    if (!failure.breaksLinkage) throw failure
     throw CompatLoadException(
         "The compiler adapter for Kotlin $minVersion created by $origin " +
             "does not link against Kotlin $compilerVersion.",
         failure,
     )
-} catch (failure: Exception) {
-    throw CompatLoadException("The compiler adapter for Kotlin $minVersion cannot be created by $origin.", failure)
 }
 
 private val Throwable.isFatal: Boolean

@@ -52,6 +52,29 @@ internal class MiscastFactory : CompilerCompat.Factory {
     override fun create(): CompilerCompat = MiscastAdapter()
 }
 
+internal class InitializerBugAdapter :
+    FailingRegistration({ ExceptionInInitializerError(IllegalStateException("adapter initializer failed")) })
+
+internal class InitializerBugFactory : CompilerCompat.Factory {
+    override val minVersion: String = "2.3.20-Beta1"
+
+    override fun create(): CompilerCompat = InitializerBugAdapter()
+}
+
+internal class UninitializableAdapter : FailingRegistration({ IllegalStateException("never registers") }) {
+    private companion object {
+        init {
+            throw IllegalStateException("adapter initializer failed")
+        }
+    }
+}
+
+internal class UninitializableFactory : CompilerCompat.Factory {
+    override val minVersion: String = "2.3.20-Beta1"
+
+    override fun create(): CompilerCompat = UninitializableAdapter()
+}
+
 internal class UnloadableFactory : CompilerCompat.Factory {
     override val minVersion: String = "2.3.20-Beta1"
 

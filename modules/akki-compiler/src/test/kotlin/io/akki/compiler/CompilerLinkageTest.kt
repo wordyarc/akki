@@ -2,6 +2,7 @@ package io.akki.compiler
 
 import io.akki.compiler.compat.CompatLoadException
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
@@ -29,5 +30,22 @@ internal class CompilerLinkageTest {
 
         assertEquals("OK", linked { "OK" })
         assertSame(bug, assertFailsWith<IllegalStateException> { linked { throw bug } })
+    }
+
+    @Test
+    fun `passes a failed static initializer and later uses of its class through`() {
+        val failed = assertFailsWith<ExceptionInInitializerError> { linked { FailingInitializer.touch() } }
+        val uninitialized = assertFailsWith<NoClassDefFoundError> { linked { FailingInitializer.touch() } }
+
+        assertEquals("plugin bug", failed.cause?.message)
+        assertContains(uninitialized.message.orEmpty(), FailingInitializer::class.java.name)
+    }
+
+    private object FailingInitializer {
+        init {
+            throw IllegalStateException("plugin bug")
+        }
+
+        fun touch() = Unit
     }
 }

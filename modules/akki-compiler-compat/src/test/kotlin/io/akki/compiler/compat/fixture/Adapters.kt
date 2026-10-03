@@ -60,6 +60,18 @@ internal class FailingFactory : FixtureFactory("9.0.0") {
     override fun create(): CompilerCompat = FailingAdapter()
 }
 
+internal class UninitializableAdapter : InertAdapter() {
+    private companion object {
+        init {
+            throw IllegalStateException("adapter initializer failed")
+        }
+    }
+}
+
+internal class UninitializableFactory : FixtureFactory("9.0.0") {
+    override fun create(): CompilerCompat = UninitializableAdapter()
+}
+
 internal class ExhaustedAdapter : InertAdapter() {
     init {
         throw InternalError("virtual machine failed")

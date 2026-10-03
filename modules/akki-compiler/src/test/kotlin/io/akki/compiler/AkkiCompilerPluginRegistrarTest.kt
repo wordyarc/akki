@@ -16,6 +16,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
@@ -106,6 +107,20 @@ internal class AkkiCompilerPluginRegistrarTest {
                     "$LATEST_TESTED_KOTLIN are tested.\nCaused by: $cause",
                 failure,
             )
+        }
+    }
+
+    @Test
+    fun `rethrows a failed static initializer instead of reporting an unsupported compiler`() {
+        for (factory in listOf(UninitializableFactory::class, InitializerBugFactory::class)) {
+            messages.clear()
+
+            val failure = assertFailsWith<ExceptionInInitializerError> {
+                register(isolatedRegistrar(factory), messages)
+            }
+
+            assertEquals("adapter initializer failed", failure.cause?.message, factory.simpleName)
+            assertTrue(messages.reported.none { (severity, _) -> severity.isError }, messages.reported.toString())
         }
     }
 
