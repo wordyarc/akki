@@ -21,12 +21,20 @@ internal class CompilerAbiTest {
         assertEquals(emptyList(), violations(adapter, host(kotlin)))
     }
 
+    @ParameterizedTest(name = "Kotlin {0}")
+    @MethodSource("checkedKotlin")
+    fun `links every class of the plugin with the selected adapter`(kotlin: String) {
+        assertEquals(emptyList(), linkageFailures(adapterOf(kotlin), host(kotlin)))
+    }
+
     @Test
-    fun `resolves every reference of the plugin in the embeddable compiler that Gradle runs`() {
+    fun `resolves and links the plugin in the embeddable compiler that Gradle runs`() {
         val host = classpath("akki.compiler.embeddable")
+        val adapter = adapterOf(latestTestedKotlin)
 
         assertContains(host.map { it.fileName.toString() }, "kotlin-compiler-embeddable-$latestTestedKotlin.jar")
-        assertEquals(emptyList(), violations(adapterOf(latestTestedKotlin), host))
+        assertEquals(emptyList(), violations(adapter, host))
+        assertEquals(emptyList(), linkageFailures(adapter, host))
     }
 
     @ParameterizedTest(name = "Kotlin {0}")

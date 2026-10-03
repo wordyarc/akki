@@ -166,12 +166,27 @@ internal class CompilerCompatLoaderTest {
     }
 
     @Test
-    fun `rejects a compiler version that is neither a release nor its Beta or RC build`() {
-        for (version in listOf("2.4.20-dev-1234", "2.4.0-ij261-64", "2.4.20-SNAPSHOT", "2.4", "")) {
+    fun `places a dev compiler at the release it belongs to`() {
+        val classLoader = AdapterClassLoader.of(directory, CurrentFactory::class, FutureFactory::class)
+        val expected = mapOf(
+            "2.3.20-dev-7791" to CurrentAdapter::class,
+            "8.9.99-dev-1" to CurrentAdapter::class,
+            "9.0.0-dev-1" to FutureAdapter::class,
+        )
+
+        for ((version, adapter) in expected) {
+            assertEquals(adapter.java.name, CompilerCompatLoader.load(version, classLoader).javaClass.name, version)
+        }
+    }
+
+    @Test
+    fun `rejects a compiler version that is neither a release, its Beta or RC build nor a dev build`() {
+        for (version in listOf("2.4.0-ij261-64", "2.4.20-SNAPSHOT", "2.4.20-dev-google-pr-1", "2.4", "")) {
             val failure = failure(version, CurrentFactory::class)
 
             assertEquals(
-                "Kotlin '$version' is not supported. Only releases and their Beta and RC builds are recognized.",
+                "Kotlin '$version' is not supported. " +
+                    "Only releases, their Beta and RC builds and dev builds are recognized.",
                 failure.message,
             )
             assertNull(failure.cause)
@@ -187,7 +202,7 @@ internal class CompilerCompatLoaderTest {
 
     @Test
     fun `rejects a compiler older than every adapter`() {
-        for (version in listOf("2.3.10", "2.3.10-RC")) {
+        for (version in listOf("2.3.10", "2.3.10-RC", "2.3.10-dev-1")) {
             val failure = failure(version, CurrentFactory::class, FutureFactory::class)
 
             assertEquals(

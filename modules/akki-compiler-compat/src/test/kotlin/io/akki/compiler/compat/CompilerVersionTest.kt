@@ -41,6 +41,25 @@ internal class CompilerVersionTest {
     }
 
     @Test
+    fun `reads a compiler of a dev build as the release it belongs to`() {
+        assertEquals(CompilerVersion(2, 5, 0), CompilerVersion.parseCompilerOrNull("2.5.0-dev-8355"))
+        assertEquals(CompilerVersion(2, 4, 20), CompilerVersion.parseCompilerOrNull("2.4.20-dev-1"))
+        assertEquals(CompilerVersion(2, 4, 20), CompilerVersion.parseCompilerOrNull("2.4.20"))
+        assertEquals(CompilerVersion(2, 4, 20, Maturity.RC, 2), CompilerVersion.parseCompilerOrNull("2.4.20-RC2"))
+    }
+
+    @Test
+    fun `rejects a compiler of an IDE or snapshot build and a malformed dev build`() {
+        val rejected = listOf(
+            "2.4.20-ij261-64", "2.4.20-SNAPSHOT", "2.5.255-SNAPSHOT", "2.4.20-dev", "2.4.20-dev-", "2.4.20-dev-0",
+            "2.4.20-dev-01", "2.4.20-dev-x", "2.4.20-dev-1-2", "2.4.20-dev-google-pr-12", "2.4.20-Beta1-dev-5",
+            "2.4.20-RC-dev-5", "2.4-dev-1", "02.4.20-dev-1", "-dev-1", "2.4.20-DEV-1", "",
+        )
+
+        for (version in rejected) assertNull(CompilerVersion.parseCompilerOrNull(version), "'$version'")
+    }
+
+    @Test
     fun `orders Beta and RC builds before their release and numbers by value`() {
         val ordered = listOf(
             "2.3.20-Beta1", "2.3.20-Beta2", "2.3.20-RC", "2.3.20-RC2", "2.3.20", "2.3.21-RC", "2.3.21",

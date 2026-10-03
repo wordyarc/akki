@@ -7,6 +7,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import org.jetbrains.kotlin.tooling.core.KotlinToolingVersion
 import org.junit.jupiter.api.io.CleanupMode
 import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
@@ -175,11 +176,28 @@ internal class CompilerProcessTest {
             assertContains(
                 compilation.output,
                 "error: [AKKI_CANNOT_START] akki: compiler plugin $akkiVersion cannot start. Kotlin '$reported' is " +
-                    "not supported. Only releases and their Beta and RC builds are recognized.",
+                    "not supported. Only releases, their Beta and RC builds and dev builds are recognized.",
             )
             assertFalse(compilation.output.contains("Exception"), compilation.output)
             assertFalse(compilation.classes.exists(), compilation.output)
         }
+    }
+
+    @ParameterizedTest(name = "Kotlin {0}")
+    @MethodSource("checkedKotlin")
+    fun `uses in a dev build the adapter of the release it belongs to`(kotlin: String) {
+        val release = KotlinToolingVersion(kotlin).run { "$major.$minor.$patch" }
+        val reported = "$release-dev-1"
+        val adapter = adapterOf(release)
+
+        val compilation = devBuild(kotlin, reported)
+
+        assertEquals("OK", compilation.exitCode, compilation.output)
+        assertContains(
+            compilation.output,
+            "Kotlin $reported uses ${adapter.implementation}, the compiler adapter for Kotlin ${adapter.minVersion} ",
+        )
+        assertContains(compilation.run(), "AKKI records=[DEBUG sample.Service debug A-1, INFO sample.Service handled A-1]")
     }
 
     @ParameterizedTest(name = "adapter of Kotlin {0} in Kotlin {1}", allowZeroInvocations = true)
@@ -242,8 +260,9 @@ internal class CompilerProcessTest {
                 (adapters.first() to io.akki.compiler.jar.checkedKotlin.last())
             return candidates.distinct()
                 .filter { (adapter, kotlin) ->
+                    val host = classpath("akki.compiler.host.$kotlin")
                     adapter !== adapterOf(kotlin) &&
-                        violations(adapter, classpath("akki.compiler.host.$kotlin")).isNotEmpty()
+                        (violations(adapter, host) + linkageFailures(adapter, host)).isNotEmpty()
                 }
                 .map { (adapter, kotlin) -> Arguments.of(adapter.minVersion, kotlin) }
         }
@@ -289,6 +308,11 @@ internal class CompilerProcessTest {
                 process.compile("plain", listOf("Service.kt"), core, *plugin),
                 process.compile("strict", listOf("Service.kt"), core, *plugin, "-Werror"),
             ).also { process.run() }
+        }
+
+        private fun devBuild(kotlin: String, reported: String): Compilation {
+            val process = CompilerProcess(kotlin, workspace.resolve("$reported-in-$kotlin"), reportedVersion = reported)
+            return process.compile("dev", listOf("Service.kt"), core, *plugin, "-verbose").also { process.run() }
         }
 
         private fun rejected(kotlin: String): List<Compilation> = rejected.computeIfAbsent(kotlin) {

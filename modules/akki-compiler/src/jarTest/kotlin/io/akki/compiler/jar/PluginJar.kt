@@ -39,6 +39,9 @@ internal fun pluginWith(adapter: Adapter): Set<String> {
 internal fun violations(adapter: Adapter, host: List<Path>): List<String> =
     CompilerAbi(pluginShapes, host).use { it.violations(pluginWith(adapter), shadowed(adapter)) }
 
+internal fun linkageFailures(adapter: Adapter, host: List<Path>): List<String> =
+    linkageFailures(pluginWith(adapter), listOf(compilerJar) + host)
+
 internal fun compatApiChanges(contract: ByteArray): Map<String, Set<String>> {
     val changes = mutableMapOf<String, MutableSet<String>>()
     val visitor = object : ClassVisitor(Opcodes.ASM9) {

@@ -35,6 +35,15 @@ internal class FactorySelectionTest {
     }
 
     @Test
+    fun `selects for a dev build the factory of the release it belongs to`() {
+        assertSame(k2320, select("2.3.20-dev-7791"))
+        assertSame(k240, select("2.4.0-dev-2124"))
+        assertSame(k240, select("2.4.10-dev-1"))
+        assertSame(k2420, select("2.4.20-dev-6138"))
+        assertSame(k2420, select("2.5.0-dev-8355"))
+    }
+
+    @Test
     fun `leaves the builds before a later minimum to the previous factory`() {
         val late = Minimum("2.4.20-Beta2")
         val from = listOf(k240, late)
@@ -71,7 +80,7 @@ internal class FactorySelectionTest {
 
     @Test
     fun `rejects a compiler older than every minimum`() {
-        for (current in listOf("2.3.10", "2.3.10-RC")) {
+        for (current in listOf("2.3.10", "2.3.10-RC", "2.3.10-dev-1")) {
             val failure = assertFailsWith<CompatLoadException> { select(current) }
 
             assertEquals(
@@ -113,7 +122,7 @@ internal class FactorySelectionTest {
     }
 
     private fun select(current: String, from: List<CompilerCompat.Factory> = factories): CompilerCompat.Factory =
-        selectFactory(CompilerVersion.parseOrNull(current)!!, from)
+        selectFactory(current, from)
 
     private open class Minimum(override val minVersion: String) : CompilerCompat.Factory {
         override fun create(): CompilerCompat = error("selection must not create adapters")

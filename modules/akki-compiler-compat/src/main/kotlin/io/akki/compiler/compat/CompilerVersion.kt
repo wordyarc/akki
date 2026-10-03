@@ -27,6 +27,13 @@ internal data class CompilerVersion(
     companion object {
         private val pattern = Regex("""(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(Beta|RC)([1-9]\d*)?)?""")
 
+        private val devBuild = Regex("""(.+)-dev-[1-9]\d*""")
+
+        fun parseCompilerOrNull(value: String): CompilerVersion? {
+            val release = devBuild.matchEntire(value)?.groupValues?.get(1) ?: return parseOrNull(value)
+            return parseOrNull(release)?.takeIf { it.maturity == Maturity.STABLE }
+        }
+
         fun parseOrNull(value: String): CompilerVersion? {
             val (major, minor, patch, classifier, number) = pattern.matchEntire(value)?.destructured ?: return null
             return CompilerVersion(

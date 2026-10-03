@@ -14,12 +14,7 @@ public object CompilerCompatLoader {
         trace: (String) -> Unit = {},
     ): CompilerCompat {
         if (compilerVersion == null) throw CompatLoadException("The Kotlin compiler does not report its version.")
-        val current = CompilerVersion.parseOrNull(compilerVersion)
-            ?: throw CompatLoadException(
-                "Kotlin '$compilerVersion' is not supported. " +
-                    "Only releases and their Beta and RC builds are recognized.",
-            )
-        val factory = selectFactory(current, discover(classLoader))
+        val factory = selectFactory(compilerVersion, discover(classLoader))
         val compat = factory.createAdapter(compilerVersion)
         trace(
             "Kotlin $compilerVersion uses ${compat.javaClass.name}, " +
@@ -30,9 +25,14 @@ public object CompilerCompatLoader {
 }
 
 internal fun selectFactory(
-    current: CompilerVersion,
+    compilerVersion: String,
     factories: List<CompilerCompat.Factory>,
 ): CompilerCompat.Factory {
+    val current = CompilerVersion.parseCompilerOrNull(compilerVersion)
+        ?: throw CompatLoadException(
+            "Kotlin '$compilerVersion' is not supported. " +
+                "Only releases, their Beta and RC builds and dev builds are recognized.",
+        )
     if (factories.isEmpty()) {
         throw CompatLoadException("No compiler adapter factories were found on the compiler plugin classpath.")
     }
@@ -57,7 +57,8 @@ internal fun selectFactory(
         .maxByOrNull { (minimum, _) -> minimum }
         ?.second
         ?: throw CompatLoadException(
-            "Kotlin $current is not supported. The oldest supported version is ${candidates.minOf { it.first }}.",
+            "Kotlin $compilerVersion is not supported. " +
+                "The oldest supported version is ${candidates.minOf { it.first }}.",
         )
 }
 

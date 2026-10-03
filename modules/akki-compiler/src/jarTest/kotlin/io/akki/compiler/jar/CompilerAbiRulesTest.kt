@@ -5,6 +5,7 @@ import java.util.jar.JarEntry
 import java.util.jar.JarOutputStream
 import kotlin.io.path.outputStream
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -185,6 +186,17 @@ internal class CompilerAbiRulesTest {
     }
 
     @Test
+    fun `leaves to the JVM a value whose class no longer extends the parameter class`() {
+        val plugin = passing("plugin/Linked", "host/Derived") + passing("plugin/Unlinked", "host/Detached")
+
+        val failure = linkageFailures(plugin.keys, listOf(jar("plugin", plugin), jar("host", hostClasses()))).single()
+
+        assertEquals(emptyList(), violations(plugin))
+        assertTrue(failure.startsWith("plugin/Unlinked: java.lang.VerifyError"), failure)
+        assertContains(failure, "'host/Detached' (current frame, stack[0]) is not assignable to 'host/Base'")
+    }
+
+    @Test
     fun `skips the methods that the caller excludes`() {
         val plugin = classFile("plugin/Delegate") {
             method("unused", "()V") {
@@ -269,30 +281,44 @@ internal class CompilerAbiRulesTest {
         visitMethodInsn(INVOKEINTERFACE, CONTRACT, operation, "()V", true)
     }
 
+    private fun passing(name: String, argument: String): Map<String, ByteArray> = classFile(name) {
+        method("pass", "(L$argument;)V") {
+            visitVarInsn(ALOAD, 1)
+            call(INVOKESTATIC, "host/Base", "accept", "(Lhost/Base;)V")
+        }
+    }
+
     private fun violations(
         plugin: Map<String, ByteArray>,
         skipped: Map<String, Set<String>> = emptyMap(),
     ): List<String> {
-        val host = directory.resolve("host.jar")
-        JarOutputStream(host.outputStream()).use { jar ->
-            hostClasses().forEach { (name, bytes) ->
-                jar.putNextEntry(JarEntry("$name.class"))
-                jar.write(bytes)
-                jar.closeEntry()
+        val shapes = plugin.mapValues { (_, bytes) -> ClassShape.read(bytes, withReferences = true) }
+        return CompilerAbi(shapes, listOf(jar("host", hostClasses()))).use { it.violations(skipped = skipped) }
+    }
+
+    private fun jar(name: String, classes: Map<String, ByteArray>): Path {
+        val path = directory.resolve("$name.jar")
+        JarOutputStream(path.outputStream()).use { output ->
+            classes.forEach { (className, bytes) ->
+                output.putNextEntry(JarEntry("$className.class"))
+                output.write(bytes)
+                output.closeEntry()
             }
         }
-        val shapes = plugin.mapValues { (_, bytes) -> ClassShape.read(bytes, withReferences = true) }
-        return CompilerAbi(shapes, listOf(host)).use { it.violations(skipped = skipped) }
+        return path
     }
 
     private fun hostClasses(): Map<String, ByteArray> = listOf(
         classFile("host/Base") {
             method("greet", "()V")
             method("create", "()V", ACC_PUBLIC or ACC_STATIC)
+            method("accept", "(Lhost/Base;)V", ACC_PUBLIC or ACC_STATIC)
             method("secret", "()V", ACC_PRIVATE)
             method("local", "()V", 0)
             method("guarded", "()V", ACC_PROTECTED)
         },
+        classFile("host/Derived", superName = "host/Base"),
+        classFile("host/Detached"),
         classFile("host/Hidden", access = 0) {
             method("<init>", "()V")
         },
