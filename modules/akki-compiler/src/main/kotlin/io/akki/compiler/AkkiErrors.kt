@@ -37,6 +37,8 @@ internal object AkkiErrors : KtDiagnosticsContainer() {
 
     val INCOMPATIBLE_AKKI_CORE by errorWithoutSource()
 
+    val AKKI_CANNOT_START by errorWithoutSource()
+
     override fun getRendererFactory(): BaseDiagnosticRendererFactory = AkkiDefaultErrorMessages
 }
 
@@ -72,5 +74,6 @@ internal object AkkiDefaultErrorMessages : BaseDiagnosticRendererFactory() {
             "'Log.named' requires a non-blank logger name.",
         )
         map.put(AkkiErrors.INCOMPATIBLE_AKKI_CORE, MESSAGE_PLACEHOLDER)
+        map.put(AkkiErrors.AKKI_CANNOT_START, MESSAGE_PLACEHOLDER)
     }
 }

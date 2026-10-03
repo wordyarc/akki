@@ -165,6 +165,23 @@ internal class CompilerProcessTest {
         }
     }
 
+    @ParameterizedTest(name = "Kotlin {0}")
+    @MethodSource("checkedKotlin")
+    fun `fails the compilation with a diagnostic when the plugin cannot start`(kotlin: String) {
+        val reported = "$kotlin-ij261-1"
+
+        for (compilation in unrecognized(kotlin, reported)) {
+            assertEquals("COMPILATION_ERROR", compilation.exitCode, compilation.output)
+            assertContains(
+                compilation.output,
+                "error: [AKKI_CANNOT_START] akki: compiler plugin $akkiVersion cannot start. Kotlin '$reported' is " +
+                    "not supported. Only releases and their Beta and RC builds are recognized.",
+            )
+            assertFalse(compilation.output.contains("Exception"), compilation.output)
+            assertFalse(compilation.classes.exists(), compilation.output)
+        }
+    }
+
     @ParameterizedTest(name = "adapter of Kotlin {0} in Kotlin {1}", allowZeroInvocations = true)
     @MethodSource("mismatchedKotlin")
     fun `fails the compilation clearly when the selected adapter does not link against the compiler`(
@@ -179,7 +196,8 @@ internal class CompilerProcessTest {
         assertTrue(failed.isNotEmpty(), compilations.joinToString("\n") { it.output })
         for (compilation in failed) {
             val atStart = compilation.exitCode == "COMPILATION_ERROR" &&
-                "error: akki: compiler plugin $akkiVersion cannot start. $unlinked" in compilation.output
+                "error: [AKKI_CANNOT_START] akki: compiler plugin $akkiVersion cannot start. $unlinked" in
+                compilation.output
             val afterStart = "akki: compiler plugin $akkiVersion failed. $unlinked" in compilation.output
             assertTrue(atStart || afterStart, compilation.output)
         }
@@ -262,6 +280,14 @@ internal class CompilerProcessTest {
                 process.compile("plain", listOf("Service.kt"), core, *plugin),
                 process.compile("clipped", listOf("Service.kt"), core, *plugin, *option("minLevel", "info")),
                 process.compile("staleUser", listOf("User.kt"), libraries.plusElement(stale.classes), *plugin),
+            ).also { process.run() }
+        }
+
+        private fun unrecognized(kotlin: String, reported: String): List<Compilation> {
+            val process = CompilerProcess(kotlin, workspace.resolve(reported), reportedVersion = reported)
+            return listOf(
+                process.compile("plain", listOf("Service.kt"), core, *plugin),
+                process.compile("strict", listOf("Service.kt"), core, *plugin, "-Werror"),
             ).also { process.run() }
         }
 

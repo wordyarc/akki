@@ -15,7 +15,7 @@ internal class AkkiIrGenerationExtension(
         linked {
             val symbols = AkkiSymbols.find(pluginContext, compat) ?: return
             LoggerFieldLowering(pluginContext, symbols).lower(moduleFragment)
-            LoggerCallLowering(pluginContext, symbols, minLevel, compat).lower(moduleFragment)
+            LoggerCallLowering(pluginContext, symbols, minLevel).lower(moduleFragment)
         }
     }
 }

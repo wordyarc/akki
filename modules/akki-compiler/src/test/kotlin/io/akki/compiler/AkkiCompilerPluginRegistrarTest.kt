@@ -15,18 +15,20 @@ import kotlin.reflect.KClass
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
-import kotlin.test.assertFails
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+import org.jetbrains.kotlin.cli.common.diagnosticsCollector
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
+import org.jetbrains.kotlin.cli.create
 import org.jetbrains.kotlin.compiler.plugin.CompilerPluginRegistrar
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.config.KotlinCompilerVersion
 import org.jetbrains.kotlin.config.MessageCollectorAccess
 import org.jetbrains.kotlin.config.messageCollector
+import org.jetbrains.kotlin.diagnostics.impl.BaseDiagnosticsCollector
 import org.junit.jupiter.api.io.TempDir
 
 internal class AkkiCompilerPluginRegistrarTest {
@@ -36,13 +38,14 @@ internal class AkkiCompilerPluginRegistrarTest {
     private val messages = RecordingCollector()
 
     @Test
-    fun `registers the extensions through the adapter of the running compiler`() {
-        val registered = register(AkkiCompilerPluginRegistrar(), messages)
+    fun `registers the extensions and traces the adapter of the running compiler`() {
+        val registration = register(AkkiCompilerPluginRegistrar(), messages)
 
         assertEquals(
             setOf(AkkiFirExtensionRegistrar::class.java.name, AkkiIrGenerationExtension::class.java.name),
-            registered,
+            registration.extensions,
         )
+        assertEquals(emptyList(), registration.diagnostics)
         val (severity, selection) = messages.reported.single()
         assertEquals(CompilerMessageSeverity.LOGGING, severity)
         assertContains(
@@ -54,94 +57,46 @@ internal class AkkiCompilerPluginRegistrarTest {
 
     @Test
     fun `registers the extensions without a message collector`() {
-        assertEquals(2, register(AkkiCompilerPluginRegistrar(), collector = null).size)
+        assertEquals(2, register(AkkiCompilerPluginRegistrar(), collector = null).extensions.size)
     }
 
     @Test
-    fun `reports an error and registers nothing when no adapter can be loaded`() {
-        val registered = register(isolatedRegistrar(), messages)
+    fun `reports a failed start as a compiler error whatever the message collector`() {
+        for (collector in listOf(messages, MessageCollector.NONE, null)) {
+            messages.clear()
 
-        assertEquals(emptySet(), registered)
-        val (severity, failure) = messages.reported.single()
-        assertEquals(CompilerMessageSeverity.ERROR, severity)
-        assertEquals(
-            "akki: compiler plugin $AKKI_VERSION cannot start. " +
-                "No compiler adapter factories were found on the compiler plugin classpath.",
-            failure,
-        )
-    }
+            val registration = register(isolatedRegistrar(), collector)
 
-    @Test
-    fun `fails when no adapter can be loaded and the message collector discards errors`() {
-        val failure = assertFails { register(isolatedRegistrar(), MessageCollector.NONE) }
-
-        assertEquals(CompatLoadException::class.java.name, failure.javaClass.name)
-        assertEquals(
-            "akki: compiler plugin $AKKI_VERSION cannot start. " +
-                "No compiler adapter factories were found on the compiler plugin classpath.",
-            failure.message,
-        )
-    }
-
-    @Test
-    fun `registers nothing without a message collector when no adapter can be loaded`() {
-        assertEquals(emptySet(), register(isolatedRegistrar(), collector = null))
+            assertEquals(emptySet(), registration.extensions)
+            assertEquals(
+                listOf(
+                    "error: [AKKI_CANNOT_START] akki: compiler plugin $AKKI_VERSION cannot start. " +
+                        "No compiler adapter factories were found on the compiler plugin classpath.",
+                ),
+                registration.diagnostics,
+                collector.toString(),
+            )
+            assertEquals(emptyList(), messages.reported)
+        }
     }
 
     @Test
     fun `reports a compiler that the selected adapter does not link against`() {
-        val adapters = mapOf(
-            UnlinkedFactory::class to "java.lang.NoSuchMethodError: registerExtension",
-            MiscastFactory::class to "java.lang.ClassCastException: ProjectExtensionDescriptor",
-        )
+        val registration = register(isolatedRegistrar(UnloadableFactory::class), messages)
 
-        for ((factory, cause) in adapters) {
-            messages.clear()
-
-            assertEquals(emptySet(), register(isolatedRegistrar(factory), messages))
-            val (severity, failure) = messages.reported.last()
-            assertEquals(CompilerMessageSeverity.ERROR, severity)
-            assertEquals(
-                "akki: compiler plugin $AKKI_VERSION cannot start. Kotlin ${KotlinCompilerVersion.getVersion()} is " +
-                    "not supported: the compiler plugin does not link against it. Kotlin releases up to " +
-                    "$LATEST_TESTED_KOTLIN are tested.\nCaused by: $cause",
-                failure,
-            )
-        }
-    }
-
-    @Test
-    fun `rethrows a failed static initializer instead of reporting an unsupported compiler`() {
-        for (factory in listOf(UninitializableFactory::class, InitializerBugFactory::class)) {
-            messages.clear()
-
-            val failure = assertFailsWith<ExceptionInInitializerError> {
-                register(isolatedRegistrar(factory), messages)
-            }
-
-            assertEquals("adapter initializer failed", failure.cause?.message, factory.simpleName)
-            assertTrue(messages.reported.none { (severity, _) -> severity.isError }, messages.reported.toString())
-        }
-    }
-
-    @Test
-    fun `reports a compiler that the selected adapter cannot be created in`() {
-        assertEquals(emptySet(), register(isolatedRegistrar(UnloadableFactory::class), messages))
-
-        val (severity, failure) = messages.reported.single()
-        assertEquals(CompilerMessageSeverity.ERROR, severity)
-        val lines = failure.lines()
-        assertEquals(3, lines.size, failure)
+        assertEquals(emptySet(), registration.extensions)
+        val lines = registration.diagnostics.single().lines()
+        assertEquals(3, lines.size, lines.toString())
         val (headline, adapter, cause) = lines
         assertEquals(
-            "akki: compiler plugin $AKKI_VERSION cannot start. Kotlin ${KotlinCompilerVersion.getVersion()} is " +
-                "not supported: the compiler plugin does not link against it. Kotlin releases up to " +
-                "$LATEST_TESTED_KOTLIN are tested.",
+            "error: [AKKI_CANNOT_START] akki: compiler plugin $AKKI_VERSION cannot start. " +
+                "Kotlin ${KotlinCompilerVersion.getVersion()} is not supported: the compiler plugin does not link " +
+                "against it. Kotlin releases up to $LATEST_TESTED_KOTLIN are tested.",
             headline,
         )
         assertTrue(
             adapter.startsWith(
-                "Caused by: ${CompatLoadException::class.java.name}: The compiler adapter for Kotlin 2.3.20-Beta1 " +
+                "Caused by: ${CompatLoadException::class.java.name}: The compiler adapter for Kotlin 2.4.0-Beta1 " +
                     "created by ${UnloadableFactory::class.java.name} from ",
             ),
             adapter,
@@ -150,13 +105,36 @@ internal class AkkiCompilerPluginRegistrarTest {
         assertEquals("Caused by: java.lang.NoClassDefFoundError: org/jetbrains/kotlin/Removed", cause)
     }
 
-    private fun register(registrar: CompilerPluginRegistrar, collector: MessageCollector?): Set<String> {
-        val configuration = CompilerConfiguration()
+    @Test
+    fun `rethrows a failed static initializer of the adapter instead of reporting a failed start`() {
+        val configuration = CompilerConfiguration.create()
+
+        val failure = assertFailsWith<ExceptionInInitializerError> {
+            with(isolatedRegistrar(UninitializableFactory::class)) {
+                CompilerPluginRegistrar.ExtensionStorage().registerExtensions(configuration)
+            }
+        }
+
+        assertEquals("adapter initializer failed", failure.cause?.message)
+        assertEquals(emptyList(), configuration.diagnosticsCollector.rendered())
+    }
+
+    private fun register(registrar: CompilerPluginRegistrar, collector: MessageCollector?): Registration {
+        val configuration = CompilerConfiguration.create()
         if (collector != null) configuration.messageCollector = collector
         val storage = CompilerPluginRegistrar.ExtensionStorage()
         with(registrar) { storage.registerExtensions(configuration) }
-        return storage.registeredExtensions.values.flatten().mapTo(mutableSetOf()) { it.javaClass.name }
+        return Registration(
+            extensions = storage.registeredExtensions.values.flatten().mapTo(mutableSetOf()) { it.javaClass.name },
+            diagnostics = configuration.diagnosticsCollector.rendered(),
+        )
     }
+
+    private fun BaseDiagnosticsCollector.rendered(): List<String> = diagnosticsByFile[null].orEmpty().map {
+        "${it.severity.name.lowercase()}: [${it.factoryName}] ${it.renderMessage()}"
+    }
+
+    private class Registration(val extensions: Set<String>, val diagnostics: List<String>)
 
     private fun isolatedRegistrar(vararg factories: KClass<out CompilerCompat.Factory>): CompilerPluginRegistrar {
         val providers = directory.resolve("providers").writeLines(factories.map { it.java.name })

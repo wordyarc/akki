@@ -4,7 +4,7 @@
 [![GitHub license](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg?style=flat)](https://www.apache.org/licenses/LICENSE-2.0)
 
 Log in Kotlin without declaring a logger. The compiler plugin derives its name from the surrounding code.
-Requires Kotlin `2.3.20` or newer.
+Requires Kotlin `2.4.0` or newer.
 
 ```kotlin
 import io.akki.log
@@ -128,11 +128,11 @@ for each compiler API it supports and selects one by the version of the compiler
 the command line use the same artifact. Beta and RC builds of Kotlin are accepted too, dev builds are not. In a
 compiler older than every adapter the plugin fails the compilation and names the oldest supported version.
 
-| akki    | Kotlin                                          | Compiler plugin            |
-|---------|-------------------------------------------------|----------------------------|
-| `0.3.0` | `2.3.20`, `2.3.21`, `2.4.0`, `2.4.10`, `2.4.20` | `akki-compiler`            |
-| `0.2.0` | `2.4.0`, `2.4.10`, `2.4.20`                     | `akki-compiler-kotlin-2.4` |
-| `0.1.0` | `2.4.x`                                         | `akki-compiler`            |
+| akki    | Kotlin                      | Compiler plugin            |
+|---------|-----------------------------|----------------------------|
+| `0.3.0` | `2.4.0`, `2.4.10`, `2.4.20` | `akki-compiler`            |
+| `0.2.0` | `2.4.0`, `2.4.10`, `2.4.20` | `akki-compiler-kotlin-2.4` |
+| `0.1.0` | `2.4.x`                     | `akki-compiler`            |
 
 ## Usage
 
