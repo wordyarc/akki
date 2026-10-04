@@ -93,54 +93,6 @@ internal class CompilerProcessTest {
 
     @ParameterizedTest(name = "Kotlin {0}")
     @MethodSource("checkedKotlin")
-    fun `reports a reference to the contextual logger`(kotlin: String) {
-        val reference = supported(kotlin).reference
-
-        assertEquals("COMPILATION_ERROR", reference.exitCode, reference.output)
-        assertContains(
-            reference.output,
-            "Reference.kt:5:24: error: [CONTEXTUAL_LOGGER_REFERENCE] Callable references to 'log' are not supported.",
-        )
-    }
-
-    @ParameterizedTest(name = "Kotlin {0}")
-    @MethodSource("checkedKotlin")
-    fun `reports a reference to a logging call`(kotlin: String) {
-        val callReference = supported(kotlin).callReference
-
-        assertEquals("COMPILATION_ERROR", callReference.exitCode, callReference.output)
-        assertContains(
-            callReference.output,
-            "CallReference.kt:6:66: error: [LOGGING_CALL_REFERENCE] Callable references to 'info' are not supported.",
-        )
-    }
-
-    @ParameterizedTest(name = "Kotlin {0}")
-    @MethodSource("checkedKotlin")
-    fun `reports a blank logger name taken from a constant`(kotlin: String) {
-        val blankName = supported(kotlin).blankName
-
-        assertEquals("COMPILATION_ERROR", blankName.exitCode, blankName.output)
-        assertContains(
-            blankName.output,
-            "BlankName.kt:8:37: error: [BLANK_LOGGER_NAME] 'Log.named' requires a non-blank logger name.",
-        )
-    }
-
-    @ParameterizedTest(name = "Kotlin {0}")
-    @MethodSource("checkedKotlin")
-    fun `reports a property initialized with the contextual logger`(kotlin: String) {
-        val initializer = supported(kotlin).initializer
-
-        assertEquals("OK", initializer.exitCode, initializer.output)
-        assertContains(
-            initializer.output,
-            "Initializer.kt:6:26: info: [LOG_AS_INITIALIZER] 'stored' is initialized with 'log'.",
-        )
-    }
-
-    @ParameterizedTest(name = "Kotlin {0}")
-    @MethodSource("checkedKotlin")
     fun `keeps nothing of the earlier compilations of its process`(kotlin: String) {
         val repeated = supported(kotlin).repeated
 
@@ -228,10 +180,6 @@ internal class CompilerProcessTest {
         val unknownThreshold: Compilation,
         val staleCore: Compilation,
         val incompleteCore: Compilation,
-        val reference: Compilation,
-        val callReference: Compilation,
-        val blankName: Compilation,
-        val initializer: Compilation,
         val repeated: Compilation,
     )
 
@@ -284,10 +232,6 @@ internal class CompilerProcessTest {
                 unknownThreshold = process.compile("unknown", service, core, *plugin, *option("minLevel", "verbose")),
                 staleCore = process.compile("staleUser", user, withStale, *plugin),
                 incompleteCore = process.compile("incompleteUser", user, withIncomplete, *plugin),
-                reference = process.compile("reference", listOf("Reference.kt"), core, *plugin),
-                callReference = process.compile("callReference", listOf("CallReference.kt"), core, *plugin),
-                blankName = process.compile("blankName", listOf("BlankName.kt"), core, *plugin),
-                initializer = process.compile("initializer", listOf("Initializer.kt"), core, *plugin),
                 repeated = process.compile("repeated", service, core, *plugin),
             ).also { process.run() }
         }

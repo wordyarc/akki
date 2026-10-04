@@ -25,7 +25,7 @@ internal class BoxFixtureTest {
         val compilation = compiled(kotlin).getValue(run.compilation)
 
         assertEquals("OK", compilation.exitCode, compilation.output)
-        val output = compilation.run(BOX_MAIN_CLASS, runtime(run.fixture), "-D$LOGGER_NAME_STYLE=${run.style}")
+        val output = compilation.run(BOX_MAIN_CLASS, run.fixture.runtime, "-D$LOGGER_NAME_STYLE=${run.style}")
         assertContains(output.lines(), "BOX OK", output)
     }
 
@@ -38,29 +38,21 @@ internal class BoxFixtureTest {
 
         private const val BOX_MAIN_CLASS: String = "BoxMainKt"
 
-
-        private val fixtureClasspath: List<Path> = classpath("akki.fixture.classpath")
-
-        private val libraries: List<Path> = classpath("akki.fixture.libraries")
-
         private val compiled = ConcurrentHashMap<String, Map<String, Compilation>>()
 
         @JvmStatic
         fun boxRuns(): List<Arguments> =
             checkedKotlin.flatMap { kotlin -> io.akki.compiler.jar.boxRuns.map { Arguments.of(kotlin, it) } }
 
-        private fun boxMain(fixture: BoxFixture): Pair<String, String> =
+        private fun boxMain(fixture: Fixture): Pair<String, String> =
             "BoxMain.kt" to "fun main() {\n    println(\"BOX \" + ${fixture.box}())\n}\n"
-
-        private fun runtime(fixture: BoxFixture): List<Path> =
-            if (fixture.withoutAkki) libraries else (fixtureClasspath + libraries).distinct()
 
         private fun compiled(kotlin: String): Map<String, Compilation> = compiled.computeIfAbsent(kotlin) {
             val process = CompilerProcess(kotlin, workspace.resolve(kotlin))
             io.akki.compiler.jar.boxRuns.distinctBy(BoxRun::compilation).associate { run ->
-                val options = plugin + run.minLevel?.let { option("minLevel", it) }.orEmpty()
+                val options = run.fixture.compilerOptions(run.minLevel)
                 val sources = run.fixture.sources + boxMain(run.fixture)
-                run.compilation to process.compile(run.compilation, sources, runtime(run.fixture), *options)
+                run.compilation to process.compile(run.compilation, sources, run.fixture.runtime, *options)
             }.also { process.run() }
         }
     }
