@@ -2,7 +2,6 @@ import akki.buildlogic.COMPILER_COMPAT_PROJECT
 import akki.buildlogic.GenerateCompilerCompatProvider
 import akki.buildlogic.compileAgainstCompilerApi
 import akki.buildlogic.compilerAdapter
-import akki.buildlogic.previousCompilerAdapter
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -17,7 +16,6 @@ compileAgainstCompilerApi(adapter.minVersion)
 
 dependencies {
     api(project(COMPILER_COMPAT_PROJECT))
-    previousCompilerAdapter?.let { implementation(project(it.projectPath)) }
 }
 
 val generateCompilerCompatProvider = tasks.register<GenerateCompilerCompatProvider>("generateCompilerCompatProvider") {

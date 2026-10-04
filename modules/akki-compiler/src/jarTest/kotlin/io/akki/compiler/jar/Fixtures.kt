@@ -1,6 +1,7 @@
 package io.akki.compiler.jar
 
 import java.nio.file.Path
+import kotlin.io.path.exists
 import kotlin.io.path.readText
 
 private val testData: Path = classpath("akki.test.data").single()
@@ -56,6 +57,9 @@ internal class Fixture(val path: String, private val lines: List<String>) {
         get() = files() + helpers.filterKeys(directives::containsKey).values.associateWith { helper ->
             testData.resolve("helpers/$helper").readText()
         }
+
+    fun expectedOutput(extension: String): String? = testData.resolve("${path.removeSuffix(".kt")}.$extension")
+        .takeIf { it.exists() }?.readText()
 
     private fun files(): Map<String, String> {
         val starts = directiveLines.filterValues { (name, _) -> name == "FILE" }.keys.sorted()

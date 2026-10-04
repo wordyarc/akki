@@ -90,9 +90,6 @@ val Project.compilerAdapters: List<CompilerAdapter>
 val Project.compilerAdapter: CompilerAdapter
     get() = compilerAdapters.firstOrNull { it.projectPath == path } ?: invalid("project $path has no adapter")
 
-val Project.previousCompilerAdapter: CompilerAdapter?
-    get() = compilerAdapters.zipWithNext().firstOrNull { (_, next) -> next.projectPath == path }?.first
-
 val Project.compilerApiBaseline: String
     get() = kotlinVersion(compilerAdapters.first().minVersion).run { "$major.$minor.$patch" }
 

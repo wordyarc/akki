@@ -71,15 +71,37 @@ internal class CompilerAbi(private val plugin: Map<String, ClassShape>, host: Li
     private fun ClassShape.unimplemented(): List<String> {
         if (isInterface || isAbstract) return emptyList()
         val ancestry = ancestry()
-        val lineage = lineage().toSet()
-        val implemented = ancestry.filter { it in lineage || it.isInterface }
-            .flatMap { shape -> shape.members.filterValues { it and notImplementing == 0 }.keys }
-            .toSet()
+        val lineage = lineage()
+        val interfaces = ancestry.filter(ClassShape::isInterface)
+        val implemented = HashMap<String, Boolean>()
         return ancestry.flatMap { shape ->
             shape.members.filterValues { it and Opcodes.ACC_ABSTRACT != 0 }.keys
-                .filterNot(implemented::contains)
+                .filterNot { signature ->
+                    implemented.getOrPut(signature) { hasImplementation(signature, lineage, interfaces) }
+                }
                 .map { "${shape.name}.$it is not implemented" }
         }
+    }
+
+    private fun ClassShape.hasImplementation(
+        signature: String,
+        lineage: List<ClassShape>,
+        interfaces: List<ClassShape>,
+    ): Boolean {
+        val classMethod = lineage.firstNotNullOfOrNull { shape ->
+            shape.members[signature]?.takeIf { access ->
+                access and notInherited == 0 && (access and visible != 0 || shape.packageName == packageName)
+            }
+        }
+        if (classMethod != null) return classMethod and Opcodes.ACC_ABSTRACT == 0
+
+        val declaring = interfaces.filter { shape ->
+            shape.members[signature]?.let { it and notInherited == 0 } == true
+        }
+        val mostSpecific = declaring.filter { candidate ->
+            declaring.none { it !== candidate && candidate in it.ancestry() }
+        }
+        return mostSpecific.count { it.members.getValue(signature) and Opcodes.ACC_ABSTRACT == 0 } == 1
     }
 
     private fun ClassShape.lineage(): List<ClassShape> = generateSequence(this) { it.superName?.let(::find) }.toList()
@@ -115,8 +137,6 @@ internal class CompilerAbi(private val plugin: Map<String, ClassShape>, host: Li
 
     private companion object {
         const val visible: Int = Opcodes.ACC_PUBLIC or Opcodes.ACC_PROTECTED or Opcodes.ACC_PRIVATE
-
-        const val notImplementing: Int = Opcodes.ACC_ABSTRACT or Opcodes.ACC_STATIC or Opcodes.ACC_PRIVATE
 
         const val notInherited: Int = Opcodes.ACC_STATIC or Opcodes.ACC_PRIVATE
 

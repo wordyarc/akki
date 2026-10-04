@@ -25,11 +25,7 @@ internal val operations: Set<String> =
 
 internal fun implementation(adapter: Adapter): ClassShape = pluginShapes.getValue(adapter.implementation.internalName)
 
-internal fun chain(adapter: Adapter): List<Adapter> {
-    val previous = adapters.getOrNull(adapters.indexOf(adapter) - 1)
-    val delegates = implementation(adapter).delegates
-    return listOf(adapter) + if (delegates && previous != null) chain(previous) else emptyList()
-}
+internal fun chain(adapter: Adapter): List<Adapter> = adapterChain(adapter, adapters, pluginShapes)
 
 internal fun pluginWith(adapter: Adapter): Set<String> {
     val unused = adapters - chain(adapter).toSet()

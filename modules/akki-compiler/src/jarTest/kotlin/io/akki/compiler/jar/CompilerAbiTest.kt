@@ -4,7 +4,6 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
@@ -61,26 +60,22 @@ internal class CompilerAbiTest {
     }
 
     @Test
-    fun `creates the delegate of every adapter but the oldest with the factory of the previous adapter`() {
-        assertFalse(implementation(adapters.first()).delegates)
-        for ((previous, adapter) in adapters.zipWithNext()) {
-            val constructor = implementation(adapter).methodReferences.getValue("<init>()V")
-            val factory = MemberReference(previous.factory.internalName, "<init>", "()V", false, false, false)
-
-            assertContains(constructor, factory, adapter.toString())
-        }
-    }
-
-    @Test
-    fun `overrides in every adapter after the oldest exactly the operations that changed at its minimum`() {
+    fun `implements every operation that changed since the delegate or all operations without a delegate`() {
         val changes = compatApiChanges(pluginClasses.getValue(CONTRACT))
 
         assertEquals(operations, changes.keys)
-        for (adapter in adapters.drop(1)) {
+        for (adapter in adapters) {
+            val delegate = chain(adapter).getOrNull(1)
             val overridden = operations.filterNot(implementation(adapter)::forwards).toSet()
-            val changed = operations.filterTo(mutableSetOf()) { adapter.minVersion in changes.getValue(it) }
+            val required = if (delegate == null) {
+                operations
+            } else {
+                val minimums = adapters.subList(adapters.indexOf(delegate) + 1, adapters.indexOf(adapter) + 1)
+                    .mapTo(mutableSetOf()) { it.minVersion }
+                operations.filterTo(mutableSetOf()) { operation -> changes.getValue(operation).any(minimums::contains) }
+            }
 
-            assertEquals(changed, overridden, adapter.toString())
+            assertTrue(overridden.containsAll(required), "$adapter must implement $required, but implements $overridden")
         }
     }
 

@@ -1,5 +1,7 @@
 package io.akki.compiler.jar
 
+import java.lang.reflect.InvocationTargetException
+import java.net.URLClassLoader
 import java.nio.file.Path
 import java.util.jar.JarEntry
 import java.util.jar.JarOutputStream
@@ -7,7 +9,9 @@ import kotlin.io.path.outputStream
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import org.objectweb.asm.AnnotationVisitor
@@ -24,6 +28,7 @@ import org.objectweb.asm.Opcodes.ALOAD
 import org.objectweb.asm.Opcodes.GETFIELD
 import org.objectweb.asm.Opcodes.GETSTATIC
 import org.objectweb.asm.Opcodes.INVOKEINTERFACE
+import org.objectweb.asm.Opcodes.INVOKESPECIAL
 import org.objectweb.asm.Opcodes.INVOKESTATIC
 import org.objectweb.asm.Opcodes.INVOKEVIRTUAL
 import org.objectweb.asm.Opcodes.NEW
@@ -145,6 +150,107 @@ internal class CompilerAbiRulesTest {
     }
 
     @Test
+    fun `reports a concrete method redeclared abstract by a nearer superclass before its invocation fails`() {
+        val grandparent = classFile("host/Grandparent") {
+            constructor()
+            method("run", "()V")
+        }
+        val oldHost = grandparent + classFile("host/Parent", ACC_PUBLIC or ACC_ABSTRACT, "host/Grandparent") {
+            constructor("host/Grandparent")
+        }
+        val newHost = grandparent + classFile("host/Parent", ACC_PUBLIC or ACC_ABSTRACT, "host/Grandparent") {
+            constructor("host/Grandparent")
+            method("run", "()V", ACC_PUBLIC or ACC_ABSTRACT)
+        }
+        val plugin = classFile("plugin/Inherited", superName = "host/Parent") {
+            constructor("host/Parent")
+        } + classFile("plugin/Overridden", superName = "host/Parent") {
+            constructor("host/Parent")
+            method("run", "()V")
+        }
+
+        assertEquals(emptyList(), violations(plugin, host = oldHost))
+        invokeRun("plugin.Inherited", plugin, oldHost)
+        assertEquals(
+            listOf("plugin/Inherited: host/Parent.run()V is not implemented"),
+            violations(plugin, host = newHost),
+        )
+        assertEquals(emptyList(), linkageFailures(plugin.keys, listOf(jar("plugin", plugin), jar("host", newHost))))
+        val failure = assertFailsWith<InvocationTargetException> { invokeRun("plugin.Inherited", plugin, newHost) }
+        assertIs<AbstractMethodError>(failure.cause)
+        invokeRun("plugin.Overridden", plugin, newHost)
+    }
+
+    @Test
+    fun `reports a default method redeclared abstract by a more specific interface`() {
+        val api = classFile("host/Api", ACC_PUBLIC or ACC_INTERFACE or ACC_ABSTRACT) {
+            method("run", "()V")
+        }
+        val oldHost = api + classFile(
+            "host/Refined", ACC_PUBLIC or ACC_INTERFACE or ACC_ABSTRACT, interfaces = listOf("host/Api"),
+        )
+        val newHost = api + classFile(
+            "host/Refined", ACC_PUBLIC or ACC_INTERFACE or ACC_ABSTRACT, interfaces = listOf("host/Api"),
+        ) {
+            method("run", "()V", ACC_PUBLIC or ACC_ABSTRACT)
+        }
+        val plugin = classFile("plugin/Inherited", interfaces = listOf("host/Api", "host/Refined")) {
+            constructor()
+        }
+
+        assertEquals(emptyList(), violations(plugin, host = oldHost))
+        invokeRun("plugin.Inherited", plugin, oldHost)
+        assertEquals(
+            listOf("plugin/Inherited: host/Refined.run()V is not implemented"),
+            violations(plugin, host = newHost),
+        )
+        val failure = assertFailsWith<InvocationTargetException> { invokeRun("plugin.Inherited", plugin, newHost) }
+        assertIs<AbstractMethodError>(failure.cause)
+    }
+
+    @Test
+    fun `prefers class declarations to interface defaults`() {
+        val api = classFile("host/Api", ACC_PUBLIC or ACC_INTERFACE or ACC_ABSTRACT) {
+            method("run", "()V")
+        }
+        val host = api + classFile("host/Parent", ACC_PUBLIC or ACC_ABSTRACT) {
+            constructor()
+            method("run", "()V", ACC_PUBLIC or ACC_ABSTRACT)
+        }
+        val plugin = classFile("plugin/Inherited", superName = "host/Parent", interfaces = listOf("host/Api")) {
+            constructor("host/Parent")
+        }
+
+        assertEquals(
+            listOf("plugin/Inherited: host/Parent.run()V is not implemented"),
+            violations(plugin, host = host),
+        )
+        val failure = assertFailsWith<InvocationTargetException> { invokeRun("plugin.Inherited", plugin, host) }
+        assertIs<AbstractMethodError>(failure.cause)
+    }
+
+    @Test
+    fun `accepts the most specific default and a class implementation of an abstract interface method`() {
+        val host = classFile("host/Api", ACC_PUBLIC or ACC_INTERFACE or ACC_ABSTRACT) {
+            method("run", "()V", ACC_PUBLIC or ACC_ABSTRACT)
+        } + classFile("host/Default", ACC_PUBLIC or ACC_INTERFACE or ACC_ABSTRACT, interfaces = listOf("host/Api")) {
+            method("run", "()V")
+        } + classFile("host/Parent") {
+            constructor()
+            method("run", "()V")
+        }
+        val plugin = classFile("plugin/Default", interfaces = listOf("host/Api", "host/Default")) {
+            constructor()
+        } + classFile("plugin/Inherited", superName = "host/Parent", interfaces = listOf("host/Api")) {
+            constructor("host/Parent")
+        }
+
+        assertEquals(emptyList(), violations(plugin, host = host))
+        invokeRun("plugin.Default", plugin, host)
+        invokeRun("plugin.Inherited", plugin, host)
+    }
+
+    @Test
     fun `reports protected members outside subclasses and package-private classes of another package`() {
         val plugin = classFile("plugin/Outsider") {
             method("use", "()V") {
@@ -229,7 +335,6 @@ internal class CompilerAbiRulesTest {
                 }
             }
 
-            assertTrue(adapter.delegates, field)
             assertTrue(adapter.forwards("forwarded()V"), field)
             assertTrue(adapter.callsDelegate("fallback()V") && !adapter.forwards("fallback()V"), field)
             assertFalse(adapter.callsDelegate("overridden()V") || adapter.forwards("overridden()V"), field)
@@ -291,9 +396,18 @@ internal class CompilerAbiRulesTest {
     private fun violations(
         plugin: Map<String, ByteArray>,
         skipped: Map<String, Set<String>> = emptyMap(),
+        host: Map<String, ByteArray> = hostClasses(),
     ): List<String> {
         val shapes = plugin.mapValues { (_, bytes) -> ClassShape.read(bytes, withReferences = true) }
-        return CompilerAbi(shapes, listOf(jar("host", hostClasses()))).use { it.violations(skipped = skipped) }
+        return CompilerAbi(shapes, listOf(jar("host", host))).use { it.violations(skipped = skipped) }
+    }
+
+    private fun invokeRun(name: String, plugin: Map<String, ByteArray>, host: Map<String, ByteArray>) {
+        val classpath = listOf(jar("plugin", plugin), jar("host", host)).map { it.toUri().toURL() }.toTypedArray()
+        URLClassLoader(classpath, ClassLoader.getPlatformClassLoader()).use { loader ->
+            val type = loader.loadClass(name)
+            type.getMethod("run").invoke(type.getConstructor().newInstance())
+        }
     }
 
     private fun jar(name: String, classes: Map<String, ByteArray>): Path {
@@ -368,6 +482,12 @@ internal class CompilerAbiRulesTest {
             method.visitMaxs(0, 0)
         }
         method.visitEnd()
+    }
+
+    private fun ClassWriter.constructor(superName: String = "java/lang/Object") {
+        method("<init>", "()V") {
+            call(INVOKESPECIAL, superName, "<init>", "()V")
+        }
     }
 
     private fun MethodVisitor.call(

@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import org.junit.jupiter.api.io.CleanupMode
 import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
@@ -22,17 +23,21 @@ internal class DiagnosticFixtureTest {
 
     @Test
     fun `finds the diagnostics that the plugin declares in its jar`() {
-        val declared = setOf(
-            "AKKI_CANNOT_START",
-            "BLANK_LOGGER_NAME",
-            "CONTEXTUAL_LOGGER_REFERENCE",
-            "INCOMPATIBLE_AKKI_CORE",
-            "LOG_AS_INITIALIZER",
-            "LOGGING_CALL_REFERENCE",
-            "LOGGING_CALL_REMOVED",
-        )
+        assertEquals(pluginDiagnosticSeverities.keys, pluginDiagnostics)
+    }
 
-        assertEquals(declared, pluginDiagnostics)
+    @Test
+    fun `rejects an unexpected compiler error alongside the expected plugin errors`() {
+        val fixture = portable.single { it.path == "diagnostics/blankName.kt" }
+        val process = CompilerProcess(latestTestedKotlin, workspace.resolve("unexpected-error"))
+        val sources = fixture.unmarkedSources + ("Unexpected.kt" to "fun unexpected() = missingDeclaration()")
+        val compilation = process.compile("blankName", sources, fixture.runtime, *fixture.compilerOptions())
+
+        process.run()
+
+        assertContains(compilation.output, "[UNRESOLVED_REFERENCE]")
+        assertContains(compilation.output, "[BLANK_LOGGER_NAME]")
+        assertFailsWith<AssertionError> { fixture.assertDiagnostics(compilation.exitCode, compilation.output) }
     }
 
     @ParameterizedTest(name = "Kotlin {0}: {1}")
@@ -43,8 +48,7 @@ internal class DiagnosticFixtureTest {
     ) {
         val compilation = compiled(kotlin).getValue(fixture.path)
 
-        assertContains(listOf("OK", "COMPILATION_ERROR"), compilation.exitCode, compilation.output)
-        assertEquals(fixture.markedDiagnostics, fixture.reportedDiagnostics(compilation.output), compilation.output)
+        fixture.assertDiagnostics(compilation.exitCode, compilation.output)
     }
 
     companion object {
