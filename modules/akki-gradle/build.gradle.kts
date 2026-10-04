@@ -56,6 +56,7 @@ val writeAkkiGradleProperties = tasks.register<WriteProperties>("writeAkkiGradle
     destinationFile = layout.buildDirectory.file("generated/akki-gradle.properties")
     property("group", mavenGroup)
     property("version", project.version.toString())
+    property("artifacts", BOM_ARTIFACTS.joinToString(","))
 }
 
 tasks.processResources {

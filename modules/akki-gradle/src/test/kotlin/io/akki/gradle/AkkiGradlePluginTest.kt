@@ -432,17 +432,70 @@ class AkkiGradlePluginTest {
 
     @Test
     fun `locks core version against a newer direct dependency`(@TempDir projectDirectory: Path) {
-        checkCoreVersionLock(projectDirectory, transitive = false)
+        checkVersionLock(projectDirectory, transitive = false)
     }
 
     @Test
     fun `locks core version against a newer transitive dependency`(@TempDir projectDirectory: Path) {
-        checkCoreVersionLock(projectDirectory, transitive = true)
+        checkVersionLock(projectDirectory, transitive = true)
     }
 
     @Test
     fun `locks the jvm artifact of core against a newer transitive dependency`(@TempDir projectDirectory: Path) {
-        checkCoreVersionLock(projectDirectory, transitive = true, artifact = "akki-core-jvm")
+        checkVersionLock(projectDirectory, transitive = true, artifact = "akki-core-jvm")
+    }
+
+    @Test
+    fun `locks a test module version against a newer direct dependency`(@TempDir projectDirectory: Path) {
+        checkVersionLock(projectDirectory, transitive = false, artifact = "akki-test-coroutines")
+    }
+
+    @Test
+    fun `raises an older akki module to the plugin version`(@TempDir projectDirectory: Path) {
+        val repository = publishRepository(projectDirectory)
+        val olderVersion = "0.0.1"
+        publish(repository, GROUP, "akki-coroutines", null, version = olderVersion)
+        publish(
+            repository,
+            GROUP,
+            "akki-test-coroutines",
+            null,
+            dependencies = listOf(Triple(GROUP, "akki-coroutines", olderVersion)),
+            version = olderVersion,
+        )
+
+        val output = resolveAkkiModules(
+            projectDirectory,
+            configuration = "testRuntimeClasspath",
+            dependency = """testImplementation("$GROUP:akki-test-coroutines:$olderVersion")""",
+        )
+
+        listOf("akki-core", "akki-test", "akki-coroutines", "akki-test-coroutines").forEach {
+            assertContains(output, "AKKI $it=$VERSION\n")
+            assertContains(output, "AKKI $it-jvm=$VERSION\n")
+        }
+    }
+
+    @Test
+    fun `lowers every akki module that a dependency brings at a newer version`(@TempDir projectDirectory: Path) {
+        val repository = publishRepository(projectDirectory)
+        val newerVersion = "999.0.0"
+        BOM_ARTIFACTS.forEach { publish(repository, GROUP, it, null, version = newerVersion) }
+        publish(
+            repository,
+            "consumer",
+            "library",
+            null,
+            dependencies = BOM_ARTIFACTS.map { Triple(GROUP, it, newerVersion) },
+        )
+
+        val output = resolveAkkiModules(
+            projectDirectory,
+            configuration = "runtimeClasspath",
+            dependency = """implementation("consumer:library:$VERSION")""",
+        )
+
+        BOM_ARTIFACTS.forEach { assertContains(output, "AKKI $it=$VERSION\n") }
     }
 
     @Test
@@ -555,7 +608,7 @@ class AkkiGradlePluginTest {
         assertContains(output, "AKKI runtimeClasspath slf4j=$VERSION\n")
     }
 
-    private fun checkCoreVersionLock(projectDirectory: Path, transitive: Boolean, artifact: String = "akki-core") {
+    private fun checkVersionLock(projectDirectory: Path, transitive: Boolean, artifact: String = "akki-core") {
         val repository = publishRepository(projectDirectory)
         val newerVersion = "999.0.0"
         publish(repository, GROUP, artifact, path("akki.core.jar"), version = newerVersion)
@@ -601,6 +654,32 @@ class AkkiGradlePluginTest {
             assertContains(output, "$GROUP:$artifact:$newerVersion")
             assertContains(output, "Akki modules require the same version as the compiler plugin")
         }
+    }
+
+    private fun resolveAkkiModules(projectDirectory: Path, configuration: String, dependency: String): String {
+        projectDirectory.resolve("settings.gradle.kts").writeText(settings())
+        projectDirectory.resolve("build.gradle.kts").writeText(
+            buildScript(consumer = Consumer.Bare) + "\n" +
+                """
+                dependencies {
+                    $dependency
+                }
+
+                tasks.register("resolveAkki") {
+                    doLast {
+                        configurations.getByName("$configuration").incoming.resolutionResult.allComponents
+                            .mapNotNull { it.moduleVersion }
+                            .filter { it.group == "$GROUP" }
+                            .forEach { println("AKKI " + it.name + "=" + it.version) }
+                    }
+                }
+                """.trimIndent()
+        )
+        return GradleRunner.create()
+            .withProjectDir(projectDirectory.toFile())
+            .withArguments("resolveAkki", "--console=plain")
+            .build()
+            .output
     }
 
     private fun build(projectDirectory: Path, consumer: Consumer = Consumer.Core, extra: String = ""): String {

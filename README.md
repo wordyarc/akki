@@ -29,7 +29,8 @@ caller line. An optional compile-time threshold removes calls below the selected
   * `LogBackend` connects a backend; `LogScope` selects one for the current thread.
 * `akki-slf4j`: backend for SLF4J 2, enabled when an SLF4J 2 provider is available at runtime.
 * `akki-compiler`: Kotlin compiler plugin, one artifact for every supported Kotlin release.
-* `akki-gradle`: sets up the compiler plugin with `akki-core` and `akki-slf4j` of the same version.
+* `akki-gradle`: sets up the compiler plugin with `akki-core` and `akki-slf4j` and keeps every akki module at the
+  plugin version.
 * `akki-test`: captures test logs with `recordLogs { }` or `RecordingBackend`.
 * `akki-coroutines`: carries a `LogScope` in a coroutine context via `LogScope.asContextElement()`.
 * `akki-test-coroutines`: provides suspending `recordLogs { }` for coroutine tests.
@@ -66,8 +67,8 @@ dependencies {
 }
 ```
 
-With `akki-bom` as a platform, akki modules are declared without a version. Keep the BOM at the version of the
-plugin; in a Kotlin Multiplatform source set, write `project.dependencies.platform(...)`:
+With `akki-bom` as a platform, akki modules are declared without a version; in a Kotlin Multiplatform source set,
+write `project.dependencies.platform(...)`:
 
 ```kotlin
 dependencies {
@@ -76,6 +77,10 @@ dependencies {
     testImplementation("io.github.wordyarc:akki-test-coroutines")
 }
 ```
+
+In the compilations it applies to, the plugin resolves every akki module at its own version: a module declared at
+an older version is raised, a newer one that a dependency brings is lowered, and a newer one declared directly
+fails the build. This pin is not published, so a library still declares akki modules at the version of its plugin.
 
 ### Maven
 

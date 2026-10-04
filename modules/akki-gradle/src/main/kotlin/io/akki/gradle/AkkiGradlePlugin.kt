@@ -15,13 +15,12 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
     override fun apply(target: Project) {
         val extension = target.extensions.create(EXTENSION_NAME, AkkiExtension::class.java)
         val versions = target.configurations.create(VERSIONS_CONFIGURATION_NAME) {
-            it.description =
-                "Pins $core and $slf4j to the compiler plugin version in compilations using the plugin"
+            it.description = "Pins every akki module to the compiler plugin version in compilations using the plugin"
             it.isCanBeConsumed = false
             it.isCanBeResolved = false
         }
-        listOf(core, "$core-jvm", slf4j).forEach { module ->
-            target.dependencies.constraints.add(versions.name, module) { constraint ->
+        artifacts.forEach { artifact ->
+            target.dependencies.constraints.add(versions.name, "$group:$artifact") { constraint ->
                 constraint.version { it.strictly(pluginVersion) }
                 constraint.because("Akki modules require the same version as the compiler plugin")
             }
@@ -86,6 +85,8 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
         val core: String by lazy { "$group:akki-core" }
 
         val slf4j: String by lazy { "$group:akki-slf4j" }
+
+        val artifacts: List<String> by lazy { property("artifacts").split(',') }
 
         val pluginVersion: String by lazy { property("version") }
 
