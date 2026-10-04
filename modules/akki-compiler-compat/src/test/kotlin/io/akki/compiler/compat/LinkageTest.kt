@@ -4,6 +4,8 @@ import kotlin.test.Test
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 internal class LinkageTest {
@@ -52,6 +54,23 @@ internal class LinkageTest {
         val failures = listOf(IllegalStateException("plugin bug"), ClassCastException("FirSession"), StackOverflowError())
 
         for (failure in failures) assertFalse(failure.breaksLinkage, failure.toString())
+    }
+
+    @Test
+    fun `finds the broken linkage under the failures that wrap it`() {
+        val missing = NoSuchMethodError("compiler API is missing")
+
+        assertSame(missing, missing.linkageBreak)
+        assertSame(missing, IllegalStateException("lowering failed", RuntimeException(missing)).linkageBreak)
+    }
+
+    @Test
+    fun `finds no broken linkage in a failure without one`() {
+        val failed = ExceptionInInitializerError(IllegalStateException("plugin bug"))
+        val uninitialized = NoClassDefFoundError("Could not initialize class Checker").apply { initCause(failed) }
+        val failures = listOf(IllegalStateException("plugin bug"), failed, uninitialized)
+
+        for (failure in failures) assertNull(RuntimeException(failure).linkageBreak, failure.toString())
     }
 
     private object UnlinkedInitializer {

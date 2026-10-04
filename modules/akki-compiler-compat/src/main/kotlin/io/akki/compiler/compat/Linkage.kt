@@ -6,3 +6,6 @@ public val Throwable.breaksLinkage: Boolean
         is NoClassDefFoundError -> cause !is ExceptionInInitializerError
         else -> this is LinkageError
     }
+
+public val Throwable.linkageBreak: Throwable?
+    get() = generateSequence(this, Throwable::cause).firstOrNull(Throwable::breaksLinkage)

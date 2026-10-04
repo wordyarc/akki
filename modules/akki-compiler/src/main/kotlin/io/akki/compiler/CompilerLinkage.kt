@@ -1,7 +1,7 @@
 package io.akki.compiler
 
 import io.akki.compiler.compat.CompatLoadException
-import io.akki.compiler.compat.breaksLinkage
+import io.akki.compiler.compat.linkageBreak
 import org.jetbrains.kotlin.config.KotlinCompilerVersion
 
 internal const val PLUGIN: String = "akki: compiler plugin $AKKI_VERSION"
@@ -17,7 +17,7 @@ internal fun causeLines(cause: Throwable?): String =
 
 internal inline fun <T> linked(block: () -> T): T = try {
     block()
-} catch (failure: LinkageError) {
-    if (!failure.breaksLinkage) throw failure
-    throw CompatLoadException("$PLUGIN failed. ${unlinkedCompiler()}", failure)
+} catch (failure: Throwable) {
+    val broken = failure.linkageBreak ?: throw failure
+    throw CompatLoadException("$PLUGIN failed. ${unlinkedCompiler()}", broken)
 }

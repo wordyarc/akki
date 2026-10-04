@@ -6,6 +6,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
+import org.jetbrains.kotlin.backend.common.CompilationException
 import org.jetbrains.kotlin.config.KotlinCompilerVersion
 
 internal class CompilerLinkageTest {
@@ -25,11 +26,24 @@ internal class CompilerLinkageTest {
     }
 
     @Test
+    fun `names the running compiler when the compiler wraps the failure of a lowering that does not link`() {
+        val missing = NoSuchMethodError("org.jetbrains.kotlin.ir.IrDiagnosticReporter at(IrElement, IrFile)")
+        val wrapped = CompilationException("Internal error in file lowering", null, null, missing)
+
+        val failure = assertFailsWith<CompatLoadException> { linked { throw wrapped } }
+
+        assertContains(failure.message.orEmpty(), "Kotlin ${KotlinCompilerVersion.getVersion()} is not supported")
+        assertSame(missing, failure.cause)
+    }
+
+    @Test
     fun `passes results and other failures through`() {
         val bug = IllegalStateException("plugin bug")
+        val wrapped = CompilationException("Internal error in file lowering", null, null, bug)
 
         assertEquals("OK", linked { "OK" })
         assertSame(bug, assertFailsWith<IllegalStateException> { linked { throw bug } })
+        assertSame(wrapped, assertFailsWith<CompilationException> { linked { throw wrapped } })
     }
 
     @Test
