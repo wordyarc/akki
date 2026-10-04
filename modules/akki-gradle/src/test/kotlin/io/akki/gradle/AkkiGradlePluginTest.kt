@@ -234,72 +234,6 @@ class AkkiGradlePluginTest {
     }
 
     @Test
-    fun `updates generated logger fields incrementally with the configuration cache`(@TempDir projectDirectory: Path) {
-        prepareConsumer(projectDirectory, Consumer.Incremental)
-        val service = projectDirectory.resolve("src/main/kotlin/consumer/ChangingService.kt")
-        val original = fixture("consumer/ChangingService.kt")
-        service.writeText(original)
-
-        val first = runConsumer(projectDirectory)
-        assertEquals(TaskOutcome.SUCCESS, first.task(":compileKotlin")?.outcome, first.output)
-        assertContains(first.output, "AKKI owner=before audit=audit.before retained=consumer.Unchanged")
-        val unchanged = projectDirectory.resolve("build/classes/kotlin/main/consumer/Unchanged.class")
-        val written = Files.getLastModifiedTime(unchanged)
-
-        val repeated = runConsumer(projectDirectory)
-        assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":compileKotlin")?.outcome, repeated.output)
-        assertContains(repeated.output, "Reusing configuration cache.")
-        assertContains(repeated.output, "AKKI owner=before audit=audit.before retained=consumer.Unchanged")
-
-        service.writeText(original.replace("\"before\"", "log.name").replace("audit.before", "audit.after"))
-        val added = runConsumer(projectDirectory)
-        assertEquals(TaskOutcome.SUCCESS, added.task(":compileKotlin")?.outcome, added.output)
-        assertContains(added.output, "Reusing configuration cache.")
-        assertContains(added.output, "AKKI owner=consumer.ChangingService audit=audit.after retained=consumer.Unchanged")
-        assertEquals(written, Files.getLastModifiedTime(unchanged), "an unchanged source was recompiled")
-
-        service.writeText(original.replace("\"before\"", "\"after\"").replace("audit.before", "audit.final"))
-        val removed = runConsumer(projectDirectory)
-        assertEquals(TaskOutcome.SUCCESS, removed.task(":compileKotlin")?.outcome, removed.output)
-        assertContains(removed.output, "AKKI owner=after audit=audit.final retained=consumer.Unchanged")
-        assertEquals(written, Files.getLastModifiedTime(unchanged), "an unchanged source was recompiled")
-    }
-
-    @Test
-    fun `recompiles when minLevel changes and reuses unchanged compilations`(@TempDir projectDirectory: Path) {
-        prepareConsumer(
-            projectDirectory,
-            Consumer.Clipped,
-            extra = """
-                akki {
-                    compilerOptions {
-                        minLevel.set(providers.gradleProperty("testMinLevel").map { io.akki.gradle.MinLevel.valueOf(it) })
-                    }
-                }
-            """.trimIndent(),
-        )
-
-        val full = runConsumer(projectDirectory, "-PtestMinLevel=TRACE")
-        assertEquals(TaskOutcome.SUCCESS, full.task(":compileKotlin")?.outcome, full.output)
-        assertContains(full.output, "AKKI records=debug A-1,info A-1")
-
-        val clipped = runConsumer(projectDirectory, "-PtestMinLevel=INFO")
-        assertEquals(TaskOutcome.SUCCESS, clipped.task(":compileKotlin")?.outcome, clipped.output)
-        assertContains(clipped.output, "akki: minLevel=info")
-        assertContains(clipped.output, "AKKI records=info A-1")
-
-        val repeated = runConsumer(projectDirectory, "-PtestMinLevel=INFO")
-        assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":compileKotlin")?.outcome, repeated.output)
-        assertContains(repeated.output, "Reusing configuration cache.")
-        assertContains(repeated.output, "AKKI records=info A-1")
-
-        val restored = runConsumer(projectDirectory, "-PtestMinLevel=TRACE")
-        assertEquals(TaskOutcome.SUCCESS, restored.task(":compileKotlin")?.outcome, restored.output)
-        assertContains(restored.output, "AKKI records=debug A-1,info A-1")
-        assertFalse(restored.output.contains("akki: minLevel"), restored.output)
-    }
-
-    @Test
     fun `adds the same compiler plugin artifact for every Kotlin release`(@TempDir projectDirectory: Path) {
         prepareConsumer(projectDirectory, Consumer.Bare)
 
@@ -313,7 +247,7 @@ class AkkiGradlePluginTest {
     }
 
     @ParameterizedTest(name = "Kotlin {0}")
-    @MethodSource("testedKotlinVersions")
+    @MethodSource("io.akki.gradle.KotlinVersions#tested")
     fun `compiles and runs on every tested Kotlin release`(kotlinVersion: String, @TempDir projectDirectory: Path) {
         prepareConsumer(
             projectDirectory,
@@ -334,7 +268,7 @@ class AkkiGradlePluginTest {
     }
 
     @ParameterizedTest(name = "Kotlin {0}")
-    @MethodSource("rejectedKotlinVersions")
+    @MethodSource("io.akki.gradle.KotlinVersions#rejected")
     fun `fails the compilation on a Kotlin release older than every adapter`(
         kotlinVersion: String,
         @TempDir projectDirectory: Path,
@@ -721,15 +655,7 @@ class AkkiGradlePluginTest {
         consumerRunner(projectDirectory, *arguments).build()
 
     private fun consumerRunner(projectDirectory: Path, vararg arguments: String): GradleRunner =
-        GradleRunner.create()
-            .withProjectDir(projectDirectory.toFile())
-            .withArguments("run", "--stacktrace", "--configuration-cache", "--no-build-cache", "--console=plain", *arguments)
-
-    private fun publishRepository(projectDirectory: Path): Path {
-        val repository = projectDirectory.resolve(REPOSITORY)
-        path("akki.test.repository").toFile().copyRecursively(repository.toFile())
-        return repository
-    }
+        gradleRunner(projectDirectory, "run", *arguments)
 
     private fun publish(
         repository: Path,
@@ -813,7 +739,7 @@ class AkkiGradlePluginTest {
 
     private fun dependencies(consumer: Consumer): String = when (consumer) {
         Consumer.Bare, Consumer.Compatibility -> emptyList()
-        Consumer.Core, Consumer.Clipped, Consumer.Incremental ->
+        Consumer.Core, Consumer.Clipped ->
             listOf("""implementation("$GROUP:akki-core:$VERSION")""")
         Consumer.Bootstrap -> listOf(
             """implementation("$GROUP:akki-core:$VERSION")""",
@@ -838,10 +764,6 @@ class AkkiGradlePluginTest {
     private fun lineOf(consumer: Consumer, marker: String): Int =
         fixture("consumer/${consumer.source}").lines().indexOfFirst { it.contains(marker) } + 1
 
-    private fun path(name: String): Path = Path.of(property(name))
-
-    private fun property(name: String): String = requireNotNull(System.getProperty(name)) { "missing -D$name" }
-
     private fun fixture(name: String): String =
         requireNotNull(javaClass.getResource("/$name")) { "no fixture /$name" }.readText()
 
@@ -858,32 +780,16 @@ class AkkiGradlePluginTest {
         SimpleSlf4j("SimpleSlf4jMain.kt", "consumer.SimpleSlf4jMainKt", null),
         Bootstrap("BootstrapMain.kt", "consumer.BootstrapMainKt", null, test = "BootstrapTest.kt"),
         Clipped("ClippedMain.kt", "consumer.ClippedMainKt", null),
-        Incremental("IncrementalMain.kt", "consumer.IncrementalMainKt", null),
         Modular("ModularMain.kt", "consumer.ModularMainKt", "logback.xml", modular = true),
         Compatibility("CompatibilityMain.kt", "consumer.CompatibilityMainKt", null),
         LegacySlf4j("LegacySlf4jMain.kt", "consumer.LegacySlf4jMainKt", null),
     }
 
     private companion object {
-        val GROUP: String = requireNotNull(System.getProperty("akki.maven.group"))
-
-        val PLUGIN_ID: String = requireNotNull(System.getProperty("akki.plugin.id"))
-
-        val VERSION: String = requireNotNull(System.getProperty("akki.version"))
-
         val BOM_ARTIFACTS: List<String> = requireNotNull(System.getProperty("akki.bom.artifacts")).split(',')
-
-        const val REPOSITORY: String = "repository"
 
         const val POM_ONLY: String = "metadataSources { mavenPom(); artifact(); ignoreGradleMetadataRedirection() }"
 
         const val SLF4J_HINT: String = "Add an SLF4J 2 provider to the runtime classpath, for example logback-classic."
-
-        @JvmStatic
-        fun testedKotlinVersions(): List<String> = requireNotNull(System.getProperty("akki.kotlin.tested")).split(',')
-
-        @JvmStatic
-        fun rejectedKotlinVersions(): List<String> =
-            requireNotNull(System.getProperty("akki.kotlin.rejected")).split(',')
     }
 }
