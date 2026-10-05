@@ -80,7 +80,8 @@ dependencies {
 
 In the compilations it applies to, the plugin resolves every akki module at its own version: a module declared at
 an older version is raised, a newer one that a dependency brings is lowered, and a newer one declared directly
-fails the build. This pin is not published, so a library still declares akki modules at the version of its plugin.
+fails the build. This pin is not published. Gradle builds without the plugin still get a single akki version: each
+akki library depends on `akki-bom`, so Gradle resolves all of them at the newest akki version in the graph.
 
 ### Maven
 

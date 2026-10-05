@@ -64,6 +64,15 @@ afterEvaluate {
     mavenPublishing.configure(platform)
     if (pluginManager.hasPlugin("java-test-fixtures")) unpublishTestFixtures()
     if (platform !is JavaPlatform) checkBomArtifacts()
+    when (platform) {
+        is KotlinMultiplatform -> extensions.configure<KotlinMultiplatformExtension> {
+            sourceSets.named("jvmMain") { dependencies { api(project.dependencies.platform(project(":akki-bom"))) } }
+        }
+        is KotlinJvm -> if (!pluginManager.hasPlugin("akki.compiler-api")) {
+            dependencies { "api"(platform(project(":akki-bom"))) }
+        }
+        else -> Unit
+    }
 }
 
 pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {

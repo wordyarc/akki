@@ -180,6 +180,22 @@ class JvmBackendDiscoveryTest {
     }
 
     @Test
+    fun `a factory that fails to give its hint does not fail the lookup`(@TempDir directory: Path): Unit {
+        directory.declareFactories(HintlessFactory::class.java.name)
+
+        val output = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
+            captureStderr { discover(loader).record("acme.Hintless", "hintless") }
+        }
+
+        assertContains(
+            output,
+            "akki: ignoring a failed backend factory ${HintlessFactory::class.java.name}: " +
+                "java.lang.IllegalStateException: broken hint",
+        )
+        assertContains(output, "Add a backend such as akki-slf4j to the runtime classpath.\nINFO  acme.Hintless - hintless")
+    }
+
+    @Test
     fun `propagates fatal factory errors without reporting them`(@TempDir directory: Path): Unit {
         directory.declareFactories(FatalFactory::class.java.name)
 
@@ -404,6 +420,12 @@ class FailingFactory : LogBackendFactory {
     override fun createBackend(): LogBackend? = error("broken factory")
 
     override fun hintOnMissing(): String = "Add the failing provider."
+}
+
+class HintlessFactory : LogBackendFactory {
+    override fun createBackend(): LogBackend? = null
+
+    override fun hintOnMissing(): String = error("broken hint")
 }
 
 class FatalFactory : LogBackendFactory {

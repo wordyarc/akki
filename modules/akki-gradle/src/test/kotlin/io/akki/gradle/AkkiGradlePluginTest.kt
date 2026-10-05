@@ -575,6 +575,60 @@ class AkkiGradlePluginTest {
     }
 
     @Test
+    fun `aligns akki modules in a consumer without the plugin`(@TempDir projectDirectory: Path) {
+        val repository = publishRepository(projectDirectory)
+        val olderVersion = "0.0.1"
+        publish(repository, GROUP, "akki-coroutines", null, version = olderVersion)
+        publish(
+            repository,
+            GROUP,
+            "akki-test-coroutines",
+            null,
+            dependencies = listOf(Triple(GROUP, "akki-coroutines", olderVersion)),
+            version = olderVersion,
+        )
+        val application = projectDirectory.resolve("application").createDirectories()
+        application.resolve("settings.gradle.kts").writeText(settings("application", "../$REPOSITORY"))
+        application.resolve("build.gradle.kts").writeText(
+            """
+            plugins {
+                kotlin("jvm") version "${property("akki.kotlin.version")}"
+            }
+
+            repositories {
+                mavenCentral()
+                maven { url = uri("../$REPOSITORY") }
+            }
+
+            dependencies {
+                implementation("$GROUP:akki-slf4j:$VERSION")
+                testImplementation("$GROUP:akki-test-coroutines:$olderVersion")
+            }
+
+            tasks.register("resolveAkki") {
+                val classpath = configurations.testRuntimeClasspath
+                doLast {
+                    classpath.get().incoming.resolutionResult.allComponents
+                        .mapNotNull { it.moduleVersion }
+                        .filter { it.group == "$GROUP" }
+                        .forEach { println("AKKI " + it.name + "=" + it.version) }
+                }
+            }
+            """.trimIndent()
+        )
+
+        val output = GradleRunner.create()
+            .withProjectDir(application.toFile())
+            .withArguments("resolveAkki", "--console=plain")
+            .build()
+            .output
+
+        listOf("akki-core", "akki-slf4j", "akki-coroutines", "akki-test-coroutines").forEach {
+            assertContains(output, "AKKI $it=$VERSION\n")
+        }
+    }
+
+    @Test
     fun `pins the slf4j backend despite a newer transitive dependency`(@TempDir projectDirectory: Path) {
         val repository = publishRepository(projectDirectory)
         val newerVersion = "999.0.0"

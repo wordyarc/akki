@@ -16,7 +16,8 @@ internal fun discover(loader: ClassLoader): LogBackend {
     val factories = services.load(LogBackendFactory::class.java)
     val created = factories.mapNotNull { it.tryCreateBackend() }
     if (created.isEmpty() && factories.isNotEmpty()) {
-        return DefaultBackend(factories.joinToString(" ", prefix = "$NO_BACKEND ") { it.hintOnMissing() })
+        val hints = factories.mapNotNull { it.tryHintOnMissing() }.ifEmpty { listOf(ADD_BACKEND) }
+        return DefaultBackend(hints.joinToString(" ", prefix = "$NO_BACKEND "))
     }
     return chooseBackend(created)
 }
@@ -68,9 +69,15 @@ private fun awaitDiscovery(): Boolean {
 }
 
 @OptIn(InternalAkkiApi::class)
-private fun LogBackendFactory.tryCreateBackend(): LogBackend? =
+private fun LogBackendFactory.tryCreateBackend(): LogBackend? = isolated { createBackend() }
+
+@OptIn(InternalAkkiApi::class)
+private fun LogBackendFactory.tryHintOnMissing(): String? = isolated { hintOnMissing() }
+
+@OptIn(InternalAkkiApi::class)
+private inline fun <T : Any> LogBackendFactory.isolated(call: LogBackendFactory.() -> T?): T? =
     try {
-        createBackend()
+        call()
     } catch (failure: Throwable) {
         if (failure.isFatal) throw failure
         printlnToStdErr("akki: ignoring a failed backend factory ${javaClass.name}: $failure")
