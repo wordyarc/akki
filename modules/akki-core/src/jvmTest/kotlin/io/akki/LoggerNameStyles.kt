@@ -1,12 +1,13 @@
 package io.akki
 
-import io.akki.internal.JvmLoggerNameStyle
-import io.akki.internal.parseJvmLoggerNameStyle
+import io.akki.internal.LOGGER_NAME_STYLE_PROPERTY
+import io.akki.internal.LoggerNameStyle
+import io.akki.internal.parseLoggerNameStyle
 
-internal val configuredStyle: JvmLoggerNameStyle
-    get() = parseJvmLoggerNameStyle(System.getProperty(LOGGER_NAME_STYLE_PROPERTY_NAME))
+internal val configuredStyle: LoggerNameStyle
+    get() = parseLoggerNameStyle(System.getProperty(LOGGER_NAME_STYLE_PROPERTY))
 
 internal fun <T> byStyle(source: T, jvmClass: T): T = when (configuredStyle) {
-    JvmLoggerNameStyle.SOURCE -> source
-    JvmLoggerNameStyle.JVM_CLASS -> jvmClass
+    LoggerNameStyle.SOURCE -> source
+    LoggerNameStyle.JVM_CLASS -> jvmClass
 }

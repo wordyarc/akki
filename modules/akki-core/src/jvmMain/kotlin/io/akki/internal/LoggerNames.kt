@@ -1,8 +1,5 @@
 package io.akki.internal
 
-import io.akki.LOGGER_NAME_STYLE_PROPERTY_NAME
-import io.akki.LOGGER_NAME_STYLE_PROPERTY_VALUE_JVM_CLASS
-import io.akki.LOGGER_NAME_STYLE_PROPERTY_VALUE_SOURCE
 import kotlin.reflect.KClass
 
 private const val FACADE_SUFFIX: String = "Kt"
@@ -19,12 +16,17 @@ private const val CLASS_KIND_FLAGS_OFFSET: Int = 6
 private const val CLASS_KIND_FLAGS_MASK: Int = 7
 private const val CLASS_KIND_COMPANION_OBJECT: Int = 6
 
-internal enum class JvmLoggerNameStyle {
+internal const val LOGGER_NAME_STYLE_PROPERTY: String = "io.akki.loggerNameStyle"
+
+internal enum class LoggerNameStyle {
     SOURCE,
     JVM_CLASS,
+    ;
+
+    val propertyValue: String = name.lowercase().replace('_', '-')
 }
 
-private val configuredStyle: JvmLoggerNameStyle by lazy { parseJvmLoggerNameStyle(loggerNameStyleProperty()) }
+private val configuredStyle: LoggerNameStyle by lazy { parseLoggerNameStyle(loggerNameStyleProperty()) }
 
 private val loggerNames: ClassValue<String> = object : ClassValue<String>() {
     override fun computeValue(type: Class<*>): String = loggerName(type, configuredStyle)
@@ -34,31 +36,25 @@ internal actual fun loggerName(kClass: KClass<*>): String = loggerName(kClass.ja
 
 internal fun loggerName(jClass: Class<*>): String = loggerNames.get(jClass)
 
-internal fun loggerName(jClass: Class<*>, style: JvmLoggerNameStyle): String {
+internal fun loggerName(jClass: Class<*>, style: LoggerNameStyle): String {
     val owner = generateSequence(jClass) { ignoringMalformedClass { it.enclosingOwner() } }.last()
     return when (style) {
-        JvmLoggerNameStyle.SOURCE -> owner.sourceName()
-        JvmLoggerNameStyle.JVM_CLASS -> owner.name
+        LoggerNameStyle.SOURCE -> owner.sourceName()
+        LoggerNameStyle.JVM_CLASS -> owner.name
     }
 }
 
-internal fun parseJvmLoggerNameStyle(value: String?): JvmLoggerNameStyle =
-    parseJvmLoggerNameStyleOrNull(value) ?: akkiError(invalidLoggerNameStyle(value))
-
-private fun parseJvmLoggerNameStyleOrNull(value: String?): JvmLoggerNameStyle? =
-    when (value?.trim()?.lowercase()?.replace('_', '-')?.ifEmpty { null }) {
-        null, LOGGER_NAME_STYLE_PROPERTY_VALUE_SOURCE -> JvmLoggerNameStyle.SOURCE
-        LOGGER_NAME_STYLE_PROPERTY_VALUE_JVM_CLASS -> JvmLoggerNameStyle.JVM_CLASS
-        else -> null
-    }
-
-private fun invalidLoggerNameStyle(value: String?): String =
-    "invalid $LOGGER_NAME_STYLE_PROPERTY_NAME value '$value': " +
-        "expected '$LOGGER_NAME_STYLE_PROPERTY_VALUE_SOURCE' or '$LOGGER_NAME_STYLE_PROPERTY_VALUE_JVM_CLASS'"
+internal fun parseLoggerNameStyle(value: String?): LoggerNameStyle {
+    val normalized = value?.trim()?.lowercase()?.replace('_', '-')?.ifEmpty { null } ?: return LoggerNameStyle.SOURCE
+    return LoggerNameStyle.entries.firstOrNull { it.propertyValue == normalized } ?: akkiError(
+        "invalid $LOGGER_NAME_STYLE_PROPERTY value '$value': " +
+            "expected ${LoggerNameStyle.entries.joinToString(" or ") { "'${it.propertyValue}'" }}",
+    )
+}
 
 private fun loggerNameStyleProperty(): String? =
     try {
-        System.getProperty(LOGGER_NAME_STYLE_PROPERTY_NAME)
+        System.getProperty(LOGGER_NAME_STYLE_PROPERTY)
     } catch (_: SecurityException) {
         null
     }
@@ -141,6 +137,6 @@ private inline fun <T : Any> ignoringMalformedClass(read: () -> T?): T? =
 
 internal actual fun loggerName(sourceName: String, jvmClassName: String): String =
     when (configuredStyle) {
-        JvmLoggerNameStyle.SOURCE -> sourceName
-        JvmLoggerNameStyle.JVM_CLASS -> jvmClassName
+        LoggerNameStyle.SOURCE -> sourceName
+        LoggerNameStyle.JVM_CLASS -> jvmClassName
     }

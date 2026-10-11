@@ -4,6 +4,7 @@ import ch.qos.logback.classic.Level as LogbackLevel
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
+import io.akki.BackendInstallation
 import io.akki.DelicateAkkiApi
 import io.akki.Level
 import io.akki.Log
@@ -13,15 +14,15 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNull
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.slf4j.LoggerFactory
 
 @OptIn(DelicateAkkiApi::class)
 class Slf4jBackendTest {
     private lateinit var appender: CallerCapturingAppender
-    private lateinit var installation: Log.Installation
+    private lateinit var installation: BackendInstallation
     private val backend = Slf4jBackend()
 
     @BeforeTest

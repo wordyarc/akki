@@ -9,8 +9,8 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.BuildResult
+import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
@@ -339,6 +339,15 @@ class AkkiGradlePluginTest {
         val output = build(projectDirectory, consumer = Consumer.Bare)
 
         assertContains(output, "writing to stderr at INFO. $SLF4J_HINT")
+        assertTrue(output.contains("INFO  consumer.OrderService - received A-1"), output)
+    }
+
+    @Test
+    fun `leaves the slf4j backend out when the jvm block excludes it`(@TempDir projectDirectory: Path) {
+        val output = build(projectDirectory, consumer = Consumer.Bare, extra = "akki { jvm { includeSlf4jBackend = false } }")
+
+        assertContains(output, "akki: no backend found on the classpath, writing to stderr at INFO. $ADD_BACKEND_HINT")
+        assertFalse(output.contains(SLF4J_HINT), output)
         assertTrue(output.contains("INFO  consumer.OrderService - received A-1"), output)
     }
 
@@ -924,5 +933,7 @@ class AkkiGradlePluginTest {
         const val POM_ONLY: String = "metadataSources { mavenPom(); artifact(); ignoreGradleMetadataRedirection() }"
 
         const val SLF4J_HINT: String = "Add an SLF4J 2 provider to the runtime classpath, for example logback-classic."
+
+        const val ADD_BACKEND_HINT: String = "Add a backend such as akki-slf4j to the runtime classpath."
     }
 }

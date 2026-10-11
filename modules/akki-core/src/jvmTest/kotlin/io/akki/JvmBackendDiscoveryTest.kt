@@ -9,10 +9,11 @@ import io.akki.internal.DefaultBackend
 import io.akki.internal.LogBackendFactory
 import io.akki.internal.chooseBackend
 import io.akki.internal.discover
+import io.akki.testing.captureStderr
 import java.io.File
 import java.io.IOException
-import java.net.URLClassLoader
 import java.net.URL
+import java.net.URLClassLoader
 import java.nio.file.Path
 import java.time.Duration
 import java.util.Collections
@@ -29,8 +30,8 @@ import kotlin.test.assertIs
 import kotlin.test.assertIsNot
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
-import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.api.assertTimeoutPreemptively
+import org.junit.jupiter.api.io.TempDir
 
 class JvmBackendDiscoveryTest {
     @Test

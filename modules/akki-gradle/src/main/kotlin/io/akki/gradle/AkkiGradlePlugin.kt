@@ -44,14 +44,20 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
 
     override fun applyToCompilation(kotlinCompilation: KotlinCompilation<*>): Provider<List<SubpluginOption>> {
         val project = kotlinCompilation.target.project
-        kotlinCompilation.defaultSourceSet.dependencies {
-            implementation("$core:$pluginVersion")
-            runtimeOnly("$slf4j:$pluginVersion")
+        val extension = project.extensions.getByType(AkkiExtension::class.java)
+        kotlinCompilation.defaultSourceSet.dependencies { implementation("$core:$pluginVersion") }
+        if (kotlinCompilation.platformType == KotlinPlatformType.jvm) {
+            val backend = extension.jvm.includeSlf4jBackend.map { included ->
+                if (included) listOf(project.dependencies.create("$slf4j:$pluginVersion")) else emptyList()
+            }
+            project.configurations.named(kotlinCompilation.defaultSourceSet.runtimeOnlyConfigurationName) {
+                it.dependencies.addAllLater(backend)
+            }
         }
         val versions = project.configurations.getByName(VERSIONS_CONFIGURATION_NAME)
         listOfNotNull(kotlinCompilation.compileDependencyConfigurationName, kotlinCompilation.runtimeDependencyConfigurationName)
             .forEach { name -> project.configurations.named(name) { it.extendsFrom(versions) } }
-        val minLevel = project.extensions.getByType(AkkiExtension::class.java).compilerOptions.minLevel
+        val minLevel = extension.compilerOptions.minLevel
         val notice = minLevel.map { if (it == MinLevel.TRACE) "" else notice(it) }.orElse("")
         kotlinCompilation.compileTaskProvider.configure { task ->
             task.doFirst { running ->

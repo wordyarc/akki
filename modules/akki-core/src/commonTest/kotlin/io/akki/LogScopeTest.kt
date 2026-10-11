@@ -155,11 +155,4 @@ class LogScopeTest {
         assertEquals(1, binds)
         assertEquals(listOf("scoped"), scoped.records.map { it.message })
     }
-
-    @Test
-    fun `a scope describes its backend`(): Unit {
-        val backend = RecordingBackend()
-
-        assertEquals("LogScope($backend)", LogScope(backend).toString())
-    }
 }

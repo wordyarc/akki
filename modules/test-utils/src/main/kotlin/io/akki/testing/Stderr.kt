@@ -1,9 +1,9 @@
-package io.akki
+package io.akki.testing
 
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 
-internal fun captureStderr(block: () -> Unit): String {
+fun captureStderr(block: () -> Unit): String {
     val buffer = ByteArrayOutputStream()
     val original = System.err
     System.setErr(PrintStream(buffer, true))

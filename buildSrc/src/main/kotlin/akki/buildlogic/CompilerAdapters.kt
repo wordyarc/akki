@@ -83,8 +83,13 @@ private fun invalid(problem: String): Nothing = throw GradleException("$COMPILER
 
 val Project.compilerAdapters: List<CompilerAdapter>
     get() {
-        val manifest = isolated.rootProject.projectDirectory.file(COMPILER_ADAPTERS_MANIFEST)
-        return parseCompilerAdapters(providers.fileContents(manifest).asText.get())
+        val root = isolated.rootProject.projectDirectory
+        val adapters = parseCompilerAdapters(providers.fileContents(root.file(COMPILER_ADAPTERS_MANIFEST)).asText.get())
+        adapters.forEach { adapter ->
+            val module = root.dir("modules/akki-compiler-compat/kotlin-${adapter.minVersion}")
+            if (!module.asFile.isDirectory) invalid("adapter ${adapter.minVersion} has no module directory ${module.asFile}")
+        }
+        return adapters
     }
 
 val Project.compilerAdapter: CompilerAdapter
@@ -94,7 +99,10 @@ val Project.compilerApiBaseline: String
     get() = kotlinVersion(compilerAdapters.first().minVersion).run { "$major.$minor.$patch" }
 
 val Project.testedKotlin: List<String>
-    get() = kotlinVersions("akki.kotlin.tested")
+    get() = kotlinVersions("akki.kotlin.tested").also { tested ->
+        val catalog = version("kotlin")
+        check(catalog in tested) { "akki.kotlin.tested=${tested.joinToString(",")} must include Kotlin $catalog of the version catalog" }
+    }
 
 val Project.rejectedKotlin: List<String>
     get() = kotlinVersions("akki.kotlin.rejected")

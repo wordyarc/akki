@@ -3,6 +3,7 @@ package io.akki
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import io.akki.test.RecordingBackend
+import io.akki.testing.captureStderr
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals

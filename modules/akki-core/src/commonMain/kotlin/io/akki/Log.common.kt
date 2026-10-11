@@ -11,9 +11,5 @@ public expect object Log {
     public fun named(name: String): Logger
 
     @DelicateAkkiApi
-    public fun install(backend: LogBackend): Installation
-
-    public class Installation internal constructor(backend: LogBackend, restore: () -> Boolean) : AutoCloseable {
-        override fun close()
-    }
+    public fun install(backend: LogBackend): BackendInstallation
 }

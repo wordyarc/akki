@@ -38,8 +38,4 @@ kotlin {
     }
 }
 
-afterEvaluate {
-    if ("compileJvmMainJava" in tasks.names) {
-        compileModuleDescriptor(tasks.named<JavaCompile>("compileJvmMainJava"), tasks.named<KotlinCompile>("compileKotlinJvm"))
-    }
-}
+compileModuleDescriptor(tasks.named<JavaCompile>("compileJvmMainJava"), tasks.named<KotlinCompile>("compileKotlinJvm"))

@@ -1,6 +1,6 @@
 package io.akki
 
-import io.akki.internal.JvmLoggerNameStyle
+import io.akki.internal.LoggerNameStyle
 import io.akki.internal.loggerName
 import java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE
 import kotlin.coroutines.Continuation
@@ -38,8 +38,8 @@ class JvmLoggerNameProbeTest {
         assertEquals(expectations.map { it.site }, probes.map { it.site })
         probes.zip(expectations).forEach { (probe, expected) ->
             assertEquals(expected.jvmName, probe.stackClass, probe.site)
-            assertEquals(expected.source, loggerName(probe.stackType, JvmLoggerNameStyle.SOURCE), probe.site)
-            assertEquals(expected.jvmClass, loggerName(probe.stackType, JvmLoggerNameStyle.JVM_CLASS), probe.site)
+            assertEquals(expected.source, loggerName(probe.stackType, LoggerNameStyle.SOURCE), probe.site)
+            assertEquals(expected.jvmClass, loggerName(probe.stackType, LoggerNameStyle.JVM_CLASS), probe.site)
             assertEquals(byStyle(expected.source, expected.jvmClass), loggerName(probe.stackType), probe.site)
         }
     }

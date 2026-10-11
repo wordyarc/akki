@@ -51,7 +51,8 @@ plugins {
 
 Both `akki-core` and `akki-slf4j` are added by the plugin. Logging uses the application's SLF4J 2 provider;
 Spring Boot, for example, includes logback-classic. If no provider is available, akki prints a one-time notice and
-sends records at `INFO` or above to stderr. You can add a provider explicitly:
+sends records at `INFO` or above to stderr. A library, or an application with its own `LogBackend`, leaves
+`akki-slf4j` out with `akki { jvm { includeSlf4jBackend = false } }`. You can add a provider explicitly:
 
 ```kotlin
 dependencies {
@@ -222,6 +223,9 @@ akki {
 
 A JVM started outside Gradle, for example with `java -jar` or in a container, still needs the `-D` option. A value
 that a task sets itself with `systemProperty` or `jvmArgs` takes precedence over `loggerNameStyle`.
+
+`includeSlf4jBackend`, `true` by default, adds `akki-slf4j` to the runtime classpath of every JVM compilation. Set
+it to `false` in a library, or in an application that registers its own `LogBackend`.
 
 ## Limitations
 

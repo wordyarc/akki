@@ -4,6 +4,7 @@ import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import io.akki.backend.Sink
 import io.akki.test.RecordingBackend
+import io.akki.testing.captureStderr
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.Future

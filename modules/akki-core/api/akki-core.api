@@ -1,3 +1,8 @@
+public final class io/akki/BackendInstallation : java/lang/AutoCloseable {
+	public fun close ()V
+	public fun toString ()Ljava/lang/String;
+}
+
 public abstract interface annotation class io/akki/DelicateAkkiApi : java/lang/annotation/Annotation {
 }
 
@@ -22,15 +27,10 @@ public final class io/akki/Level : java/lang/Enum {
 
 public final class io/akki/Log {
 	public static final field INSTANCE Lio/akki/Log;
-	public static final fun install (Lio/akki/backend/LogBackend;)Lio/akki/Log$Installation;
+	public static final fun install (Lio/akki/backend/LogBackend;)Lio/akki/BackendInstallation;
 	public static final fun named (Ljava/lang/String;)Lio/akki/Logger;
 	public static final fun of (Ljava/lang/Class;)Lio/akki/Logger;
 	public static final fun of (Lkotlin/reflect/KClass;)Lio/akki/Logger;
-}
-
-public final class io/akki/Log$Installation : java/lang/AutoCloseable {
-	public fun close ()V
-	public fun toString ()Ljava/lang/String;
 }
 
 public final class io/akki/LogScope {
@@ -99,12 +99,6 @@ public abstract class io/akki/Logger {
 	public final fun warn (Lkotlin/jvm/functions/Function0;)V
 	public static synthetic fun warn$default (Lio/akki/Logger;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V
 	public static synthetic fun warn$default (Lio/akki/Logger;Ljava/lang/Throwable;Ljava/util/Map;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
-}
-
-public final class io/akki/LoggerNameStyleKt {
-	public static final field LOGGER_NAME_STYLE_PROPERTY_NAME Ljava/lang/String;
-	public static final field LOGGER_NAME_STYLE_PROPERTY_VALUE_JVM_CLASS Ljava/lang/String;
-	public static final field LOGGER_NAME_STYLE_PROPERTY_VALUE_SOURCE Ljava/lang/String;
 }
 
 public abstract interface class io/akki/backend/LogBackend {

@@ -1,6 +1,7 @@
 package io.akki
 
 import io.akki.internal.chooseBackend
+import io.akki.testing.captureStderr
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals

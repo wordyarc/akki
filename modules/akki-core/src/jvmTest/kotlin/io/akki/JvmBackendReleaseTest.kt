@@ -3,6 +3,7 @@ package io.akki
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import io.akki.backend.Sink
+import io.akki.testing.captureStderr
 import java.lang.ref.ReferenceQueue
 import java.lang.ref.WeakReference
 import kotlin.test.Test

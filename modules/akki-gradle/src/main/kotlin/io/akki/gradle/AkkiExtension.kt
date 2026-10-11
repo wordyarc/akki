@@ -26,6 +26,12 @@ public abstract class AkkiCompilerOptions {
 public abstract class AkkiJvmOptions {
 
     public abstract val loggerNameStyle: Property<LoggerNameStyle>
+
+    public abstract val includeSlf4jBackend: Property<Boolean>
+
+    init {
+        includeSlf4jBackend.convention(true)
+    }
 }
 
 public abstract class AkkiExtension {

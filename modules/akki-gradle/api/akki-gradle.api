@@ -23,6 +23,7 @@ public final class io/akki/gradle/AkkiGradlePlugin : org/jetbrains/kotlin/gradle
 
 public abstract class io/akki/gradle/AkkiJvmOptions {
 	public fun <init> ()V
+	public abstract fun getIncludeSlf4jBackend ()Lorg/gradle/api/provider/Property;
 	public abstract fun getLoggerNameStyle ()Lorg/gradle/api/provider/Property;
 }
 

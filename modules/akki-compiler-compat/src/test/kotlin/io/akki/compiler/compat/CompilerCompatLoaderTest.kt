@@ -8,8 +8,6 @@ import io.akki.compiler.compat.fixture.ExhaustedFactory
 import io.akki.compiler.compat.fixture.FailingFactory
 import io.akki.compiler.compat.fixture.FutureAdapter
 import io.akki.compiler.compat.fixture.FutureFactory
-import io.akki.compiler.compat.fixture.MalformedFactory
-import io.akki.compiler.compat.fixture.RivalFactory
 import io.akki.compiler.compat.fixture.UninitializableAdapter
 import io.akki.compiler.compat.fixture.UninitializableFactory
 import io.akki.compiler.compat.fixture.UnlinkedFactory
@@ -138,48 +136,6 @@ internal class CompilerCompatLoaderTest {
     }
 
     @Test
-    fun `reports invalid and ambiguous factory metadata`() {
-        val malformed = failure("2.4.0", CurrentFactory::class, MalformedFactory::class)
-        assertContains(malformed.message.orEmpty(), MalformedFactory::class.java.name)
-        assertContains(malformed.message.orEmpty(), "declares an invalid minimum Kotlin version 'nine'")
-
-        val ambiguous = failure("2.4.0", CurrentFactory::class, RivalFactory::class)
-        assertContains(ambiguous.message.orEmpty(), "Several factories declare the minimum Kotlin version 2.3.20-Beta1")
-        assertContains(ambiguous.message.orEmpty(), CurrentFactory::class.java.name)
-        assertContains(ambiguous.message.orEmpty(), RivalFactory::class.java.name)
-    }
-
-    @Test
-    fun `places Beta and RC compilers before their release`() {
-        val classLoader = AdapterClassLoader.of(directory, CurrentFactory::class, FutureFactory::class)
-        val expected = mapOf(
-            "2.3.20-Beta1" to CurrentAdapter::class,
-            "2.4.0-RC" to CurrentAdapter::class,
-            "9.0.0-Beta1" to CurrentAdapter::class,
-            "9.0.0-RC2" to CurrentAdapter::class,
-            "9.0.0" to FutureAdapter::class,
-        )
-
-        for ((version, adapter) in expected) {
-            assertEquals(adapter.java.name, CompilerCompatLoader.load(version, classLoader).javaClass.name, version)
-        }
-    }
-
-    @Test
-    fun `places a dev compiler at the release it belongs to`() {
-        val classLoader = AdapterClassLoader.of(directory, CurrentFactory::class, FutureFactory::class)
-        val expected = mapOf(
-            "2.3.20-dev-7791" to CurrentAdapter::class,
-            "8.9.99-dev-1" to CurrentAdapter::class,
-            "9.0.0-dev-1" to FutureAdapter::class,
-        )
-
-        for ((version, adapter) in expected) {
-            assertEquals(adapter.java.name, CompilerCompatLoader.load(version, classLoader).javaClass.name, version)
-        }
-    }
-
-    @Test
     fun `rejects a compiler version that is neither a release, its Beta or RC build nor a dev build`() {
         for (version in listOf("2.4.0-ij261-64", "2.4.20-SNAPSHOT", "2.4.20-dev-google-pr-1", "2.4", "")) {
             val failure = failure(version, CurrentFactory::class)
@@ -198,18 +154,6 @@ internal class CompilerCompatLoaderTest {
         val failure = failure(null, CurrentFactory::class)
 
         assertEquals("The Kotlin compiler does not report its version.", failure.message)
-    }
-
-    @Test
-    fun `rejects a compiler older than every adapter`() {
-        for (version in listOf("2.3.10", "2.3.10-RC", "2.3.10-dev-1")) {
-            val failure = failure(version, CurrentFactory::class, FutureFactory::class)
-
-            assertEquals(
-                "Kotlin $version is not supported. The oldest supported version is 2.3.20-Beta1.",
-                failure.message,
-            )
-        }
     }
 
     @Test

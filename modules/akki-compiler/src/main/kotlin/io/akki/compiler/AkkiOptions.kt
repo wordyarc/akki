@@ -2,7 +2,6 @@
 
 package io.akki.compiler
 
-import io.akki.compiler.compat.breaksLinkage
 import org.jetbrains.kotlin.compiler.plugin.AbstractCliOption
 import org.jetbrains.kotlin.compiler.plugin.CliOptionProcessingException
 import org.jetbrains.kotlin.compiler.plugin.CommandLineProcessor
@@ -47,12 +46,7 @@ internal class AkkiCommandLineProcessor : CommandLineProcessor {
                 "Unknown value '$value' for the Akki option '${MinLevelOption.optionName}'. " +
                     "Expected one of ${MinLevel.entries.joinToString(", ") { it.option }}.",
             )
-        try {
-            configuration.put(AkkiConfigurationKeys.MIN_LEVEL, level)
-        } catch (failure: LinkageError) {
-            if (!failure.breaksLinkage) throw failure
-            throw CliOptionProcessingException("$CANNOT_START ${unlinkedCompiler()}${causeLines(failure)}", failure)
-        }
+        configuration.put(AkkiConfigurationKeys.MIN_LEVEL, level)
     }
 
     private object MinLevelOption : AbstractCliOption {

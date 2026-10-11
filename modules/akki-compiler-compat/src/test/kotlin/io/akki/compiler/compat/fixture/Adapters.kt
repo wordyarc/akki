@@ -88,11 +88,3 @@ internal class UnlinkedFactory : FixtureFactory("2.3.20") {
         }
     }
 }
-
-internal class MalformedFactory : FixtureFactory("nine") {
-    override fun create(): CompilerCompat = CurrentAdapter()
-}
-
-internal class RivalFactory : FixtureFactory("2.3.20-Beta1") {
-    override fun create(): CompilerCompat = CurrentAdapter()
-}

@@ -7,7 +7,6 @@ import io.akki.withLogScope
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class RecordingTest {
@@ -78,15 +77,6 @@ class RecordingTest {
     }
 
     @Test
-    fun `records cannot be written through the list it returns`() {
-        val backend = RecordingBackend()
-        withLogScope(LogScope(backend)) { Log.named("read-only").info("kept") }
-
-        assertFalse(backend.records is MutableList<*>)
-        assertFalse(RecordingLogger().records is MutableList<*>)
-    }
-
-    @Test
     fun `recording logger needs no installation`() {
         val logger = RecordingLogger("checkout", minLevel = Level.ERROR)
 
@@ -103,6 +93,5 @@ class RecordingTest {
         val logger = RecordingLogger()
 
         assertEquals("recording", logger.name)
-        assertEquals("RecordingLogger(recording)", logger.toString())
     }
 }

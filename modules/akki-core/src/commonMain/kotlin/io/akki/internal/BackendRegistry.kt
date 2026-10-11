@@ -1,6 +1,6 @@
 package io.akki.internal
 
-import io.akki.Log
+import io.akki.BackendInstallation
 import io.akki.backend.LogBackend
 import kotlin.concurrent.atomics.AtomicReference
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
@@ -21,10 +21,10 @@ internal object BackendRegistry {
         return current.load().backend
     }
 
-    fun install(backend: LogBackend): Log.Installation {
+    fun install(backend: LogBackend): BackendInstallation {
         val installed = BackendState(backend)
         val previous = current.exchange(installed)
-        return Log.Installation(backend) {
+        return BackendInstallation(backend) {
             if (!current.compareAndSet(installed, previous)) {
                 false
             } else {

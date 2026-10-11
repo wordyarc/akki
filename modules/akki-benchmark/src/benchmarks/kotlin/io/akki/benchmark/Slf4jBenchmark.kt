@@ -4,6 +4,7 @@ import ch.qos.logback.classic.Level as LogbackLevel
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.AppenderBase
+import io.akki.BackendInstallation
 import io.akki.DelicateAkkiApi
 import io.akki.Log
 import io.akki.Logger
@@ -23,7 +24,7 @@ import org.slf4j.LoggerFactory
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 class Slf4jBenchmark {
-    private lateinit var installation: Log.Installation
+    private lateinit var installation: BackendInstallation
     private lateinit var log: Logger
     private lateinit var slf4j: org.slf4j.Logger
     private var id: Long = 0

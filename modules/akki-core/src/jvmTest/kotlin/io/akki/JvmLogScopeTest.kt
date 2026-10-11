@@ -3,7 +3,7 @@ package io.akki
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import io.akki.test.RecordingBackend
-import java.lang.management.ManagementFactory
+import io.akki.testing.allocatedBytes
 import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -82,12 +82,5 @@ class JvmLogScopeTest {
         )
         assertNull(workerScope)
         assertNull(LogScope.currentOrNull())
-    }
-
-    private fun allocatedBytes(block: () -> Unit): Long {
-        val threads = ManagementFactory.getThreadMXBean() as com.sun.management.ThreadMXBean
-        val before = threads.currentThreadAllocatedBytes
-        block()
-        return threads.currentThreadAllocatedBytes - before
     }
 }

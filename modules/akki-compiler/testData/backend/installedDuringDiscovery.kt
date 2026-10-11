@@ -3,6 +3,7 @@
 
 package fixture
 
+import io.akki.BackendInstallation
 import io.akki.Log
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
@@ -12,7 +13,7 @@ import kotlin.test.assertEquals
 private val transient = RecordingBackend()
 private val installed = RecordingBackend()
 private val discovered = RecordingBackend()
-private lateinit var installation: Log.Installation
+private lateinit var installation: BackendInstallation
 
 class InstallingBackend : LogBackend {
     init {

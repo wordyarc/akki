@@ -2,10 +2,8 @@ package io.akki
 
 import io.akki.backend.LogBackend
 import io.akki.internal.BackendRegistry
-import io.akki.internal.akkiError
 import io.akki.internal.getLogger
 import io.akki.internal.loggerName
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.reflect.KClass
 
 public actual object Log {
@@ -22,22 +20,5 @@ public actual object Log {
 
     @JvmStatic
     @DelicateAkkiApi
-    public actual fun install(backend: LogBackend): Installation = BackendRegistry.install(backend)
-
-    public actual class Installation internal actual constructor(
-        private val backend: LogBackend,
-        private val restore: () -> Boolean,
-    ) : AutoCloseable {
-        private val active = AtomicBoolean(true)
-
-        actual override fun close() {
-            if (!active.compareAndSet(true, false)) return
-            if (restore()) return
-            active.set(true)
-            akkiError("backend installations must be uninstalled in reverse order")
-        }
-
-        override fun toString(): String =
-            "Log.Installation(${if (active.get()) "active" else "closed"}, backend=$backend)"
-    }
+    public actual fun install(backend: LogBackend): BackendInstallation = BackendRegistry.install(backend)
 }

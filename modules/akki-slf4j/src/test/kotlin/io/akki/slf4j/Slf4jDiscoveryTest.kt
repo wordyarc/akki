@@ -8,9 +8,8 @@ import ch.qos.logback.core.read.ListAppender
 import io.akki.Log
 import io.akki.testing.BackgroundTask
 import io.akki.testing.awaitSignal
-import java.io.ByteArrayOutputStream
+import io.akki.testing.captureStderr
 import java.io.File
-import java.io.PrintStream
 import java.net.URL
 import java.net.URLClassLoader
 import java.nio.file.Path
@@ -211,18 +210,6 @@ class Slf4jDiscoveryTest {
                 System.setProperty(PROVIDER_PROPERTY, previous)
             }
         }
-    }
-
-    private fun captureStderr(block: () -> Unit): String {
-        val buffer = ByteArrayOutputStream()
-        val original = System.err
-        System.setErr(PrintStream(buffer, true))
-        try {
-            block()
-        } finally {
-            System.setErr(original)
-        }
-        return buffer.toString()
     }
 }
 

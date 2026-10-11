@@ -21,6 +21,11 @@ plugins {
     id("com.vanniktech.maven.publish.base")
 }
 
+tasks.withType<AbstractArchiveTask>().configureEach {
+    isPreserveFileTimestamps = false
+    isReproducibleFileOrder = true
+}
+
 mavenPublishing {
     coordinates(groupId = mavenGroup)
     publishToMavenCentral(automaticRelease = false, validateDeployment = DeploymentValidation.VALIDATED)

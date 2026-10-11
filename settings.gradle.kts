@@ -44,12 +44,10 @@ listOf(
     project(":$module").projectDir = file("modules/$module")
 }
 
-providers.fileContents(layout.rootDirectory.file("modules/akki-compiler-compat/adapters.properties")).asText.get()
-    .lineSequence()
-    .map { it.substringBefore('=').trim() }
-    .filterNot { it.isEmpty() || it.startsWith('#') }
-    .forEach { minVersion ->
-        include(":akki-compiler-compat:kotlin-$minVersion")
-        project(":akki-compiler-compat:kotlin-$minVersion").projectDir =
-            file("modules/akki-compiler-compat/kotlin-$minVersion")
+file("modules/akki-compiler-compat").listFiles { adapter -> adapter.isDirectory && adapter.name.startsWith("kotlin-") }
+    .orEmpty()
+    .sortedBy { it.name }
+    .forEach { adapter ->
+        include(":akki-compiler-compat:${adapter.name}")
+        project(":akki-compiler-compat:${adapter.name}").projectDir = adapter
     }

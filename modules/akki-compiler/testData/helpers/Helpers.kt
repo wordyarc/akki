@@ -1,7 +1,5 @@
 package helpers
 
-import io.akki.LOGGER_NAME_STYLE_PROPERTY_NAME
-import io.akki.LOGGER_NAME_STYLE_PROPERTY_VALUE_JVM_CLASS
 import io.akki.Log
 import io.akki.Logger
 import io.akki.backend.LogBackend
@@ -10,7 +8,7 @@ import kotlin.reflect.KClass
 import kotlin.test.assertSame
 
 fun <T> byStyle(source: T, jvmClass: T): T =
-    if (System.getProperty(LOGGER_NAME_STYLE_PROPERTY_NAME) == LOGGER_NAME_STYLE_PROPERTY_VALUE_JVM_CLASS) jvmClass else source
+    if (System.getProperty("io.akki.loggerNameStyle") == "jvm-class") jvmClass else source
 
 fun runtime(type: KClass<*>): Logger = Log.of(type)
 

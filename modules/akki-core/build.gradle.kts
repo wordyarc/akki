@@ -23,6 +23,7 @@ kotlin {
         }
 
         jvmTest.dependencies {
+            implementation(project(":test-utils"))
             implementation(libs.kotlin.metadata.jvm)
             implementation(libs.lincheck)
         }

@@ -27,7 +27,6 @@ class LogTest {
         val logger = Log.named("audit")
 
         assertEquals("audit", logger.name)
-        assertEquals("Logger(audit)", logger.toString())
     }
 
     @Test

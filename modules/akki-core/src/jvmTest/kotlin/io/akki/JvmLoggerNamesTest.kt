@@ -1,8 +1,8 @@
 package io.akki
 
-import io.akki.internal.JvmLoggerNameStyle
-import io.akki.internal.parseJvmLoggerNameStyle
+import io.akki.internal.LoggerNameStyle
 import io.akki.internal.loggerName
+import io.akki.internal.parseLoggerNameStyle
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -47,18 +47,18 @@ class JvmLoggerNamesTest {
 
     @Test
     fun `parses JVM logger name styles`(): Unit {
-        assertEquals(JvmLoggerNameStyle.SOURCE, parseJvmLoggerNameStyle(null))
-        assertEquals(JvmLoggerNameStyle.SOURCE, parseJvmLoggerNameStyle("source"))
-        assertEquals(JvmLoggerNameStyle.JVM_CLASS, parseJvmLoggerNameStyle("jvm-class"))
+        assertEquals(LoggerNameStyle.SOURCE, parseLoggerNameStyle(null))
+        assertEquals(LoggerNameStyle.SOURCE, parseLoggerNameStyle("source"))
+        assertEquals(LoggerNameStyle.JVM_CLASS, parseLoggerNameStyle("jvm-class"))
         assertFailsWith<IllegalStateException> {
-            parseJvmLoggerNameStyle("binary")
+            parseLoggerNameStyle("binary")
         }
     }
 
     @Test
     fun `SOURCE style uses Kotlin names for mapped types`(): Unit {
-        assertEquals("kotlin.String", loggerName(String::class.java, JvmLoggerNameStyle.SOURCE))
-        assertEquals("java.lang.String", loggerName(String::class.java, JvmLoggerNameStyle.JVM_CLASS))
+        assertEquals("kotlin.String", loggerName(String::class.java, LoggerNameStyle.SOURCE))
+        assertEquals("java.lang.String", loggerName(String::class.java, LoggerNameStyle.JVM_CLASS))
         assertEquals(byStyle("kotlin.String", "java.lang.String"), Log.of<String>().name)
         assertSame(Log.of<String>(), Log.of(String::class.java))
     }

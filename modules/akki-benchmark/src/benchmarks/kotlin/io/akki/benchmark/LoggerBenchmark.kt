@@ -1,5 +1,6 @@
 package io.akki.benchmark
 
+import io.akki.BackendInstallation
 import io.akki.DelicateAkkiApi
 import io.akki.Level
 import io.akki.Log
@@ -22,7 +23,7 @@ import kotlinx.benchmark.TearDown
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 class LoggerBenchmark {
-    private lateinit var installation: Log.Installation
+    private lateinit var installation: BackendInstallation
     private lateinit var log: Logger
     private var id: Long = 0
 

@@ -1,6 +1,6 @@
 package io.akki
 
-import io.akki.internal.JvmLoggerNameStyle
+import io.akki.internal.LoggerNameStyle
 import io.akki.internal.isCompanion
 import io.akki.internal.loggerName
 import java.io.File
@@ -20,7 +20,7 @@ class JvmLoggerNameRobustnessTest {
         assertTrue(types.size > 500, "expected the standard library to contribute classes, got ${types.size}")
 
         for (type in types) {
-            for (style in JvmLoggerNameStyle.entries) {
+            for (style in LoggerNameStyle.entries) {
                 val name = loggerName(type, style)
                 assertTrue(name.isNotBlank(), "${type.name} resolved to a blank name in $style")
             }
