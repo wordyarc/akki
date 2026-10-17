@@ -90,7 +90,7 @@ gradlePlugin {
     plugins {
         create("akki") {
             id = gradlePluginId
-            displayName = "Akki"
+            displayName = "akki"
             description = project.description
             implementationClass = "io.akki.gradle.AkkiGradlePlugin"
             tags = listOf("kotlin", "logging", "compiler-plugin")

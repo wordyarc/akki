@@ -50,7 +50,7 @@ public class LogScope(public val backend: LogBackend) {
         override fun close() {
             if (closed) return
             if (currentScopeEntry() !== this) {
-                akkiError("logging scopes must be exited on their own thread in reverse order")
+                akkiError("a logging scope must be exited on the thread that entered it, innermost first")
             }
             closed = true
             setCurrentScopeEntry(previous)

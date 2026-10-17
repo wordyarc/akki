@@ -25,7 +25,7 @@ class JvmDefaultBackendTest {
             Log.named("acme.Notice").error("second")
         }
 
-        assertEquals(1, output.lineSequence().count { it.startsWith("akki: no backend found on the classpath") })
+        assertEquals(1, output.lineSequence().count { it.startsWith("akki: no backend is available") })
         assertContains(output, "Add a backend such as akki-slf4j to the runtime classpath.")
     }
 

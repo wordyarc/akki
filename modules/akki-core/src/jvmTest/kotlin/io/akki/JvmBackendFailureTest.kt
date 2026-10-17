@@ -30,8 +30,8 @@ class JvmBackendFailureTest {
         assertEquals(1, output.lineSequence().count { it.startsWith("akki: the backend failed to resolve logger") })
         assertContains(
             output,
-            "akki: the backend failed to resolve logger 'failure.announced.first.bind', " +
-                "records are dropped while it keeps failing",
+            "akki: the backend failed to resolve logger 'failure.announced.first.bind'; " +
+                "records are dropped while it keeps failing. Later failures of this backend are not reported.",
         )
         assertContains(output, "java.lang.IllegalStateException: bind is broken for failure.announced.first.bind")
     }
@@ -96,8 +96,8 @@ class JvmBackendFailureTest {
         assertEquals(listOf("recorded", "recorded"), recording.records.map { it.message })
         assertContains(
             output,
-            "akki: the backend failed to resolve logger 'failure.linkage.bind', records of every logger it fails " +
-                "to resolve are dropped until another backend is installed",
+            "akki: the backend failed to resolve logger 'failure.linkage.bind'; records of every logger it fails " +
+                "to resolve are dropped until another backend is installed.",
         )
         assertContains(output, "java.lang.NoClassDefFoundError: org/slf4j/LoggerFactory")
     }

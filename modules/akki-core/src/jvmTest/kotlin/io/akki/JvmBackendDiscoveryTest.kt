@@ -88,7 +88,7 @@ class JvmBackendDiscoveryTest {
         assertContains(output, "io.akki.MissingBackend")
         assertContains(output, ThrowingBackend::class.java.name)
         assertContains(output, "broken constructor")
-        assertEquals(2, output.lines().count { it.contains("ignoring a broken backend service declaration") }, output)
+        assertEquals(2, output.lines().count { it.contains("skipping an invalid backend service declaration") }, output)
     }
 
     @Test
@@ -99,7 +99,7 @@ class JvmBackendDiscoveryTest {
             captureStderr { assertIs<DefaultBackend>(discover(loader)) }
         }
 
-        assertContains(output, "akki: ignoring a broken backend service declaration")
+        assertContains(output, "akki: skipping an invalid backend service declaration")
         assertContains(output, "NoClassDefFoundError: provider/AbsentBase")
     }
 
@@ -123,7 +123,7 @@ class JvmBackendDiscoveryTest {
         }
 
         assertContains(output, "NoClassDefFoundError: provider/AbsentBase")
-        assertEquals(1, output.lines().count { it.contains("ignoring a broken backend service declaration") }, output)
+        assertEquals(1, output.lines().count { it.contains("skipping an invalid backend service declaration") }, output)
     }
 
     @Test
@@ -159,7 +159,7 @@ class JvmBackendDiscoveryTest {
 
         assertContains(
             output,
-            "akki: no backend found on the classpath, writing to stderr at INFO. Add the declining provider.\n" +
+            "akki: no backend is available, writing INFO and higher to stderr. Add the declining provider.\n" +
                 "INFO  acme.Declined - declined",
         )
     }
@@ -174,10 +174,10 @@ class JvmBackendDiscoveryTest {
 
         assertContains(
             output,
-            "akki: ignoring a failed backend factory ${FailingFactory::class.java.name}: " +
+            "akki: backend factory ${FailingFactory::class.java.name} failed and is skipped: " +
                 "java.lang.IllegalStateException: broken factory",
         )
-        assertContains(output, "writing to stderr at INFO. Add the failing provider.\nINFO  acme.Failed - failed")
+        assertContains(output, "writing INFO and higher to stderr. Add the failing provider.\nINFO  acme.Failed - failed")
     }
 
     @Test
@@ -190,7 +190,7 @@ class JvmBackendDiscoveryTest {
 
         assertContains(
             output,
-            "akki: ignoring a failed backend factory ${HintlessFactory::class.java.name}: " +
+            "akki: backend factory ${HintlessFactory::class.java.name} failed and is skipped: " +
                 "java.lang.IllegalStateException: broken hint",
         )
         assertContains(output, "Add a backend such as akki-slf4j to the runtime classpath.\nINFO  acme.Hintless - hintless")
@@ -249,7 +249,7 @@ class JvmBackendDiscoveryTest {
 
         val output = captureStderr { assertIs<DefaultBackend>(discover(loader)) }
 
-        assertContains(output, "akki: failed to discover backends")
+        assertContains(output, "akki: backend discovery failed")
         assertContains(output, "IllegalStateException: broken resources")
     }
 
@@ -269,8 +269,8 @@ class JvmBackendDiscoveryTest {
         }
 
         assertEquals(1, attempts)
-        assertContains(output, "akki: backend service enumeration interrupted by an I/O failure")
-        assertFalse(output.contains("ignoring a broken backend service declaration"), output)
+        assertContains(output, "akki: an I/O error stopped the backend service lookup")
+        assertFalse(output.contains("skipping an invalid backend service declaration"), output)
     }
 
     @Test
@@ -286,8 +286,8 @@ class JvmBackendDiscoveryTest {
             captureStderr { assertIs<DeclaredBackend>(discover(loader)) }
         }
 
-        assertContains(output, "akki: backend service enumeration interrupted by an I/O failure")
-        assertFalse(output.contains("ignoring a broken backend service declaration"), output)
+        assertContains(output, "akki: an I/O error stopped the backend service lookup")
+        assertFalse(output.contains("skipping an invalid backend service declaration"), output)
     }
 
     @Test

@@ -31,7 +31,7 @@ internal fun selectFactory(
     val current = CompilerVersion.parseCompilerOrNull(compilerVersion)
         ?: throw CompatLoadException(
             "Kotlin '$compilerVersion' is not supported. " +
-                "Only releases, their Beta and RC builds and dev builds are recognized.",
+                "Recognized builds are releases, their Beta and RC builds, and dev builds of a release.",
         )
     if (factories.isEmpty()) {
         throw CompatLoadException("No compiler adapter factories were found on the compiler plugin classpath.")

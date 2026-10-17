@@ -142,7 +142,7 @@ internal class CompilerCompatLoaderTest {
 
             assertEquals(
                 "Kotlin '$version' is not supported. " +
-                    "Only releases, their Beta and RC builds and dev builds are recognized.",
+                    "Recognized builds are releases, their Beta and RC builds, and dev builds of a release.",
                 failure.message,
             )
             assertNull(failure.cause)

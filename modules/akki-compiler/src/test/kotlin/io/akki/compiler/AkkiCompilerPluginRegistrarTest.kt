@@ -91,7 +91,7 @@ internal class AkkiCompilerPluginRegistrarTest {
         assertEquals(
             "error: [AKKI_CANNOT_START] akki: compiler plugin $AKKI_VERSION cannot start. " +
                 "Kotlin ${KotlinCompilerVersion.getVersion()} is not supported: the compiler plugin does not link " +
-                "against it. Kotlin releases up to $LATEST_TESTED_KOTLIN are tested.",
+                "against it. The newest tested Kotlin release is $LATEST_TESTED_KOTLIN.",
             headline,
         )
         assertTrue(

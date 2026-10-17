@@ -3,7 +3,7 @@
 [![Kotlin](https://img.shields.io/badge/kotlin-2.4.21-blue.svg?logo=kotlin)](https://kotlinlang.org)
 [![GitHub license](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg?style=flat)](https://www.apache.org/licenses/LICENSE-2.0)
 
-Log in Kotlin without declaring a logger. The compiler plugin derives its name from the surrounding code.
+Log in Kotlin without declaring a logger. The compiler plugin names the logger after the enclosing declaration.
 Requires Kotlin `2.4.0` or newer.
 
 ```kotlin
@@ -18,18 +18,19 @@ class JobProcessor {
 
 For a `JobProcessor` in `com.example`, the plugin turns `log` into a read of a static field holding the
 `com.example.JobProcessor` logger. It also rewrites logging calls to call the backend directly, preserving the
-caller line. An optional compile-time threshold removes calls below the selected level.
+caller line. An optional compile-time threshold removes records below the selected level from the bytecode.
 
 ## Modules
 
 * `akki-core`: the logging API.
-  * `log` and `logger()` use the enclosing declaration's logger and require the plugin.
-  * `Log.of<T>()` and `Log.named("...")` work without the plugin. Java can use `Log.of(Class)` and `Log.named`.
+  * `log` and `logger()` use the enclosing declaration's logger and require the compiler plugin.
+  * `Log.of<T>()` and `Log.named("...")` work without the compiler plugin. From Java, call `Log.of(Class)` or
+    `Log.named`.
   * `Logger` provides eager and lazy overloads of `trace`, `debug`, `info`, `warn`, and `error`.
   * `LogBackend` connects a backend; `LogScope` selects one for the current thread.
 * `akki-slf4j`: backend for SLF4J 2, enabled when an SLF4J 2 provider is available at runtime.
 * `akki-compiler`: Kotlin compiler plugin, one artifact for every supported Kotlin release.
-* `akki-gradle`: sets up the compiler plugin with `akki-core` and `akki-slf4j` and keeps every akki module at the
+* `akki-gradle`: applies the compiler plugin, adds `akki-core` and `akki-slf4j`, and keeps every akki module at the
   plugin version.
 * `akki-test`: captures test logs with `recordLogs { }` or `RecordingBackend`.
 * `akki-coroutines`: carries a `LogScope` in a coroutine context via `LogScope.asContextElement()`.
@@ -40,7 +41,7 @@ caller line. An optional compile-time threshold removes calls below the selected
 
 ### Gradle
 
-Add the plugin to your build:
+The Gradle plugin applies the compiler plugin and adds `akki-core` and `akki-slf4j` to every `jvm` compilation:
 
 ```kotlin
 plugins {
@@ -49,16 +50,30 @@ plugins {
 }
 ```
 
-Both `akki-core` and `akki-slf4j` are added by the plugin. Logging uses the application's SLF4J 2 provider;
-Spring Boot, for example, includes logback-classic. If no provider is available, akki prints a one-time notice and
-sends records at `INFO` or above to stderr. A library, or an application with its own `LogBackend`, leaves
-`akki-slf4j` out with `akki { jvm { includeSlf4jBackend = false } }`. You can add a provider explicitly:
+#### Backend
+
+Logging uses the application's SLF4J 2 provider; Spring Boot, for example, includes logback-classic. You can add a
+provider explicitly:
 
 ```kotlin
 dependencies {
     runtimeOnly("ch.qos.logback:logback-classic:1.5.20")
 }
 ```
+
+If no provider is available, akki prints a one-time notice and writes records at `INFO` and higher to stderr.
+
+A library, or an application with its own `LogBackend`, leaves `akki-slf4j` out:
+
+```kotlin
+akki {
+    jvm {
+        includeSlf4jBackend = false
+    }
+}
+```
+
+#### Tests
 
 To capture logs in tests:
 
@@ -68,8 +83,10 @@ dependencies {
 }
 ```
 
+#### Versions of akki modules
+
 With `akki-bom` as a platform, akki modules are declared without a version; in a Kotlin Multiplatform source set,
-write `project.dependencies.platform(...)`:
+write `project.dependencies.platform(...)` instead:
 
 ```kotlin
 dependencies {
@@ -79,10 +96,21 @@ dependencies {
 }
 ```
 
-In the compilations it applies to, the plugin resolves every akki module at its own version: a module declared at
+In the compilations it applies to, the Gradle plugin resolves every akki module at its own version: a module declared at
 an older version is raised, a newer one that a dependency brings is lowered, and a newer one declared directly
-fails the build. This pin is not published. Gradle builds without the plugin still get a single akki version: each
-akki library depends on `akki-bom`, so Gradle resolves all of them at the newest akki version in the graph.
+fails the build. The pin stays local to the build and never reaches published metadata. Gradle builds without the
+plugin still get a single akki version: each akki library depends on `akki-bom`, so Gradle aligns all of them to
+the newest akki version in the graph.
+
+### Command line and other build tools
+
+Outside Gradle, pass the `akki-compiler` jar to the compiler with `-Xplugin`, its options with `-P`, and put
+`akki-core` and a backend on the classpath yourself. The compiler plugin reports an `akki-core` of a different
+version:
+
+```shell
+kotlinc -Xplugin=akki-compiler-0.3.0.jar -P plugin:io.akki:minLevel=info -classpath akki-core-jvm-0.3.0.jar -d out src
+```
 
 ### Versions and Kotlin compatibility
 
@@ -90,10 +118,10 @@ All akki artifacts use the same release version, following [semantic versioning]
 minor releases may introduce breaking changes. Patch releases provide fixes and backward-compatible additions;
 these can include support for an additional Kotlin release.
 
-The plugin depends on the Kotlin compiler, whose API changes between releases. `akki-compiler` contains an adapter
-for each compiler API it supports and selects one by the version of the compiler that runs it, so Gradle and the
-command line use the same artifact. Beta and RC builds of Kotlin are accepted too, dev builds are not. In a
-compiler older than every adapter the plugin fails the compilation and names the oldest supported version.
+The compiler plugin is tested on the Kotlin releases listed below, and Gradle and the command line use the same
+`akki-compiler` artifact. Beta and RC builds of Kotlin are accepted too, and a dev build `X.Y.Z-dev-N` counts as
+the `X.Y.Z` release. IDE and SNAPSHOT builds are rejected. On an older compiler the compilation fails with an
+error that names the oldest supported version.
 
 | akki    | Kotlin                                | Compiler plugin            |
 |---------|---------------------------------------|----------------------------|
@@ -125,17 +153,17 @@ class JobProcessor {
 }
 ```
 
-The `Log` factory also works without the plugin:
+The `Log` factory also works without the compiler plugin:
 
 ```kotlin
-private val log = Log.of<JobProcessor>()        // by type
-private val log = Log.of(JobProcessor::class)   // by class
-private val log = Log.of(javaClass)             // by runtime class, for abstract base classes
-private val history = Log.named("jobs.history") // by an arbitrary name
+private val log = Log.of<JobProcessor>()        // from the type argument
+private val log = Log.of(JobProcessor::class)   // from a KClass
+private val log = Log.of(javaClass)             // from the runtime Class, for abstract base classes
+private val history = Log.named("jobs.history") // from an arbitrary name
 ```
 
-The plugin can fold constant factory calls into static field reads. A folded `Log.of` for the enclosing type shares
-the field used by `log`. `Log.of(javaClass)` always looks up the logger at runtime.
+The compiler plugin can fold constant factory calls into static field reads. A folded `Log.of` for the enclosing type
+shares the field used by `log`. `Log.of(javaClass)` always looks up the logger at runtime.
 
 ### Backends
 
@@ -150,13 +178,13 @@ val records = recordLogs { processor.run(Job("nightly-report")) }
 assertEquals("started nightly-report", records.single().message)
 ```
 
-Each capture is local to its thread, which keeps parallel tests independent. In coroutine tests, import `recordLogs`
-from `akki-test-coroutines` to capture logs across dispatcher changes.
+A capture belongs to one thread, so tests running in parallel never see each other's records. For coroutine tests,
+import `recordLogs` from `akki-test-coroutines`: it keeps capturing when the coroutine moves between dispatchers.
 
 ### Configuration
 
-Inside `akki {}`, compiler plugin settings belong in `compilerOptions {}` and affect the generated code.
-The other block, `jvm {}`, controls JVMs launched by Gradle without changing that code.
+The `akki {}` block has two parts. `compilerOptions {}` holds the compiler plugin settings, which change the
+generated code. `jvm {}` configures the JVMs that Gradle launches and leaves the generated code unchanged.
 
 Set `minLevel` to remove lower-level records from the compiled code:
 
@@ -170,8 +198,7 @@ akki {
 
 By default, logger names use source notation, such as `com.example.Outer.Inner`. Launch the JVM with
 `-Dio.akki.loggerNameStyle=jvm-class` to use JVM names instead: `com.example.Outer$Inner` and `JobsKt` for files.
-The default value of this option is `source`. The Gradle plugin passes the option to the JVMs that Gradle starts,
-such as `test`, `run` and `bootRun`:
+The Gradle plugin passes the option to the JVMs that Gradle starts, such as `test`, `run` and `bootRun`:
 
 ```kotlin
 akki {
@@ -184,24 +211,26 @@ akki {
 A JVM started outside Gradle, for example with `java -jar` or in a container, still needs the `-D` option. A value
 that a task sets itself with `systemProperty` or `jvmArgs` takes precedence over `loggerNameStyle`.
 
-`includeSlf4jBackend`, `true` by default, adds `akki-slf4j` to the runtime classpath of every JVM compilation. Set
+`includeSlf4jBackend`, `true` by default, adds `akki-slf4j` to the runtime classpath of every `jvm` compilation. Set
 it to `false` in a library, or in an application that registers its own `LogBackend`.
 
 ## Limitations
 
 * Only JVM compilations are supported. Android needs minSdk 34 and has not been tested.
-* Supported Kotlin releases are listed in the compatibility table. Beta and RC builds are accepted, dev builds are
-  not supported.
-* `log` and `logger()` compile without the plugin but throw when called. Use `Log.of` or `Log.named` in that case.
-* Plugin setup and akki dependencies are automatic in Gradle only. Other build tools pass `-Xplugin` with the
-  `akki-compiler` jar and declare the akki modules themselves; the compiler plugin reports a mismatched `akki-core`.
-* Accurate caller lines require the plugin. Inline wrappers around `log` produce synthetic line numbers. Java
+* Supported Kotlin releases are listed in the compatibility table. Their Beta and RC builds are accepted, and so are
+  dev builds of a release; IDE and SNAPSHOT builds are not.
+* `log` and `logger()` compile without the compiler plugin but throw when called. Use `Log.of` or `Log.named` in that
+  case.
+* Only the Gradle plugin sets up the compiler plugin and the akki dependencies automatically; see
+  [Command line and other build tools](#command-line-and-other-build-tools).
+* Accurate caller lines require the compiler plugin. Inline wrappers around `log` produce synthetic line numbers. Java
   calls report `io.akki.Logger` unless that class is registered in logback's `frameworkPackages`.
 * Only a message passed as a lambda is lazy. Ordinary arguments, including fields, are evaluated even when the
   level is disabled.
-* `recordLogs` and `LogScope` capture the current thread. Executors and other threads use the global backend.
+* `recordLogs` and `LogScope` apply to the current thread. Executors and other threads use the global backend.
 * Choose the name style when launching the JVM. `loggerNameStyle` reaches only the JVMs that Gradle starts, and
   setting the style with `System.setProperty` in `main` is too late.
 * Records removed by `minLevel` cannot be restored through runtime logging configuration.
-* MDC and markers are not supported. `Log.named` retains its loggers, so applications need a bounded set of names.
+* MDC and markers are not supported. `Log.named` keeps every logger it creates, so applications need a bounded set
+  of names.
 * The API is experimental. Releases before `1.0` may break compatibility.

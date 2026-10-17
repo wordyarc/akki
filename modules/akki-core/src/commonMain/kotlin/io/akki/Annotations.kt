@@ -10,7 +10,7 @@ package io.akki
 )
 @RequiresOptIn(
     level = RequiresOptIn.Level.WARNING,
-    message = "This API changes process-wide Akki state and requires careful lifecycle management.",
+    message = "This API changes process-wide akki state and requires careful lifecycle management.",
 )
 public annotation class DelicateAkkiApi
 
@@ -24,6 +24,6 @@ public annotation class DelicateAkkiApi
 )
 @RequiresOptIn(
     level = RequiresOptIn.Level.ERROR,
-    message = "This API is shared between Akki modules and can change without notice.",
+    message = "This API is shared between akki modules and can change without notice.",
 )
 public annotation class InternalAkkiApi

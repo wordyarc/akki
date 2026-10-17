@@ -168,7 +168,7 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
             if (coreVersion != null && coreVersion != AKKI_VERSION) {
                 context.reportIncompatibleCore(
                     compat,
-                    "Akki compiler plugin $AKKI_VERSION requires akki-core $AKKI_VERSION, but the compile " +
+                    "The akki compiler plugin $AKKI_VERSION requires akki-core $AKKI_VERSION, but the compile " +
                         "classpath contains akki-core $coreVersion.",
                 )
                 return null
@@ -178,8 +178,8 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
             } catch (failure: IncompatibleCoreException) {
                 context.reportIncompatibleCore(
                     compat,
-                    "Akki compiler plugin $AKKI_VERSION found an incompatible akki-core on the compile classpath: " +
-                        "its version is unknown and '${failure.signature}' is missing. " +
+                    "The akki compiler plugin $AKKI_VERSION found an incompatible akki-core on the compile " +
+                        "classpath: its version is unknown and '${failure.signature}' is missing. " +
                         "Use akki-core $AKKI_VERSION.",
                 )
                 null

@@ -71,7 +71,7 @@ class LogScopeTest {
 
         try {
             val failure = assertFailsWith<IllegalStateException> { first.close() }
-            assertEquals("akki: logging scopes must be exited on their own thread in reverse order", failure.message)
+            assertEquals("akki: a logging scope must be exited on the thread that entered it, innermost first", failure.message)
         } finally {
             second.close()
             first.close()
@@ -88,7 +88,7 @@ class LogScopeTest {
 
         try {
             val failure = assertFailsWith<IllegalStateException> { outer.close() }
-            assertEquals("akki: logging scopes must be exited on their own thread in reverse order", failure.message)
+            assertEquals("akki: a logging scope must be exited on the thread that entered it, innermost first", failure.message)
             assertSame(scope, LogScope.currentOrNull())
         } finally {
             inner.close()

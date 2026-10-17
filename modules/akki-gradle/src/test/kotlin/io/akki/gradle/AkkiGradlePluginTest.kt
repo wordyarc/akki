@@ -180,7 +180,7 @@ class AkkiGradlePluginTest {
             extra = """configurations.all { resolutionStrategy.force("org.slf4j:slf4j-api:1.7.36") }""",
         )
 
-        assertContains(output, "writing to stderr at INFO. $SLF4J_HINT")
+        assertContains(output, "writing INFO and higher to stderr. $SLF4J_HINT")
         assertContains(output, "INFO  consumer.OrderService - received A-1")
         assertContains(output, "AKKI evaluated=0")
     }
@@ -189,7 +189,7 @@ class AkkiGradlePluginTest {
     fun `preserves the slf4j version of an slf4j 1 application`(@TempDir projectDirectory: Path) {
         val output = build(projectDirectory, consumer = Consumer.LegacySlf4j)
 
-        assertContains(output, "writing to stderr at INFO. $SLF4J_HINT")
+        assertContains(output, "writing INFO and higher to stderr. $SLF4J_HINT")
         assertContains(output, "INFO  consumer.OrderService - received A-1")
         assertContains(output, "INFO consumer.Application - application record")
         assertContains(output, "AKKI slf4j-api=1.7.36")
@@ -338,7 +338,7 @@ class AkkiGradlePluginTest {
     fun `supplies core and the slf4j backend to consumers without runtime dependencies`(@TempDir projectDirectory: Path) {
         val output = build(projectDirectory, consumer = Consumer.Bare)
 
-        assertContains(output, "writing to stderr at INFO. $SLF4J_HINT")
+        assertContains(output, "writing INFO and higher to stderr. $SLF4J_HINT")
         assertTrue(output.contains("INFO  consumer.OrderService - received A-1"), output)
     }
 
@@ -346,7 +346,7 @@ class AkkiGradlePluginTest {
     fun `leaves the slf4j backend out when the jvm block excludes it`(@TempDir projectDirectory: Path) {
         val output = build(projectDirectory, consumer = Consumer.Bare, extra = "akki { jvm { includeSlf4jBackend = false } }")
 
-        assertContains(output, "akki: no backend found on the classpath, writing to stderr at INFO. $ADD_BACKEND_HINT")
+        assertContains(output, "akki: no backend is available, writing INFO and higher to stderr. $ADD_BACKEND_HINT")
         assertFalse(output.contains(SLF4J_HINT), output)
         assertTrue(output.contains("INFO  consumer.OrderService - received A-1"), output)
     }
@@ -715,7 +715,7 @@ class AkkiGradlePluginTest {
             assertContains(output, "Cannot find a version of '$GROUP:$artifact'")
             assertContains(output, "strictly $VERSION")
             assertContains(output, "$GROUP:$artifact:$newerVersion")
-            assertContains(output, "Akki modules require the same version as the compiler plugin")
+            assertContains(output, "akki modules must match the compiler plugin version")
         }
     }
 

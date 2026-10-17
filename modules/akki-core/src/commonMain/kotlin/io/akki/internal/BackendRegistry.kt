@@ -8,7 +8,7 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 @OptIn(ExperimentalAtomicApi::class)
 internal object BackendRegistry {
     private val initial = BackendState(
-        DefaultBackend("akki: backend discovery is in progress, writing to stderr at INFO."),
+        DefaultBackend("akki: backend discovery is in progress, writing INFO and higher to stderr."),
     )
     private val current = AtomicReference(initial)
     private val reportedBackend = AtomicReference<LogBackend?>(null)

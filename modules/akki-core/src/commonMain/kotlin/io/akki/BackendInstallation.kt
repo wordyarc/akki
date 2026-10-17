@@ -17,7 +17,7 @@ public class BackendInstallation internal constructor(
         if (!active.compareAndSet(expectedValue = true, newValue = false)) return
         if (restore()) return
         active.store(true)
-        akkiError("backend installations must be uninstalled in reverse order")
+        akkiError("backend installations must be closed newest first")
     }
 
     override fun toString(): String =

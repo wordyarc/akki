@@ -54,7 +54,7 @@ class JvmLogScopeTest {
         }
 
         assertEquals(
-            "akki: logging scopes must be exited on their own thread in reverse order",
+            "akki: a logging scope must be exited on the thread that entered it, innermost first",
             (failure as IllegalStateException).message,
         )
         assertNull(LogScope.currentOrNull())
@@ -77,7 +77,7 @@ class JvmLogScopeTest {
         }
 
         assertEquals(
-            "akki: logging scopes must be exited on their own thread in reverse order",
+            "akki: a logging scope must be exited on the thread that entered it, innermost first",
             (failure as IllegalStateException).message,
         )
         assertNull(workerScope)

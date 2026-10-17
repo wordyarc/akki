@@ -4,7 +4,7 @@ plugins {
     id("org.jetbrains.kotlinx.kover")
 }
 
-description = "Suspending log capture for coroutine tests with akki"
+description = "Suspending recordLogs that captures akki logs in coroutine tests"
 
 kotlin {
     explicitApi()

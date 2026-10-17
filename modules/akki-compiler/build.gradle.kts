@@ -21,8 +21,8 @@ plugins {
     `java-test-fixtures`
 }
 
-description = "Kotlin compiler plugin for akki: logger fields for the log intrinsic, direct backend calls and the " +
-    "compile-time level threshold"
+description = "akki compiler plugin: turns the log intrinsic into logger fields, calls the backend directly and " +
+    "applies the compile-time level threshold"
 
 generateVersionConstant(
     packageName = "io.akki.compiler",

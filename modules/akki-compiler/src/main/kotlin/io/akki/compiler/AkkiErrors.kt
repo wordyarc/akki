@@ -52,8 +52,8 @@ internal object AkkiDefaultErrorMessages : BaseDiagnosticRendererFactory() {
         )
         map.put(
             AkkiErrors.LOGGING_CALL_REFERENCE,
-            "Callable references to ''{0}'' are not supported. They bypass the compiler plugin, report Akki as " +
-                "the caller, and ignore ''minLevel''. Use a lambda instead.",
+            "Callable references to ''{0}'' are not supported. They bypass the compiler plugin, report " +
+                "''io.akki.Logger'' as the caller, and ignore ''minLevel''. Use a lambda instead.",
             CommonRenderers.STRING,
         )
         map.put(

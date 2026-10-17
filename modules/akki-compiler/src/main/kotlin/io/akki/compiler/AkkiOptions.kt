@@ -40,10 +40,10 @@ internal class AkkiCommandLineProcessor : CommandLineProcessor {
     override val pluginOptions: Collection<AbstractCliOption> = listOf(MinLevelOption)
 
     override fun processOption(option: AbstractCliOption, value: String, configuration: CompilerConfiguration) {
-        if (option != MinLevelOption) throw CliOptionProcessingException("Unknown Akki option '${option.optionName}'")
+        if (option != MinLevelOption) throw CliOptionProcessingException("Unknown akki option '${option.optionName}'")
         val level = MinLevel.parseOrNull(value)
             ?: throw CliOptionProcessingException(
-                "Unknown value '$value' for the Akki option '${MinLevelOption.optionName}'. " +
+                "Unknown value '$value' for the akki option '${MinLevelOption.optionName}'. " +
                     "Expected one of ${MinLevel.entries.joinToString(", ") { it.option }}.",
             )
         configuration.put(AkkiConfigurationKeys.MIN_LEVEL, level)

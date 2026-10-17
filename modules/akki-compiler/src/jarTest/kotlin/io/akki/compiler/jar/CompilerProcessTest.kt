@@ -60,7 +60,7 @@ internal class CompilerProcessTest {
         assertEquals("COMPILATION_ERROR", unknown.exitCode, unknown.output)
         assertContains(
             unknown.output,
-            "nknown value 'verbose' for the Akki option 'minLevel'. " +
+            "nknown value 'verbose' for the akki option 'minLevel'. " +
                 "Expected one of trace, debug, info, warn, error, off.",
         )
     }
@@ -73,7 +73,7 @@ internal class CompilerProcessTest {
         assertEquals("COMPILATION_ERROR", stale.exitCode, stale.output)
         assertContains(
             stale.output,
-            "error: [INCOMPATIBLE_AKKI_CORE] Akki compiler plugin $akkiVersion requires akki-core $akkiVersion, " +
+            "error: [INCOMPATIBLE_AKKI_CORE] The akki compiler plugin $akkiVersion requires akki-core $akkiVersion, " +
                 "but the compile classpath contains akki-core 0.0.1.",
         )
     }
@@ -86,8 +86,8 @@ internal class CompilerProcessTest {
         assertEquals("COMPILATION_ERROR", incomplete.exitCode, incomplete.output)
         assertContains(
             incomplete.output,
-            "error: [INCOMPATIBLE_AKKI_CORE] Akki compiler plugin $akkiVersion found an incompatible akki-core on " +
-                "the compile classpath: its version is unknown and",
+            "error: [INCOMPATIBLE_AKKI_CORE] The akki compiler plugin $akkiVersion found an incompatible akki-core " +
+                "on the compile classpath: its version is unknown and",
         )
     }
 
@@ -128,7 +128,7 @@ internal class CompilerProcessTest {
             assertContains(
                 compilation.output,
                 "error: [AKKI_CANNOT_START] akki: compiler plugin $akkiVersion cannot start. Kotlin '$reported' is " +
-                    "not supported. Only releases, their Beta and RC builds and dev builds are recognized.",
+                    "not supported. Recognized builds are releases, their Beta and RC builds, and dev builds of a release.",
             )
             assertFalse(compilation.output.contains("Exception"), compilation.output)
             assertFalse(compilation.classes.exists(), compilation.output)
@@ -160,7 +160,7 @@ internal class CompilerProcessTest {
     ) {
         val compilations = mismatched(reported, kotlin)
         val unlinked = "Kotlin $reported is not supported: the compiler plugin does not link against it. " +
-            "Kotlin releases up to $latestTestedKotlin are tested."
+            "The newest tested Kotlin release is $latestTestedKotlin."
 
         val failed = compilations.filter { it.exitCode != "OK" }
         assertTrue(failed.isNotEmpty(), compilations.joinToString("\n") { it.output })

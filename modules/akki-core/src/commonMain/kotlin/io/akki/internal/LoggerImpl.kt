@@ -58,8 +58,8 @@ internal class LoggerImpl(override val name: String) : Logger() {
             "records are dropped while it keeps failing"
         }
         printlnToStdErr(
-            "akki: the backend failed to resolve logger '$name', $consequence, " +
-                "and only this first failure is reported\n" +
+            "akki: the backend failed to resolve logger '$name'; $consequence. " +
+                "Later failures of this backend are not reported.\n" +
                 failure.stackTraceToString().trimEnd(),
         )
     }

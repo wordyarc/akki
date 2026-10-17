@@ -14,6 +14,6 @@ private fun blank(): Logger = Log.named(EMPTY)
 
 fun box(): String {
     val failure = assertFailsWith<IllegalArgumentException> { blank() }
-    assertEquals("akki: a logger name must not be blank, it is what every backend routes and filters on", failure.message)
+    assertEquals("akki: a logger name must not be blank: every backend routes and filters on it", failure.message)
     return "OK"
 }

@@ -18,8 +18,8 @@ internal class CompilerLinkageTest {
 
         assertEquals(
             "akki: compiler plugin $AKKI_VERSION failed. Kotlin ${KotlinCompilerVersion.getVersion()} is not " +
-                "supported: the compiler plugin does not link against it. Kotlin releases up to " +
-                "$LATEST_TESTED_KOTLIN are tested.",
+                "supported: the compiler plugin does not link against it. The newest tested Kotlin release is " +
+                "$LATEST_TESTED_KOTLIN.",
             failure.message,
         )
         assertSame(missing, failure.cause)

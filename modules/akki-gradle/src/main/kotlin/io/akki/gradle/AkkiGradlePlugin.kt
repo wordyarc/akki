@@ -22,7 +22,7 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
         artifacts.forEach { artifact ->
             target.dependencies.constraints.add(versions.name, "$group:$artifact") { constraint ->
                 constraint.version { it.strictly(pluginVersion) }
-                constraint.because("Akki modules require the same version as the compiler plugin")
+                constraint.because("akki modules must match the compiler plugin version")
             }
         }
         val style = extension.jvm.loggerNameStyle
@@ -82,7 +82,7 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
         val properties: Properties by lazy {
             val resource = requireNotNull(
                 AkkiGradlePlugin::class.java.getResourceAsStream("/akki-gradle.properties")
-            ) { "akki-gradle.properties is missing from the Akki Gradle plugin jar" }
+            ) { "akki-gradle.properties is missing from the akki Gradle plugin jar" }
             Properties().apply { resource.use(::load) }
         }
 
@@ -97,6 +97,6 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
         val pluginVersion: String by lazy { property("version") }
 
         fun property(name: String): String =
-            requireNotNull(properties.getProperty(name)) { "akki-gradle.properties has no $name" }
+            requireNotNull(properties.getProperty(name)) { "akki-gradle.properties does not define $name" }
     }
 }

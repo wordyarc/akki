@@ -47,7 +47,7 @@ internal fun loggerName(jClass: Class<*>, style: LoggerNameStyle): String {
 internal fun parseLoggerNameStyle(value: String?): LoggerNameStyle {
     val normalized = value?.trim()?.lowercase()?.replace('_', '-')?.ifEmpty { null } ?: return LoggerNameStyle.SOURCE
     return LoggerNameStyle.entries.firstOrNull { it.propertyValue == normalized } ?: akkiError(
-        "invalid $LOGGER_NAME_STYLE_PROPERTY value '$value': " +
+        "unknown value '$value' for '$LOGGER_NAME_STYLE_PROPERTY': " +
             "expected ${LoggerNameStyle.entries.joinToString(" or ") { "'${it.propertyValue}'" }}",
     )
 }

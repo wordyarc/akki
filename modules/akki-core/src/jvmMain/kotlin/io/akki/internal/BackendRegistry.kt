@@ -80,7 +80,7 @@ private inline fun <T : Any> LogBackendFactory.isolated(call: LogBackendFactory.
         call()
     } catch (failure: Throwable) {
         if (failure.isFatal) throw failure
-        printlnToStdErr("akki: ignoring a failed backend factory ${javaClass.name}: $failure")
+        printlnToStdErr("akki: backend factory ${javaClass.name} failed and is skipped: $failure")
         null
     }
 
@@ -101,26 +101,26 @@ private class Services(private val loader: ClassLoader) {
                     if (cause != null && cause.isFatal) throw cause
                     if (cause is IOException) {
                         printlnToStdErr(
-                            "akki: backend service enumeration interrupted by an I/O failure: $failure",
+                            "akki: an I/O error stopped the backend service lookup: $failure",
                         )
                         isComplete = false
                         return found
                     }
                     if (failure !is ServiceConfigurationError && failure !is LinkageError) throw failure
                     printlnToStdErr(
-                        "akki: ignoring a broken backend service declaration\n${failure.stackTraceToString().trimEnd()}",
+                        "akki: skipping an invalid backend service declaration\n${failure.stackTraceToString().trimEnd()}",
                     )
                 }
             }
         } catch (failure: Throwable) {
             if (failure.isFatal) throw failure
-            printlnToStdErr("akki: failed to discover backends\n${failure.stackTraceToString().trimEnd()}")
+            printlnToStdErr("akki: backend discovery failed\n${failure.stackTraceToString().trimEnd()}")
             isComplete = false
             return found
         }
     }
 }
 
-private const val NO_BACKEND: String = "akki: no backend found on the classpath, writing to stderr at INFO."
+private const val NO_BACKEND: String = "akki: no backend is available, writing INFO and higher to stderr."
 
 private const val ADD_BACKEND: String = "Add a backend such as akki-slf4j to the runtime classpath."

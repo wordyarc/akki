@@ -39,7 +39,7 @@ internal class AkkiCommandLineProcessorTest {
             processor.processOption(processor.pluginOptions.single(), "verbose", CompilerConfiguration())
         }
 
-        assertContains(failure.message.orEmpty(), "value 'verbose' for the Akki option 'minLevel'")
+        assertContains(failure.message.orEmpty(), "value 'verbose' for the akki option 'minLevel'")
         assertContains(failure.message.orEmpty(), "trace, debug, info, warn, error, off")
     }
 }
