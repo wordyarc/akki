@@ -98,7 +98,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Create the release with notes from commit subjects
+      - name: Create the release with a link to the full changelog
         run: |
           tools/release-notes.sh "$GITHUB_REF_NAME" > notes.md
           gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md --verify-tag \
