@@ -2,7 +2,10 @@ package io.akki.gradle
 
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.jar.JarFile
 import kotlin.io.path.createDirectories
+import kotlin.io.path.exists
+import kotlin.io.path.readText
 import kotlin.io.path.writeText
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -105,7 +108,7 @@ class AkkiGradlePluginTest {
     }
 
     @Test
-    fun `passes the configured logger name style to the JVMs that Gradle launches`(@TempDir projectDirectory: Path) {
+    fun `ships the configured logger name style with the compiled classes`(@TempDir projectDirectory: Path) {
         prepareConsumer(
             projectDirectory,
             Consumer.Bootstrap,
@@ -118,26 +121,30 @@ class AkkiGradlePluginTest {
             """.trimIndent(),
         )
 
-        val jvm = runConsumer(projectDirectory, "test", "-Pstyle=JVM_CLASS")
+        val jvm = runConsumer(projectDirectory, "test", "jar", "-Pstyle=JVM_CLASS")
         assertEquals(TaskOutcome.SUCCESS, jvm.task(":test")?.outcome, jvm.output)
-        assertContains(jvm.output, "AKKI startup style=jvm-class")
+        assertContains(jvm.output, "AKKI startup style=null")
         assertContains(jvm.output, "AKKI name=consumer.Owner\$Nested")
         assertContains(jvm.output, "AKKI test name=consumer.Owner\$Nested")
+        assertEquals("io.akki.loggerNameStyle=jvm-class\n", akkiProperties(projectDirectory))
+        assertEquals("io.akki.loggerNameStyle=jvm-class\n", jarEntry(projectDirectory, AKKI_PROPERTIES))
 
-        val repeated = runConsumer(projectDirectory, "test", "-Pstyle=JVM_CLASS")
+        val repeated = runConsumer(projectDirectory, "test", "jar", "-Pstyle=JVM_CLASS")
         assertContains(repeated.output, "Reusing configuration cache.")
         assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":test")?.outcome, repeated.output)
+        assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":jar")?.outcome, repeated.output)
         assertContains(repeated.output, "AKKI name=consumer.Owner\$Nested")
 
-        val source = runConsumer(projectDirectory, "test", "-Pstyle=SOURCE")
+        val source = runConsumer(projectDirectory, "test", "jar", "-Pstyle=SOURCE")
         assertEquals(TaskOutcome.SUCCESS, source.task(":test")?.outcome, source.output)
-        assertContains(source.output, "AKKI startup style=source")
+        assertContains(source.output, "AKKI startup style=null")
         assertContains(source.output, "AKKI name=consumer.Owner.Nested")
         assertContains(source.output, "AKKI test name=consumer.Owner.Nested")
+        assertEquals("io.akki.loggerNameStyle=source\n", jarEntry(projectDirectory, AKKI_PROPERTIES))
     }
 
     @Test
-    fun `keeps the logger name style that a task sets itself`(@TempDir projectDirectory: Path) {
+    fun `lets a system property override the shipped logger name style`(@TempDir projectDirectory: Path) {
         prepareConsumer(
             projectDirectory,
             Consumer.Bootstrap,
@@ -165,11 +172,15 @@ class AkkiGradlePluginTest {
     }
 
     @Test
-    fun `passes no logger name style until one is configured`(@TempDir projectDirectory: Path) {
-        val output = build(projectDirectory, consumer = Consumer.Bootstrap)
+    fun `ships no logger name style until one is configured`(@TempDir projectDirectory: Path) {
+        prepareConsumer(projectDirectory, Consumer.Bootstrap)
+
+        val output = runConsumer(projectDirectory, "jar").output
 
         assertContains(output, "AKKI startup style=null")
         assertContains(output, "AKKI name=consumer.Owner.Nested")
+        assertEquals(null, akkiProperties(projectDirectory))
+        assertEquals(null, jarEntry(projectDirectory, AKKI_PROPERTIES))
     }
 
     @Test
@@ -745,6 +756,14 @@ class AkkiGradlePluginTest {
             .output
     }
 
+    private fun akkiProperties(projectDirectory: Path): String? =
+        projectDirectory.resolve("build/resources/main/$AKKI_PROPERTIES").takeIf { it.exists() }?.readText()
+
+    private fun jarEntry(projectDirectory: Path, name: String): String? =
+        JarFile(projectDirectory.resolve("build/libs/consumer.jar").toFile()).use { jar ->
+            jar.getJarEntry(name)?.let { jar.getInputStream(it).reader().readText() }
+        }
+
     private fun build(projectDirectory: Path, consumer: Consumer = Consumer.Core, extra: String = ""): String {
         prepareConsumer(projectDirectory, consumer, extra)
         return runConsumer(projectDirectory).output
@@ -935,5 +954,7 @@ class AkkiGradlePluginTest {
         const val SLF4J_HINT: String = "Add an SLF4J 2 provider to the runtime classpath, for example logback-classic."
 
         const val ADD_BACKEND_HINT: String = "Add a backend such as akki-slf4j to the runtime classpath."
+
+        const val AKKI_PROPERTIES: String = "META-INF/akki.properties"
     }
 }

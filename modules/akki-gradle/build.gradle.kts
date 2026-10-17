@@ -12,7 +12,7 @@ plugins {
 }
 
 description = "Gradle plugin that applies the akki compiler plugin, adds akki-core and akki-slf4j of the same " +
-    "version and passes the configured logger name style to Test and JavaExec tasks"
+    "version and ships the configured logger name style with the compiled classes"
 
 val testRepositories: Configuration = testRepositoriesOf(
     ":akki-core",

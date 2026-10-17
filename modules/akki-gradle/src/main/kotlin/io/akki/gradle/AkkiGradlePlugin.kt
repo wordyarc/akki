@@ -3,8 +3,6 @@ package io.akki.gradle
 import java.util.Properties
 import org.gradle.api.Project
 import org.gradle.api.provider.Provider
-import org.gradle.api.tasks.JavaExec
-import org.gradle.api.tasks.testing.Test
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilerPluginSupportPlugin
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
@@ -25,9 +23,6 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
                 constraint.because("akki modules must match the compiler plugin version")
             }
         }
-        val style = extension.jvm.loggerNameStyle
-        target.tasks.withType(Test::class.java).configureEach { it.passLoggerNameStyle(target.providers, style) }
-        target.tasks.withType(JavaExec::class.java).configureEach { it.passLoggerNameStyle(target.providers, style) }
     }
 
     override fun isApplicable(kotlinCompilation: KotlinCompilation<*>): Boolean =
@@ -53,6 +48,9 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
             project.configurations.named(kotlinCompilation.defaultSourceSet.runtimeOnlyConfigurationName) {
                 it.dependencies.addAllLater(backend)
             }
+            if (kotlinCompilation.name == KotlinCompilation.MAIN_COMPILATION_NAME) {
+                kotlinCompilation.shipLoggerNameStyle(extension.jvm.loggerNameStyle)
+            }
         }
         val versions = project.configurations.getByName(VERSIONS_CONFIGURATION_NAME)
         listOfNotNull(kotlinCompilation.compileDependencyConfigurationName, kotlinCompilation.runtimeDependencyConfigurationName)
@@ -66,6 +64,17 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
             }
         }
         return minLevel.map { listOf(SubpluginOption(MIN_LEVEL_OPTION, it.name.lowercase())) }.orElse(emptyList())
+    }
+
+    private fun KotlinCompilation<*>.shipLoggerNameStyle(style: Provider<LoggerNameStyle>) {
+        val project = target.project
+        val sourceSet = defaultSourceSet
+        val name = WriteAkkiProperties.name(sourceSet.name)
+        val properties = project.tasks.register(name, WriteAkkiProperties::class.java) {
+            it.loggerNameStyle.set(style)
+            it.outputDirectory.set(project.layout.buildDirectory.dir("generated/akki/${sourceSet.name}/resources"))
+        }
+        sourceSet.resources.srcDir(properties)
     }
 
     private companion object {

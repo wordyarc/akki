@@ -115,6 +115,9 @@ version:
 kotlinc -Xplugin=akki-compiler-0.3.0.jar -P plugin:io.akki:minLevel=info -classpath akki-core-jvm-0.3.0.jar -d out src
 ```
 
+The logger name style is a runtime setting: pass `-Dio.akki.loggerNameStyle=jvm-class` to the JVM, or put
+`META-INF/akki.properties` with the line `io.akki.loggerNameStyle=jvm-class` on the classpath.
+
 ### Versions and Kotlin compatibility
 
 All akki artifacts use the same release version, following [semantic versioning](https://semver.org). Until `1.0`,
@@ -187,7 +190,8 @@ import `recordLogs` from `akki-test-coroutines`: it keeps capturing when the cor
 ### Configuration
 
 The `akki {}` block has two parts. `compilerOptions {}` holds the compiler plugin settings, which change the
-generated code. `jvm {}` configures the JVMs that Gradle launches and leaves the generated code unchanged.
+generated code. `jvm {}` configures the runtime of JVM compilations, their dependencies and the settings that ship
+with the compiled classes, and leaves the generated code unchanged.
 
 Set `minLevel` to remove lower-level records from the compiled code:
 
@@ -199,9 +203,10 @@ akki {
 }
 ```
 
-By default, logger names use source notation, such as `com.example.Outer.Inner`. Launch the JVM with
-`-Dio.akki.loggerNameStyle=jvm-class` to use JVM names instead: `com.example.Outer$Inner` and `JobsKt` for files.
-The Gradle plugin passes the option to the JVMs that Gradle starts, such as `test`, `run` and `bootRun`:
+By default, logger names use source notation, such as `com.example.Outer.Inner`. Set `loggerNameStyle` to use JVM
+names instead: `com.example.Outer$Inner` and `JobsKt` for files. The Gradle plugin writes the setting to
+`META-INF/akki.properties` in the main resources, so it ships with the compiled classes: `test`, `run`, `bootRun`,
+the application jar and the container use the same style:
 
 ```kotlin
 akki {
@@ -211,8 +216,8 @@ akki {
 }
 ```
 
-A JVM started outside Gradle, for example with `java -jar` or in a container, still needs the `-D` option. A value
-that a task sets itself with `systemProperty` or `jvmArgs` takes precedence over `loggerNameStyle`.
+The style belongs to the application: a library leaves it unset, and resources that disagree on the style fail the
+first logging call. The JVM option `-Dio.akki.loggerNameStyle=jvm-class` takes precedence over the resource.
 
 `includeSlf4jBackend`, `true` by default, adds `akki-slf4j` to the runtime classpath of every `jvm` compilation. Set
 it to `false` in a library, or in an application that registers its own `LogBackend`.
@@ -231,8 +236,8 @@ it to `false` in a library, or in an application that registers its own `LogBack
 * Only a message passed as a lambda is lazy. Ordinary arguments, including fields, are evaluated even when the
   level is disabled.
 * `recordLogs` and `LogScope` apply to the current thread. Executors and other threads use the global backend.
-* Choose the name style when launching the JVM. `loggerNameStyle` reaches only the JVMs that Gradle starts, and
-  setting the style with `System.setProperty` in `main` is too late.
+* The name style is read before `main` runs. Set it with `loggerNameStyle` or the `-D` option; `System.setProperty`
+  in `main` is too late.
 * Records removed by `minLevel` cannot be restored through runtime logging configuration.
 * MDC and markers are not supported. `Log.named` keeps every logger it creates, so applications need a bounded set
   of names.

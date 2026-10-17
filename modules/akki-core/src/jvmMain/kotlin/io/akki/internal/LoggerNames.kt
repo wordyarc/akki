@@ -1,5 +1,7 @@
 package io.akki.internal
 
+import java.net.URL
+import java.util.Properties
 import kotlin.reflect.KClass
 
 private const val FACADE_SUFFIX: String = "Kt"
@@ -17,6 +19,7 @@ private const val CLASS_KIND_FLAGS_MASK: Int = 7
 private const val CLASS_KIND_COMPANION_OBJECT: Int = 6
 
 internal const val LOGGER_NAME_STYLE_PROPERTY: String = "io.akki.loggerNameStyle"
+internal const val AKKI_PROPERTIES_RESOURCE: String = "META-INF/akki.properties"
 
 internal enum class LoggerNameStyle {
     SOURCE,
@@ -26,7 +29,9 @@ internal enum class LoggerNameStyle {
     val propertyValue: String = name.lowercase().replace('_', '-')
 }
 
-private val configuredStyle: LoggerNameStyle by lazy { parseLoggerNameStyle(loggerNameStyleProperty()) }
+private val configuredStyle: LoggerNameStyle by lazy {
+    parseLoggerNameStyle(loggerNameStyleProperty() ?: loggerNameStyleResource())
+}
 
 private val loggerNames: ClassValue<String> = object : ClassValue<String>() {
     override fun computeValue(type: Class<*>): String = loggerName(type, configuredStyle)
@@ -58,6 +63,24 @@ private fun loggerNameStyleProperty(): String? =
     } catch (_: SecurityException) {
         null
     }
+
+private fun loggerNameStyleResource(): String? {
+    val loader = LoggerNameStyle::class.java.classLoader ?: ClassLoader.getSystemClassLoader()
+    val declarations = loader.getResources(AKKI_PROPERTIES_RESOURCE).asSequence()
+        .mapNotNull { url -> url.loggerNameStyle()?.let { url to it } }
+        .toList()
+    val (url, value) = declarations.firstOrNull() ?: return null
+    declarations.firstOrNull { (_, other) -> other != value }?.let { (otherUrl, other) ->
+        akkiError(
+            "conflicting values for '$LOGGER_NAME_STYLE_PROPERTY' on the classpath: " +
+                "'$value' in $url and '$other' in $otherUrl",
+        )
+    }
+    return value
+}
+
+private fun URL.loggerNameStyle(): String? =
+    openStream().use { Properties().apply { load(it) } }.getProperty(LOGGER_NAME_STYLE_PROPERTY)
 
 private fun Class<*>.enclosingOwner(): Class<*>? {
     superclass?.takeIf(Class<*>::isEnum)?.let { return it }
