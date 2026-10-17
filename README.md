@@ -1,6 +1,6 @@
 # akki
 
-[![Kotlin](https://img.shields.io/badge/kotlin-2.4.20-blue.svg?logo=kotlin)](https://kotlinlang.org)
+[![Kotlin](https://img.shields.io/badge/kotlin-2.4.21-blue.svg?logo=kotlin)](https://kotlinlang.org)
 [![GitHub license](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg?style=flat)](https://www.apache.org/licenses/LICENSE-2.0)
 
 Log in Kotlin without declaring a logger. The compiler plugin derives its name from the surrounding code.
@@ -34,7 +34,7 @@ caller line. An optional compile-time threshold removes calls below the selected
 * `akki-test`: captures test logs with `recordLogs { }` or `RecordingBackend`.
 * `akki-coroutines`: carries a `LogScope` in a coroutine context via `LogScope.asContextElement()`.
 * `akki-test-coroutines`: provides suspending `recordLogs { }` for coroutine tests.
-* `akki-bom`: supplies the version of every akki artifact to Gradle platforms and Maven `dependencyManagement`.
+* `akki-bom`: supplies the version of every akki artifact as a Gradle platform.
 
 ## Setup
 
@@ -44,7 +44,7 @@ Add the plugin to your build:
 
 ```kotlin
 plugins {
-    kotlin("jvm") version "2.4.20"
+    kotlin("jvm") version "2.4.21"
     id("io.github.wordyarc.akki") version "0.3.0"
 }
 ```
@@ -84,46 +84,6 @@ an older version is raised, a newer one that a dependency brings is lowered, and
 fails the build. This pin is not published. Gradle builds without the plugin still get a single akki version: each
 akki library depends on `akki-bom`, so Gradle resolves all of them at the newest akki version in the graph.
 
-### Maven
-
-Import `akki-bom` and use the `-jvm` artifact of each multiplatform module (`akki-core-jvm`, `akki-test-jvm`,
-`akki-coroutines-jvm`, `akki-test-coroutines-jvm`). Set `-Xplugin` to the `akki-compiler` jar of the same version:
-
-```xml
-<properties>
-  <akki.version>0.3.0</akki.version>
-</properties>
-
-<dependencyManagement>
-  <dependencies>
-    <dependency>
-      <groupId>io.github.wordyarc</groupId>
-      <artifactId>akki-bom</artifactId>
-      <version>${akki.version}</version>
-      <type>pom</type>
-      <scope>import</scope>
-    </dependency>
-  </dependencies>
-</dependencyManagement>
-
-<dependencies>
-  <dependency>
-    <groupId>io.github.wordyarc</groupId>
-    <artifactId>akki-core-jvm</artifactId>
-  </dependency>
-  <dependency>
-    <groupId>io.github.wordyarc</groupId>
-    <artifactId>akki-slf4j</artifactId>
-    <scope>runtime</scope>
-  </dependency>
-  <dependency>
-    <groupId>io.github.wordyarc</groupId>
-    <artifactId>akki-test-jvm</artifactId>
-    <scope>test</scope>
-  </dependency>
-</dependencies>
-```
-
 ### Versions and Kotlin compatibility
 
 All akki artifacts use the same release version, following [semantic versioning](https://semver.org). Until `1.0`,
@@ -131,15 +91,15 @@ minor releases may introduce breaking changes. Patch releases provide fixes and 
 these can include support for an additional Kotlin release.
 
 The plugin depends on the Kotlin compiler, whose API changes between releases. `akki-compiler` contains an adapter
-for each compiler API it supports and selects one by the version of the compiler that runs it, so Gradle, Maven and
-the command line use the same artifact. Beta and RC builds of Kotlin are accepted too, dev builds are not. In a
+for each compiler API it supports and selects one by the version of the compiler that runs it, so Gradle and the
+command line use the same artifact. Beta and RC builds of Kotlin are accepted too, dev builds are not. In a
 compiler older than every adapter the plugin fails the compilation and names the oldest supported version.
 
-| akki    | Kotlin                      | Compiler plugin            |
-|---------|-----------------------------|----------------------------|
-| `0.3.0` | `2.4.0`, `2.4.10`, `2.4.20` | `akki-compiler`            |
-| `0.2.0` | `2.4.0`, `2.4.10`, `2.4.20` | `akki-compiler-kotlin-2.4` |
-| `0.1.0` | `2.4.x`                     | `akki-compiler`            |
+| akki    | Kotlin                                | Compiler plugin            |
+|---------|---------------------------------------|----------------------------|
+| `0.3.0` | `2.4.0`, `2.4.10`, `2.4.20`, `2.4.21` | `akki-compiler`            |
+| `0.2.0` | `2.4.0`, `2.4.10`, `2.4.20`           | `akki-compiler-kotlin-2.4` |
+| `0.1.0` | `2.4.x`                               | `akki-compiler`            |
 
 ## Usage
 
@@ -233,8 +193,8 @@ it to `false` in a library, or in an application that registers its own `LogBack
 * Supported Kotlin releases are listed in the compatibility table. Beta and RC builds are accepted, dev builds are
   not supported.
 * `log` and `logger()` compile without the plugin but throw when called. Use `Log.of` or `Log.named` in that case.
-* Plugin setup and akki dependencies are automatic in Gradle. With Maven, set `-Xplugin` to the `akki-compiler`
-  artifact and import `akki-bom` of the same version; the compiler plugin reports a mismatched `akki-core`.
+* Plugin setup and akki dependencies are automatic in Gradle only. Other build tools pass `-Xplugin` with the
+  `akki-compiler` jar and declare the akki modules themselves; the compiler plugin reports a mismatched `akki-core`.
 * Accurate caller lines require the plugin. Inline wrappers around `log` produce synthetic line numbers. Java
   calls report `io.akki.Logger` unless that class is registered in logback's `frameworkPackages`.
 * Only a message passed as a lambda is lazy. Ordinary arguments, including fields, are evaluated even when the
