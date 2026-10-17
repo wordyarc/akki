@@ -11,8 +11,8 @@ plugins {
     id("com.gradle.plugin-publish")
 }
 
-description = "Gradle plugin that applies the akki compiler plugin, adds akki-core and akki-slf4j of the same " +
-    "version and ships the configured logger name style with the compiled classes"
+description = "Gradle plugin that applies the akki compiler plugin, adds akki-core and akki-slf4j and keeps every " +
+    "akki module at the plugin version"
 
 val testRepositories: Configuration = testRepositoriesOf(
     ":akki-core",

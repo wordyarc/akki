@@ -190,8 +190,8 @@ import `recordLogs` from `akki-test-coroutines`: it keeps capturing when the cor
 ### Configuration
 
 The `akki {}` block has two parts. `compilerOptions {}` holds the compiler plugin settings, which change the
-generated code. `jvm {}` configures the runtime of JVM compilations, their dependencies and the settings that ship
-with the compiled classes, and leaves the generated code unchanged.
+generated code. `jvm {}` holds the runtime settings of `jvm` compilations: the backend dependency and the logger name
+style. They ship with the application and leave the generated code unchanged.
 
 Set `minLevel` to remove lower-level records from the compiled code:
 
@@ -204,9 +204,7 @@ akki {
 ```
 
 By default, logger names use source notation, such as `com.example.Outer.Inner`. Set `loggerNameStyle` to use JVM
-names instead: `com.example.Outer$Inner` and `JobsKt` for files. The Gradle plugin writes the setting to
-`META-INF/akki.properties` in the main resources, so it ships with the compiled classes: `test`, `run`, `bootRun`,
-the application jar and the container use the same style:
+names instead: `com.example.Outer$Inner` and `JobsKt` for files:
 
 ```kotlin
 akki {
@@ -216,8 +214,12 @@ akki {
 }
 ```
 
-The style belongs to the application: a library leaves it unset, and resources that disagree on the style fail the
-first logging call. The JVM option `-Dio.akki.loggerNameStyle=jvm-class` takes precedence over the resource.
+The Gradle plugin writes the setting to `META-INF/akki.properties` in the main resources. It ships with the
+application, so `test`, `run`, `bootRun` and the jar use the same style. The JVM option
+`-Dio.akki.loggerNameStyle=jvm-class` takes precedence over the resource.
+
+The style belongs to the application. A library leaves it unset; two resources with different values stop the
+application at startup with an error that names both files.
 
 `includeSlf4jBackend`, `true` by default, adds `akki-slf4j` to the runtime classpath of every `jvm` compilation. Set
 it to `false` in a library, or in an application that registers its own `LogBackend`.

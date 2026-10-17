@@ -71,6 +71,8 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
         val sourceSet = defaultSourceSet
         val name = WriteAkkiProperties.name(sourceSet.name)
         val properties = project.tasks.register(name, WriteAkkiProperties::class.java) {
+            it.description =
+                "Writes META-INF/akki.properties with the logger name style for the ${sourceSet.name} source set"
             it.loggerNameStyle.set(style)
             it.outputDirectory.set(project.layout.buildDirectory.dir("generated/akki/${sourceSet.name}/resources"))
         }
