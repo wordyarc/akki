@@ -2,6 +2,9 @@
 
 [![Kotlin](https://img.shields.io/badge/kotlin-2.4.21-blue.svg?logo=kotlin)](https://kotlinlang.org)
 [![GitHub license](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg?style=flat)](https://www.apache.org/licenses/LICENSE-2.0)
+[![Build](https://github.com/wordyarc/akki/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/wordyarc/akki/actions/workflows/build.yml)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.wordyarc/akki-core)](https://central.sonatype.com/artifact/io.github.wordyarc/akki-core)
+[![Gradle Plugin Portal](https://img.shields.io/gradle-plugin-portal/v/io.github.wordyarc.akki)](https://plugins.gradle.org/plugin/io.github.wordyarc.akki)
 
 Log in Kotlin without declaring a logger. The compiler plugin names the logger after the enclosing declaration.
 Requires Kotlin `2.4.0` or newer.
