@@ -212,6 +212,29 @@ class AkkiGradlePluginTest {
     }
 
     @Test
+    fun `reads the selected backend from the resource on the module path`(@TempDir projectDirectory: Path) {
+        prepareConsumer(
+            projectDirectory,
+            Consumer.ModularSelected,
+            extra = """
+                akki {
+                    jvm {
+                        backend.set(providers.gradleProperty("backend"))
+                    }
+                }
+            """.trimIndent(),
+        )
+
+        val declared: String = runConsumer(projectDirectory).output
+        assertContains(declared, "AKKI DECLARED consumer.OrderService - received A-1")
+
+        val selected: String = runConsumer(projectDirectory, "-Pbackend=${AkkiJvmOptions.SLF4J_BACKEND}").output
+        val line = lineOf(Consumer.ModularSelected, """log.info("received""")
+        assertContains(selected, "AKKI INFO consumer.OrderService [consumer.OrderService.handle:$line] - received A-1")
+        assertFalse(selected.contains("AKKI DECLARED"), selected)
+    }
+
+    @Test
     fun `rejects a backend that is not a class name`(@TempDir projectDirectory: Path) {
         prepareConsumer(projectDirectory, Consumer.Core, extra = """akki { jvm { backend = "akki-slf4j" } }""")
 
@@ -873,8 +896,9 @@ class AkkiGradlePluginTest {
                 .writeText(fixture("consumer/$it"))
         }
         if (consumer.modular) {
+            val provides = consumer.provides?.let { "    provides io.akki.backend.LogBackend with $it;\n" } ?: ""
             projectDirectory.resolve("src/main/java").createDirectories().resolve("module-info.java")
-                .writeText("module consumer {\n    requires io.akki.core;\n}\n")
+                .writeText("module consumer {\n    requires io.akki.core;\n$provides}\n")
         }
 
     }
@@ -962,6 +986,8 @@ class AkkiGradlePluginTest {
             ${if (consumer.modular) "mainModule.set(\"consumer\")" else ""}
         }
 
+        ${if (consumer.modular) PATCH_MODULE else ""}
+
         ${if (consumer.test != null) "tasks.test { testLogging.showStandardStreams = true }" else ""}
         """.trimIndent()
 
@@ -980,7 +1006,7 @@ class AkkiGradlePluginTest {
             """implementation("$GROUP:akki-slf4j:$VERSION")""",
             """runtimeOnly("ch.qos.logback:logback-classic:${property("akki.logback.version")}")""",
         )
-        Consumer.Modular, Consumer.Selected -> listOf(
+        Consumer.Modular, Consumer.Selected, Consumer.ModularSelected -> listOf(
             """runtimeOnly("ch.qos.logback:logback-classic:${property("akki.logback.version")}")""",
         )
         Consumer.LegacySlf4j -> listOf(
@@ -1001,6 +1027,7 @@ class AkkiGradlePluginTest {
         val resource: String?,
         val modular: Boolean = false,
         val test: String? = null,
+        val provides: String? = null,
     ) {
         Bare("BareMain.kt", "consumer.BareMainKt", null),
         Core("Main.kt", "consumer.MainKt", null),
@@ -1010,6 +1037,13 @@ class AkkiGradlePluginTest {
         Clipped("ClippedMain.kt", "consumer.ClippedMainKt", null),
         Modular("ModularMain.kt", "consumer.ModularMainKt", "logback.xml", modular = true),
         Selected("SelectedMain.kt", "consumer.SelectedMainKt", "logback.xml"),
+        ModularSelected(
+            "SelectedMain.kt",
+            "consumer.SelectedMainKt",
+            "logback.xml",
+            modular = true,
+            provides = "consumer.DeclaredBackend",
+        ),
         Compatibility("CompatibilityMain.kt", "consumer.CompatibilityMainKt", null),
         LegacySlf4j("LegacySlf4jMain.kt", "consumer.LegacySlf4jMainKt", null),
     }
@@ -1018,6 +1052,10 @@ class AkkiGradlePluginTest {
         val BOM_ARTIFACTS: List<String> = requireNotNull(System.getProperty("akki.bom.artifacts")).split(',')
 
         const val POM_ONLY: String = "metadataSources { mavenPom(); artifact(); ignoreGradleMetadataRedirection() }"
+
+        const val PATCH_MODULE: String =
+            "tasks.compileJava { options.compilerArgs.addAll(listOf(\"--patch-module\", \"consumer=\" + " +
+                "sourceSets[\"main\"].output.asPath)) }"
 
         const val SLF4J_HINT: String = "Add an SLF4J 2 provider to the runtime classpath, for example logback-classic."
 

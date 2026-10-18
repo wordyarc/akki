@@ -45,6 +45,17 @@ class JvmBackendPropertyTest {
     }
 
     @Test
+    fun `an empty system property restores the automatic selection`(@TempDir directory: Path): Unit {
+        val resources = listOf(directory.declareProbeBackends().akkiProperties(BACKEND_PROPERTY to SECOND))
+
+        val (exit, output) = probe(property = "", resources = resources)
+
+        assertEquals(0, exit, output)
+        assertContains(output, "akki: multiple backends on the classpath, using $FIRST: $FIRST, $SECOND")
+        assertContains(output, "backend=$FIRST")
+    }
+
+    @Test
     fun `an unknown backend fails the first record instead of falling back`(@TempDir directory: Path): Unit {
         val (exit, output) = probe(property = "acme.Missing", resources = listOf(directory.declareProbeBackends()))
 

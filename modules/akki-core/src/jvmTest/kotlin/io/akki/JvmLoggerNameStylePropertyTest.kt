@@ -48,6 +48,16 @@ class JvmLoggerNameStylePropertyTest {
     }
 
     @Test
+    fun `an empty system property restores the default style`(@TempDir directory: Path): Unit {
+        val resources = listOf(directory.styleResource(LoggerNameStyle.JVM_CLASS))
+
+        val (exit, output) = probe(property = "", resources = resources)
+
+        assertEquals(0, exit, output)
+        assertContains(output, "name=" + NameStyleProbe.Owner.Nested::class.java.canonicalName)
+    }
+
+    @Test
     fun `an unknown style in a classpath resource fails the first lookup`(@TempDir directory: Path): Unit {
         val (exit, output) = probe(resources = listOf(directory.akkiProperties(LOGGER_NAME_STYLE_PROPERTY to "binary")))
 

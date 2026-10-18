@@ -236,7 +236,8 @@ akki {
 
 The Gradle plugin writes both settings to `META-INF/akki.properties` in the main resources. They ship with the
 application, so `test`, `run`, `bootRun` and the jar use the same values. A system property with the same name, set
-with `-Dio.akki.backend=io.akki.slf4j.Slf4jBackend` for example, takes precedence over the resource.
+with `-Dio.akki.backend=io.akki.slf4j.Slf4jBackend` for example, takes precedence over the resource. An empty system
+property, `-Dio.akki.backend=`, unsets the value shipped in the resource.
 
 | Property                  | Values                                                                   | When unset                                        |
 |---------------------------|--------------------------------------------------------------------------|---------------------------------------------------|
