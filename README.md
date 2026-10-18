@@ -76,6 +76,9 @@ akki {
 }
 ```
 
+If a dependency registers its own `LogBackend`, akki prefers it to `akki-slf4j`. The `backend` setting in
+[Configuration](#configuration) overrides that choice.
+
 #### Tests
 
 To capture logs in tests:
@@ -115,8 +118,8 @@ version:
 kotlinc -Xplugin=akki-compiler-0.3.0.jar -P plugin:io.akki:minLevel=info -classpath akki-core-jvm-0.3.0.jar -d out src
 ```
 
-The logger name style is a runtime setting: pass `-Dio.akki.loggerNameStyle=jvm-class` to the JVM, or put
-`META-INF/akki.properties` with the line `io.akki.loggerNameStyle=jvm-class` on the classpath.
+The logger name style and the backend are set with `-D` options or in `META-INF/akki.properties` on the classpath;
+see [Configuration](#configuration).
 
 ### Versions and Kotlin compatibility
 
@@ -173,9 +176,13 @@ shares the field used by `log`. `Log.of(javaClass)` always looks up the logger a
 
 ### Backends
 
-`akki-slf4j` passes fields to SLF4J as key-value pairs and uses the exception as the cause. If a `LogBackend` is
-registered with `ServiceLoader`, akki chooses it over `akki-slf4j`. Calling `Log.install(backend)` replaces the
-backend for the whole process.
+`akki-slf4j` passes fields to SLF4J as key-value pairs and uses the exception as the cause.
+
+If a `LogBackend` is registered with `ServiceLoader`, akki chooses it over `akki-slf4j`; when several are registered,
+it takes the first by class name and reports the others to stderr. The `io.akki.backend` setting names the class of
+the backend to use instead; for `akki-slf4j`, that is `io.akki.slf4j.Slf4jBackend`. A selection that matches no
+backend, or a selected backend that cannot start, is an error: akki throws instead of falling back. Calling
+`Log.install(backend)` replaces the backend for the whole process.
 
 ### Tests
 
@@ -190,8 +197,8 @@ import `recordLogs` from `akki-test-coroutines`: it keeps capturing when the cor
 ### Configuration
 
 The `akki {}` block has two parts. `compilerOptions {}` holds the compiler plugin settings, which change the
-generated code. `jvm {}` holds the runtime settings of `jvm` compilations: the backend dependency and the logger name
-style. They ship with the application and leave the generated code unchanged.
+generated code. `jvm {}` holds the runtime settings of `jvm` compilations: the backend, its dependency and the logger
+name style. They ship with the application and leave the generated code unchanged.
 
 Set `minLevel` to remove lower-level records from the compiled code:
 
@@ -214,12 +221,29 @@ akki {
 }
 ```
 
-The Gradle plugin writes the setting to `META-INF/akki.properties` in the main resources. It ships with the
-application, so `test`, `run`, `bootRun` and the jar use the same style. The JVM option
-`-Dio.akki.loggerNameStyle=jvm-class` takes precedence over the resource.
+Set `backend` when a dependency registers a `LogBackend` and the application should use a different one, `akki-slf4j`
+for example:
 
-The style belongs to the application. A library leaves it unset; two resources with different values stop the
-application at startup with an error that names both files.
+```kotlin
+akki {
+    jvm {
+        backend = "io.akki.slf4j.Slf4jBackend"
+    }
+}
+```
+
+The Gradle plugin writes both settings to `META-INF/akki.properties` in the main resources. They ship with the
+application, so `test`, `run`, `bootRun` and the jar use the same values. A JVM option with the same name,
+`-Dio.akki.backend=io.akki.slf4j.Slf4jBackend` for example, takes precedence over the resource.
+
+| Property                  | Values                                                                   | When unset                                        |
+|---------------------------|--------------------------------------------------------------------------|---------------------------------------------------|
+| `io.akki.loggerNameStyle` | `source`, `jvm-class`                                                    | `source`                                          |
+| `io.akki.backend`         | class name of a registered `LogBackend`, or `io.akki.slf4j.Slf4jBackend` | a registered `LogBackend`, otherwise `akki-slf4j` |
+
+These settings belong to the application. A library leaves them unset. An unknown value, or two resources with
+different values for one property, is an error: akki throws instead of falling back. The error for a conflict names
+both files.
 
 `includeSlf4jBackend`, `true` by default, adds `akki-slf4j` to the runtime classpath of every `jvm` compilation. Set
 it to `false` in a library, or in an application that registers its own `LogBackend`.
@@ -238,8 +262,8 @@ it to `false` in a library, or in an application that registers its own `LogBack
 * Only a message passed as a lambda is lazy. Ordinary arguments, including fields, are evaluated even when the
   level is disabled.
 * `recordLogs` and `LogScope` apply to the current thread. Executors and other threads use the global backend.
-* The name style is read before `main` runs. Set it with `loggerNameStyle` or the `-D` option; `System.setProperty`
-  in `main` is too late.
+* `io.akki.loggerNameStyle` and `io.akki.backend` are read once, when the first logger is created or the first record
+  is written. Set them in `jvm {}` or with the `-D` option; `System.setProperty` in `main` may come too late.
 * Records removed by `minLevel` cannot be restored through runtime logging configuration.
 * MDC and markers are not supported. `Log.named` keeps every logger it creates, so applications need a bounded set
   of names.

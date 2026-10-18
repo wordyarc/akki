@@ -6,10 +6,14 @@ import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.classic.spi.LogbackServiceProvider
 import ch.qos.logback.core.read.ListAppender
 import io.akki.Log
+import io.akki.backend.LogBackend
+import io.akki.backend.LoggerBinding
+import io.akki.backend.Sink
 import io.akki.testing.BackgroundTask
 import io.akki.testing.awaitSignal
 import io.akki.testing.captureStderr
 import java.io.File
+import java.lang.reflect.InvocationTargetException
 import java.net.URL
 import java.net.URLClassLoader
 import java.nio.file.Path
@@ -21,6 +25,7 @@ import kotlin.io.path.writeText
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import org.junit.jupiter.api.io.TempDir
@@ -169,6 +174,70 @@ class Slf4jDiscoveryTest {
         }
     }
 
+    @Test
+    fun `names the backend it creates`() {
+        assertEquals(Slf4jBackend::class.java.name, Slf4jBackendFactory().backendClassName)
+    }
+
+    @Test
+    fun `a declared backend wins over slf4j without a selection`(@TempDir directory: Path) {
+        val output = captureStderr { isolatedRuntime(directory.declareStderrBackend()).use { it.writeLog() } }
+
+        assertContains(output, "AKKI-DECLARED discovered - from isolated runtime")
+        assertFalse(output.contains("AKKI-SLF4J"), output)
+    }
+
+    @Test
+    fun `the backend property selects slf4j over a declared backend`(@TempDir directory: Path) {
+        val output = captureStderr {
+            withProperty(BACKEND_PROPERTY, Slf4jBackend::class.java.name) {
+                isolatedRuntime(directory.declareStderrBackend()).use { it.writeLog() }
+            }
+        }
+
+        assertContains(output, "AKKI-SLF4J discovered - from isolated runtime")
+        assertFalse(output.contains("AKKI-DECLARED"), output)
+    }
+
+    @Test
+    fun `a selected slf4j backend without a provider fails with the provider hint`() {
+        val failure = withProperty(BACKEND_PROPERTY, Slf4jBackend::class.java.name) {
+            URLClassLoader(classpath().without("logback-").urls(), ClassLoader.getPlatformClassLoader()).use { loader ->
+                assertFailsWith<InvocationTargetException> { loader.writeLog() }
+            }
+        }
+
+        assertEquals(
+            "akki: the backend '${Slf4jBackend::class.java.name}' selected by '$BACKEND_PROPERTY' is not available. " +
+                "Add an SLF4J 2 provider to the runtime classpath, for example logback-classic.",
+            failure.cause?.message,
+        )
+    }
+
+    private fun isolatedRuntime(directory: Path): URLClassLoader =
+        URLClassLoader((listOf(directory.toFile()) + classpath()).urls(), ClassLoader.getPlatformClassLoader())
+
+    private fun Path.declareStderrBackend(): Path {
+        resolve("META-INF/services/${LogBackend::class.java.name}").also { it.parent.createDirectories() }
+            .writeText(StderrBackend::class.java.name)
+        resolve("logback-test.xml").writeText(
+            """
+            <configuration>
+                <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+                    <target>System.err</target>
+                    <encoder>
+                        <pattern>AKKI-SLF4J %logger - %msg%n</pattern>
+                    </encoder>
+                </appender>
+                <root level="INFO">
+                    <appender-ref ref="STDERR"/>
+                </root>
+            </configuration>
+            """.trimIndent(),
+        )
+        return this
+    }
+
     private fun classpath(): List<File> = System.getProperty("java.class.path").split(File.pathSeparator).map(::File)
 
     private fun nopProvider(): List<File> =
@@ -199,18 +268,26 @@ class Slf4jDiscoveryTest {
         declarations.writeText(names.joinToString("\n"))
     }
 
-    private fun <T> withProviderProperty(provider: String, block: () -> T): T {
-        val previous = System.setProperty(PROVIDER_PROPERTY, provider)
+    private fun <T> withProviderProperty(provider: String, block: () -> T): T =
+        withProperty(PROVIDER_PROPERTY, provider, block)
+
+    private fun <T> withProperty(name: String, value: String, block: () -> T): T {
+        val previous = System.setProperty(name, value)
         try {
             return block()
         } finally {
             if (previous == null) {
-                System.clearProperty(PROVIDER_PROPERTY)
+                System.clearProperty(name)
             } else {
-                System.setProperty(PROVIDER_PROPERTY, previous)
+                System.setProperty(name, previous)
             }
         }
     }
+}
+
+class StderrBackend : LogBackend {
+    override fun bind(loggerName: String): LoggerBinding =
+        LoggerBinding { Sink { message, _, _ -> System.err.println("AKKI-DECLARED $loggerName - $message") } }
 }
 
 private class UndeclaredProvidersLoader(urls: Array<URL>) : URLClassLoader(urls, ClassLoader.getPlatformClassLoader()) {
@@ -220,4 +297,5 @@ private class UndeclaredProvidersLoader(urls: Array<URL>) : URLClassLoader(urls,
 
 private const val PROVIDER_DECLARATIONS: String = "META-INF/services/org.slf4j.spi.SLF4JServiceProvider"
 private const val PROVIDER_PROPERTY: String = "slf4j.provider"
+private const val BACKEND_PROPERTY: String = "io.akki.backend"
 private const val INITIALIZER: String = "slf4j-initializer"

@@ -9,9 +9,10 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 
 @OptIn(InternalAkkiApi::class)
-internal fun discover(loader: ClassLoader): LogBackend {
+internal fun discover(loader: ClassLoader, selected: String? = null): LogBackend {
     val services = Services(loader)
     val declared = services.load(LogBackend::class.java)
+    if (selected != null) return select(selected, declared, services)
     if (declared.isNotEmpty() || !services.isComplete) return chooseBackend(declared)
     val factories = services.load(LogBackendFactory::class.java)
     val created = factories.mapNotNull { it.tryCreateBackend() }
@@ -20,6 +21,26 @@ internal fun discover(loader: ClassLoader): LogBackend {
         return DefaultBackend(hints.joinToString(" ", prefix = "$NO_BACKEND "))
     }
     return chooseBackend(created)
+}
+
+@OptIn(InternalAkkiApi::class)
+private fun select(name: String, declared: List<LogBackend>, services: Services): LogBackend {
+    declared.firstOrNull { it::class.java.name == name }?.let { return it }
+    val factories = services.load(LogBackendFactory::class.java)
+    val candidates = (declared.map { it::class.java.name } + factories.map { it.backendClassName })
+        .ifEmpty { listOf("no backend") }
+    val factory = factories.firstOrNull { it.backendClassName == name } ?: akkiError(
+        "unknown backend '$name' for '$BACKEND_PROPERTY': the classpath declares ${candidates.joinToString()}",
+    )
+    val backend = try {
+        factory.createBackend()
+    } catch (failure: Throwable) {
+        if (failure.isFatal) throw failure
+        akkiError("the backend '$name' selected by '$BACKEND_PROPERTY' failed to start", failure)
+    }
+    return backend ?: akkiError(
+        "the backend '$name' selected by '$BACKEND_PROPERTY' is not available. ${factory.hintOnMissing()}",
+    )
 }
 
 internal fun chooseBackend(backends: List<LogBackend>): LogBackend {
@@ -50,7 +71,8 @@ internal actual fun discoverPlatformBackend(): LogBackend? {
     discovered?.let { return it }
     if (discoveryLock.isHeldByCurrentThread || !awaitDiscovery()) return null
     try {
-        return discovered ?: discover(LogBackend::class.java.classLoader).also { discovered = it }
+        return discovered
+            ?: discover(LogBackend::class.java.classLoader, AkkiProperties[BACKEND_PROPERTY]).also { discovered = it }
     } finally {
         discoveryLock.unlock()
     }

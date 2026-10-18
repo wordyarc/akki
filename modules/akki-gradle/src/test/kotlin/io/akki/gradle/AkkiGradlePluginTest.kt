@@ -184,6 +184,34 @@ class AkkiGradlePluginTest {
     }
 
     @Test
+    fun `ships the selected backend with the compiled classes`(@TempDir projectDirectory: Path) {
+        prepareConsumer(
+            projectDirectory,
+            Consumer.Selected,
+            extra = """
+                akki {
+                    jvm {
+                        backend.set(providers.gradleProperty("backend"))
+                    }
+                }
+            """.trimIndent(),
+        )
+        projectDirectory.resolve("src/main/resources/META-INF/services/io.akki.backend.LogBackend")
+            .also { it.parent.createDirectories() }
+            .writeText("consumer.DeclaredBackend\n")
+
+        val declared: String = runConsumer(projectDirectory).output
+        assertContains(declared, "AKKI DECLARED consumer.OrderService - received A-1")
+        assertEquals(null, akkiProperties(projectDirectory))
+
+        val selected: String = runConsumer(projectDirectory, "-Pbackend=io.akki.slf4j.Slf4jBackend").output
+        val line = lineOf(Consumer.Selected, """log.info("received""")
+        assertContains(selected, "AKKI INFO consumer.OrderService [consumer.OrderService.handle:$line] - received A-1")
+        assertFalse(selected.contains("AKKI DECLARED"), selected)
+        assertEquals("io.akki.backend=io.akki.slf4j.Slf4jBackend\n", akkiProperties(projectDirectory))
+    }
+
+    @Test
     fun `writes to stderr after an slf4j-api downgrade`(@TempDir projectDirectory: Path) {
         val output = build(
             projectDirectory,
@@ -913,7 +941,7 @@ class AkkiGradlePluginTest {
             """implementation("$GROUP:akki-slf4j:$VERSION")""",
             """runtimeOnly("ch.qos.logback:logback-classic:${property("akki.logback.version")}")""",
         )
-        Consumer.Modular -> listOf(
+        Consumer.Modular, Consumer.Selected -> listOf(
             """runtimeOnly("ch.qos.logback:logback-classic:${property("akki.logback.version")}")""",
         )
         Consumer.LegacySlf4j -> listOf(
@@ -942,6 +970,7 @@ class AkkiGradlePluginTest {
         Bootstrap("BootstrapMain.kt", "consumer.BootstrapMainKt", null, test = "BootstrapTest.kt"),
         Clipped("ClippedMain.kt", "consumer.ClippedMainKt", null),
         Modular("ModularMain.kt", "consumer.ModularMainKt", "logback.xml", modular = true),
+        Selected("SelectedMain.kt", "consumer.SelectedMainKt", "logback.xml"),
         Compatibility("CompatibilityMain.kt", "consumer.CompatibilityMainKt", null),
         LegacySlf4j("LegacySlf4jMain.kt", "consumer.LegacySlf4jMainKt", null),
     }

@@ -49,7 +49,7 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
                 it.dependencies.addAllLater(backend)
             }
             if (kotlinCompilation.name == KotlinCompilation.MAIN_COMPILATION_NAME) {
-                kotlinCompilation.shipLoggerNameStyle(extension.jvm.loggerNameStyle)
+                kotlinCompilation.shipRuntimeProperties(extension.jvm)
             }
         }
         val versions = project.configurations.getByName(VERSIONS_CONFIGURATION_NAME)
@@ -66,14 +66,15 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
         return minLevel.map { listOf(SubpluginOption(MIN_LEVEL_OPTION, it.name.lowercase())) }.orElse(emptyList())
     }
 
-    private fun KotlinCompilation<*>.shipLoggerNameStyle(style: Provider<LoggerNameStyle>) {
+    private fun KotlinCompilation<*>.shipRuntimeProperties(options: AkkiJvmOptions) {
         val project = target.project
         val sourceSet = defaultSourceSet
         val name = WriteAkkiProperties.name(sourceSet.name)
         val properties = project.tasks.register(name, WriteAkkiProperties::class.java) {
             it.description =
-                "Writes META-INF/akki.properties with the logger name style for the ${sourceSet.name} source set"
-            it.loggerNameStyle.set(style)
+                "Writes META-INF/akki.properties with the runtime settings of the ${sourceSet.name} source set"
+            it.loggerNameStyle.set(options.loggerNameStyle)
+            it.backend.set(options.backend)
             it.outputDirectory.set(project.layout.buildDirectory.dir("generated/akki/${sourceSet.name}/resources"))
         }
         sourceSet.resources.srcDir(properties)

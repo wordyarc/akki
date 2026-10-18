@@ -131,7 +131,7 @@ class JvmBackendDiscoveryTest {
         directory.declareFactories(CreatingFactory::class.java.name)
 
         val output = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
-            captureStderr { assertIs<DeclaredBackend>(discover(loader)) }
+            captureStderr { assertIs<CreatedBackend>(discover(loader)) }
         }
 
         assertEquals("", output)
@@ -321,6 +321,90 @@ class JvmBackendDiscoveryTest {
         assertEquals(2, lookups)
     }
 
+    @Test
+    fun `selects the declared backend named by the property`(@TempDir directory: Path): Unit {
+        directory.declareBackends(DeclaredBackend::class.java.name, SecondDeclaredBackend::class.java.name)
+
+        val output = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
+            captureStderr { assertIs<SecondDeclaredBackend>(discover(loader, SecondDeclaredBackend::class.java.name)) }
+        }
+
+        assertEquals("", output)
+    }
+
+    @Test
+    fun `selects a factory backend over a declared one`(@TempDir directory: Path): Unit {
+        directory.declareBackends(DeclaredBackend::class.java.name)
+        directory.declareFactories(CreatingFactory::class.java.name)
+
+        val output = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
+            captureStderr { assertIs<CreatedBackend>(discover(loader, CreatedBackend::class.java.name)) }
+        }
+
+        assertEquals("", output)
+    }
+
+    @Test
+    fun `rejects a selected backend that is not on the classpath`(@TempDir directory: Path): Unit {
+        directory.declareBackends(DeclaredBackend::class.java.name)
+        directory.declareFactories(CreatingFactory::class.java.name)
+
+        val failure = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
+            assertFailsWith<IllegalStateException> { discover(loader, "acme.Missing") }
+        }
+
+        assertEquals(
+            "akki: unknown backend 'acme.Missing' for 'io.akki.backend': the classpath declares " +
+                "${DeclaredBackend::class.java.name}, ${CreatedBackend::class.java.name}",
+            failure.message,
+        )
+    }
+
+    @Test
+    fun `rejects a selected backend when nothing is declared`(): Unit {
+        val failure = assertFailsWith<IllegalStateException> { discover(javaClass.classLoader, "acme.Missing") }
+
+        assertEquals(
+            "akki: unknown backend 'acme.Missing' for 'io.akki.backend': the classpath declares no backend",
+            failure.message,
+        )
+    }
+
+    @Test
+    fun `reports the factory hint when the selected factory declines`(@TempDir directory: Path): Unit {
+        directory.declareFactories(DecliningFactory::class.java.name)
+
+        val failure = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
+            assertFailsWith<IllegalStateException> { discover(loader, "acme.Declined") }
+        }
+
+        assertEquals(
+            "akki: the backend 'acme.Declined' selected by 'io.akki.backend' is not available. Add the declining provider.",
+            failure.message,
+        )
+    }
+
+    @Test
+    fun `reports the cause when the selected factory fails`(@TempDir directory: Path): Unit {
+        directory.declareFactories(FailingFactory::class.java.name)
+
+        val failure = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
+            assertFailsWith<IllegalStateException> { discover(loader, "acme.Failing") }
+        }
+
+        assertEquals("akki: the backend 'acme.Failing' selected by 'io.akki.backend' failed to start", failure.message)
+        assertEquals("broken factory", failure.cause?.message)
+    }
+
+    @Test
+    fun `propagates a fatal error from the selected factory`(@TempDir directory: Path): Unit {
+        directory.declareFactories(FatalFactory::class.java.name)
+
+        URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
+            assertFailsWith<StackOverflowError> { discover(loader, "acme.Fatal") }
+        }
+    }
+
     private fun Path.declareBackends(vararg names: String): URL = declare(LogBackend::class.java, names)
 
     private fun Path.declareFactories(vararg names: String): URL = declare(LogBackendFactory::class.java, names)
@@ -375,6 +459,14 @@ class DeclaredBackend : LogBackend {
     override fun bind(loggerName: String): LoggerBinding = LoggerBinding { null }
 }
 
+class SecondDeclaredBackend : LogBackend {
+    override fun bind(loggerName: String): LoggerBinding = LoggerBinding { null }
+}
+
+class CreatedBackend : LogBackend {
+    override fun bind(loggerName: String): LoggerBinding = LoggerBinding { null }
+}
+
 class ThrowingBackend : LogBackend {
     init {
         error("broken constructor")
@@ -396,6 +488,8 @@ class FatalConstructorFactory : LogBackendFactory {
         throw StackOverflowError("fatal constructor")
     }
 
+    override val backendClassName: String = "acme.FatalConstructor"
+
     override fun createBackend(): LogBackend? = null
 
     override fun hintOnMissing(): String = "Add the fatal constructor provider."
@@ -406,30 +500,40 @@ class IsolatedLookup : BooleanSupplier {
 }
 
 class CreatingFactory : LogBackendFactory {
-    override fun createBackend(): LogBackend = DeclaredBackend()
+    override val backendClassName: String = CreatedBackend::class.java.name
+
+    override fun createBackend(): LogBackend = CreatedBackend()
 
     override fun hintOnMissing(): String = "Add the creating provider."
 }
 
 class DecliningFactory : LogBackendFactory {
+    override val backendClassName: String = "acme.Declined"
+
     override fun createBackend(): LogBackend? = null
 
     override fun hintOnMissing(): String = "Add the declining provider."
 }
 
 class FailingFactory : LogBackendFactory {
+    override val backendClassName: String = "acme.Failing"
+
     override fun createBackend(): LogBackend? = error("broken factory")
 
     override fun hintOnMissing(): String = "Add the failing provider."
 }
 
 class HintlessFactory : LogBackendFactory {
+    override val backendClassName: String = "acme.Hintless"
+
     override fun createBackend(): LogBackend? = null
 
     override fun hintOnMissing(): String = error("broken hint")
 }
 
 class FatalFactory : LogBackendFactory {
+    override val backendClassName: String = "acme.Fatal"
+
     override fun createBackend(): LogBackend? = throw StackOverflowError("fatal")
 
     override fun hintOnMissing(): String = "Add the fatal provider."

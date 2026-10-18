@@ -15,6 +15,10 @@ internal abstract class WriteAkkiProperties : DefaultTask() {
     @get:Optional
     abstract val loggerNameStyle: Property<LoggerNameStyle>
 
+    @get:Input
+    @get:Optional
+    abstract val backend: Property<String>
+
     @get:OutputDirectory
     abstract val outputDirectory: DirectoryProperty
 
@@ -23,15 +27,20 @@ internal abstract class WriteAkkiProperties : DefaultTask() {
         val directory = outputDirectory.get().asFile
         directory.deleteRecursively()
         directory.mkdirs()
-        val style = loggerNameStyle.orNull ?: return
+        val properties = listOfNotNull(
+            loggerNameStyle.orNull?.let { "$LOGGER_NAME_STYLE_PROPERTY=${it.name.lowercase().replace('_', '-')}" },
+            backend.orNull?.let { "$BACKEND_PROPERTY=$it" },
+        )
+        if (properties.isEmpty()) return
         val file = directory.resolve(AKKI_PROPERTIES_RESOURCE)
         file.parentFile.mkdirs()
-        file.writeText("$LOGGER_NAME_STYLE_PROPERTY=${style.name.lowercase().replace('_', '-')}\n")
+        file.writeText(properties.joinToString("\n", postfix = "\n"))
     }
 
     companion object {
         const val AKKI_PROPERTIES_RESOURCE: String = "META-INF/akki.properties"
         const val LOGGER_NAME_STYLE_PROPERTY: String = "io.akki.loggerNameStyle"
+        const val BACKEND_PROPERTY: String = "io.akki.backend"
 
         fun name(sourceSet: String): String =
             "write${sourceSet.replaceFirstChar(Char::uppercaseChar)}AkkiProperties"
