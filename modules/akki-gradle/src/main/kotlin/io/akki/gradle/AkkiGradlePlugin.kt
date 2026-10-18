@@ -75,6 +75,7 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
                 "Writes META-INF/akki.properties with the runtime settings of the ${sourceSet.name} source set"
             it.loggerNameStyle.set(options.loggerNameStyle)
             it.backend.set(options.backend)
+            it.includeSlf4jBackend.set(options.includeSlf4jBackend)
             it.outputDirectory.set(project.layout.buildDirectory.dir("generated/akki/${sourceSet.name}/resources"))
         }
         sourceSet.resources.srcDir(properties)

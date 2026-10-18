@@ -208,8 +208,8 @@ class Slf4jDiscoveryTest {
         }
 
         assertEquals(
-            "akki: the backend '${Slf4jBackend::class.java.name}' selected by '$BACKEND_PROPERTY' is not available. " +
-                "Add an SLF4J 2 provider to the runtime classpath, for example logback-classic.",
+            "akki: the backend '${Slf4jBackend::class.java.name}' set by the system property '$BACKEND_PROPERTY' " +
+                "is not available. Add an SLF4J 2 provider to the runtime classpath, for example logback-classic.",
             failure.cause?.message,
         )
     }

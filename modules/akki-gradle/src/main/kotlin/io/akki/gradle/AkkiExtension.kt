@@ -34,6 +34,10 @@ public abstract class AkkiJvmOptions {
     init {
         includeSlf4jBackend.convention(true)
     }
+
+    public companion object {
+        public const val SLF4J_BACKEND: String = "io.akki.slf4j.Slf4jBackend"
+    }
 }
 
 public abstract class AkkiExtension {

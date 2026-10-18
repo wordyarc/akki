@@ -42,10 +42,11 @@ internal fun loggerName(jClass: Class<*>, style: LoggerNameStyle): String {
     }
 }
 
-internal fun parseLoggerNameStyle(value: String?): LoggerNameStyle {
-    val normalized = value?.trim()?.lowercase()?.replace('_', '-')?.ifEmpty { null } ?: return LoggerNameStyle.SOURCE
+internal fun parseLoggerNameStyle(setting: Setting?): LoggerNameStyle {
+    if (setting == null) return LoggerNameStyle.SOURCE
+    val normalized = setting.value.lowercase().replace('_', '-')
     return LoggerNameStyle.entries.firstOrNull { it.propertyValue == normalized } ?: akkiError(
-        "unknown value '$value' for '$LOGGER_NAME_STYLE_PROPERTY': " +
+        "unknown value '${setting.value}' set by ${setting.source}: " +
             "expected ${LoggerNameStyle.entries.joinToString(" or ") { "'${it.propertyValue}'" }}",
     )
 }

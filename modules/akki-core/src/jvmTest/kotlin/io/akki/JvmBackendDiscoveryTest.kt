@@ -7,6 +7,7 @@ import io.akki.backend.LoggerBinding
 import io.akki.backend.Sink
 import io.akki.internal.DefaultBackend
 import io.akki.internal.LogBackendFactory
+import io.akki.internal.Setting
 import io.akki.internal.chooseBackend
 import io.akki.internal.discover
 import io.akki.testing.captureStderr
@@ -326,7 +327,9 @@ class JvmBackendDiscoveryTest {
         directory.declareBackends(DeclaredBackend::class.java.name, SecondDeclaredBackend::class.java.name)
 
         val output = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
-            captureStderr { assertIs<SecondDeclaredBackend>(discover(loader, SecondDeclaredBackend::class.java.name)) }
+            captureStderr {
+                assertIs<SecondDeclaredBackend>(discover(loader, selected(SecondDeclaredBackend::class.java.name)))
+            }
         }
 
         assertEquals("", output)
@@ -338,7 +341,7 @@ class JvmBackendDiscoveryTest {
         directory.declareFactories(CreatingFactory::class.java.name)
 
         val output = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
-            captureStderr { assertIs<CreatedBackend>(discover(loader, CreatedBackend::class.java.name)) }
+            captureStderr { assertIs<CreatedBackend>(discover(loader, selected(CreatedBackend::class.java.name))) }
         }
 
         assertEquals("", output)
@@ -350,11 +353,11 @@ class JvmBackendDiscoveryTest {
         directory.declareFactories(CreatingFactory::class.java.name)
 
         val failure = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
-            assertFailsWith<IllegalStateException> { discover(loader, "acme.Missing") }
+            assertFailsWith<IllegalStateException> { discover(loader, selected("acme.Missing")) }
         }
 
         assertEquals(
-            "akki: unknown backend 'acme.Missing' for 'io.akki.backend': the classpath declares " +
+            "akki: the backend 'acme.Missing' set by the test was not found: the classpath declares " +
                 "${DeclaredBackend::class.java.name}, ${CreatedBackend::class.java.name}",
             failure.message,
         )
@@ -362,10 +365,12 @@ class JvmBackendDiscoveryTest {
 
     @Test
     fun `rejects a selected backend when nothing is declared`(): Unit {
-        val failure = assertFailsWith<IllegalStateException> { discover(javaClass.classLoader, "acme.Missing") }
+        val failure = assertFailsWith<IllegalStateException> {
+            discover(javaClass.classLoader, selected("acme.Missing"))
+        }
 
         assertEquals(
-            "akki: unknown backend 'acme.Missing' for 'io.akki.backend': the classpath declares no backend",
+            "akki: the backend 'acme.Missing' set by the test was not found: the classpath declares no backend",
             failure.message,
         )
     }
@@ -375,11 +380,11 @@ class JvmBackendDiscoveryTest {
         directory.declareFactories(DecliningFactory::class.java.name)
 
         val failure = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
-            assertFailsWith<IllegalStateException> { discover(loader, "acme.Declined") }
+            assertFailsWith<IllegalStateException> { discover(loader, selected("acme.Declined")) }
         }
 
         assertEquals(
-            "akki: the backend 'acme.Declined' selected by 'io.akki.backend' is not available. Add the declining provider.",
+            "akki: the backend 'acme.Declined' set by the test is not available. Add the declining provider.",
             failure.message,
         )
     }
@@ -389,10 +394,10 @@ class JvmBackendDiscoveryTest {
         directory.declareFactories(FailingFactory::class.java.name)
 
         val failure = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
-            assertFailsWith<IllegalStateException> { discover(loader, "acme.Failing") }
+            assertFailsWith<IllegalStateException> { discover(loader, selected("acme.Failing")) }
         }
 
-        assertEquals("akki: the backend 'acme.Failing' selected by 'io.akki.backend' failed to start", failure.message)
+        assertEquals("akki: the backend 'acme.Failing' set by the test failed to start", failure.message)
         assertEquals("broken factory", failure.cause?.message)
     }
 
@@ -401,9 +406,29 @@ class JvmBackendDiscoveryTest {
         directory.declareFactories(FatalFactory::class.java.name)
 
         URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
-            assertFailsWith<StackOverflowError> { discover(loader, "acme.Fatal") }
+            assertFailsWith<StackOverflowError> { discover(loader, selected("acme.Fatal")) }
         }
     }
+
+    @Test
+    fun `reports a lookup that stopped early instead of listing candidates`(): Unit {
+        val loader = object : ClassLoader(LogBackend::class.java.classLoader) {
+            override fun getResources(name: String): Enumeration<URL> = error("broken resources")
+        }
+
+        var failure: Throwable? = null
+        val output = captureStderr {
+            failure = assertFailsWith<IllegalStateException> { discover(loader, selected("acme.Missing")) }
+        }
+
+        assertContains(output, "akki: backend discovery failed")
+        assertEquals(
+            "akki: the backend 'acme.Missing' set by the test was not found: the backend service lookup stopped early",
+            failure?.message,
+        )
+    }
+
+    private fun selected(name: String): Setting = Setting(name, "the test")
 
     private fun Path.declareBackends(vararg names: String): URL = declare(LogBackend::class.java, names)
 

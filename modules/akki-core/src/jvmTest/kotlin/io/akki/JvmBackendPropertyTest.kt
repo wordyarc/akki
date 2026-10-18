@@ -52,10 +52,40 @@ class JvmBackendPropertyTest {
         assertContains(output, "entered main")
         assertContains(
             output,
-            "java.lang.IllegalStateException: akki: unknown backend 'acme.Missing' for '$BACKEND_PROPERTY': " +
-                "the classpath declares $FIRST, $SECOND",
+            "java.lang.IllegalStateException: akki: the backend 'acme.Missing' set by the system property " +
+                "'$BACKEND_PROPERTY' was not found: the classpath declares $FIRST, $SECOND",
         )
         assertFalse(output.contains("backend="), output)
+    }
+
+    @Test
+    fun `an unknown backend in a classpath resource names the resource`(@TempDir directory: Path): Unit {
+        val resources = listOf(directory.declareProbeBackends().akkiProperties(BACKEND_PROPERTY to "acme.Missing"))
+
+        val (exit, output) = probe(resources = resources)
+
+        assertNotEquals(0, exit, output)
+        assertContains(
+            output,
+            "java.lang.IllegalStateException: akki: the backend 'acme.Missing' set by '$BACKEND_PROPERTY' in " +
+                "${directory.akkiPropertiesUrl()} was not found: the classpath declares $FIRST, $SECOND",
+        )
+        assertFalse(output.contains("backend="), output)
+    }
+
+    @Test
+    fun `an unknown property in a classpath resource fails the first lookup`(@TempDir directory: Path): Unit {
+        val resources = listOf(directory.declareProbeBackends().akkiProperties("io.akki.backned" to SECOND))
+
+        val (exit, output) = probe(resources = resources)
+
+        assertNotEquals(0, exit, output)
+        assertContains(
+            output,
+            "java.lang.IllegalStateException: akki: unknown property 'io.akki.backned' in " +
+                "${directory.akkiPropertiesUrl()}: expected '$LOGGER_NAME_STYLE_PROPERTY' or '$BACKEND_PROPERTY'",
+        )
+        assertFalse(output.contains("name="), output)
     }
 
     @Test

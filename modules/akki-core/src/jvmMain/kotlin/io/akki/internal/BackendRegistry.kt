@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 
 @OptIn(InternalAkkiApi::class)
-internal fun discover(loader: ClassLoader, selected: String? = null): LogBackend {
+internal fun discover(loader: ClassLoader, selected: Setting? = null): LogBackend {
     val services = Services(loader)
     val declared = services.load(LogBackend::class.java)
     if (selected != null) return select(selected, declared, services)
@@ -24,23 +24,29 @@ internal fun discover(loader: ClassLoader, selected: String? = null): LogBackend
 }
 
 @OptIn(InternalAkkiApi::class)
-private fun select(name: String, declared: List<LogBackend>, services: Services): LogBackend {
+private fun select(selected: Setting, declared: List<LogBackend>, services: Services): LogBackend {
+    val name = selected.value
     declared.firstOrNull { it::class.java.name == name }?.let { return it }
     val factories = services.load(LogBackendFactory::class.java)
-    val candidates = (declared.map { it::class.java.name } + factories.map { it.backendClassName })
-        .ifEmpty { listOf("no backend") }
     val factory = factories.firstOrNull { it.backendClassName == name } ?: akkiError(
-        "unknown backend '$name' for '$BACKEND_PROPERTY': the classpath declares ${candidates.joinToString()}",
+        "the backend '$name' set by ${selected.source} was not found: ${services.candidates(declared, factories)}",
     )
     val backend = try {
         factory.createBackend()
     } catch (failure: Throwable) {
         if (failure.isFatal) throw failure
-        akkiError("the backend '$name' selected by '$BACKEND_PROPERTY' failed to start", failure)
+        akkiError("the backend '$name' set by ${selected.source} failed to start", failure)
     }
     return backend ?: akkiError(
-        "the backend '$name' selected by '$BACKEND_PROPERTY' is not available. ${factory.hintOnMissing()}",
+        "the backend '$name' set by ${selected.source} is not available. ${factory.hintOnMissing()}",
     )
+}
+
+@OptIn(InternalAkkiApi::class)
+private fun Services.candidates(declared: List<LogBackend>, factories: List<LogBackendFactory>): String {
+    if (!isComplete) return "the backend service lookup stopped early"
+    val names = declared.map { it::class.java.name } + factories.map { it.backendClassName }
+    return "the classpath declares ${names.ifEmpty { listOf("no backend") }.joinToString()}"
 }
 
 internal fun chooseBackend(backends: List<LogBackend>): LogBackend {

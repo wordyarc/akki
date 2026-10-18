@@ -16,7 +16,7 @@ class JvmLoggerNameStylePropertyTest {
         val (exit, output) = probe(property = "binary")
 
         assertNotEquals(0, exit, output)
-        assertContains(output, unknownValue("binary"))
+        assertContains(output, unknownValue("binary", "the system property '$LOGGER_NAME_STYLE_PROPERTY'"))
         assertFalse(output.contains("name="), output)
     }
 
@@ -52,7 +52,8 @@ class JvmLoggerNameStylePropertyTest {
         val (exit, output) = probe(resources = listOf(directory.akkiProperties(LOGGER_NAME_STYLE_PROPERTY to "binary")))
 
         assertNotEquals(0, exit, output)
-        assertContains(output, unknownValue("binary"))
+        val source = "'$LOGGER_NAME_STYLE_PROPERTY' in ${directory.akkiPropertiesUrl()}"
+        assertContains(output, unknownValue("binary", source))
         assertFalse(output.contains("name="), output)
     }
 
@@ -83,8 +84,8 @@ class JvmLoggerNameStylePropertyTest {
         assertContains(output, "name=" + NameStyleProbe.Owner.Nested::class.java.name)
     }
 
-    private fun unknownValue(value: String): String =
-        "java.lang.IllegalStateException: akki: unknown value '$value' for '$LOGGER_NAME_STYLE_PROPERTY': " +
+    private fun unknownValue(value: String, source: String): String =
+        "java.lang.IllegalStateException: akki: unknown value '$value' set by $source: " +
             "expected '${LoggerNameStyle.SOURCE.propertyValue}' or '${LoggerNameStyle.JVM_CLASS.propertyValue}'"
 
     private fun Path.styleResource(style: LoggerNameStyle): Path =

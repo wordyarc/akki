@@ -227,26 +227,29 @@ for example:
 ```kotlin
 akki {
     jvm {
-        backend = "io.akki.slf4j.Slf4jBackend"
+        backend = io.akki.gradle.AkkiJvmOptions.SLF4J_BACKEND
     }
 }
 ```
 
+`SLF4J_BACKEND` holds the class name of the `akki-slf4j` backend; the build fails on a value that is not a class name.
+
 The Gradle plugin writes both settings to `META-INF/akki.properties` in the main resources. They ship with the
-application, so `test`, `run`, `bootRun` and the jar use the same values. A JVM option with the same name,
-`-Dio.akki.backend=io.akki.slf4j.Slf4jBackend` for example, takes precedence over the resource.
+application, so `test`, `run`, `bootRun` and the jar use the same values. A system property with the same name, set
+with `-Dio.akki.backend=io.akki.slf4j.Slf4jBackend` for example, takes precedence over the resource.
 
 | Property                  | Values                                                                   | When unset                                        |
 |---------------------------|--------------------------------------------------------------------------|---------------------------------------------------|
 | `io.akki.loggerNameStyle` | `source`, `jvm-class`                                                    | `source`                                          |
 | `io.akki.backend`         | class name of a registered `LogBackend`, or `io.akki.slf4j.Slf4jBackend` | a registered `LogBackend`, otherwise `akki-slf4j` |
 
-These settings belong to the application. A library leaves them unset. An unknown value, or two resources with
-different values for one property, is an error: akki throws instead of falling back. The error for a conflict names
-both files.
+These settings belong to the application. A library leaves them unset. An unknown property or value, or two
+resources with different values for one property, is an error: akki throws instead of falling back. The error names
+the system property or the file that set the value, and both files for a conflict.
 
 `includeSlf4jBackend`, `true` by default, adds `akki-slf4j` to the runtime classpath of every `jvm` compilation. Set
-it to `false` in a library, or in an application that registers its own `LogBackend`.
+it to `false` in a library, or in an application that registers its own `LogBackend`. Selecting `akki-slf4j` with
+`backend` while it is `false` fails the build.
 
 ## Limitations
 

@@ -1,6 +1,7 @@
 package io.akki.gradle
 
 import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
@@ -19,6 +20,9 @@ internal abstract class WriteAkkiProperties : DefaultTask() {
     @get:Optional
     abstract val backend: Property<String>
 
+    @get:Input
+    abstract val includeSlf4jBackend: Property<Boolean>
+
     @get:OutputDirectory
     abstract val outputDirectory: DirectoryProperty
 
@@ -29,12 +33,32 @@ internal abstract class WriteAkkiProperties : DefaultTask() {
         directory.mkdirs()
         val properties = listOfNotNull(
             loggerNameStyle.orNull?.let { "$LOGGER_NAME_STYLE_PROPERTY=${it.name.lowercase().replace('_', '-')}" },
-            backend.orNull?.let { "$BACKEND_PROPERTY=$it" },
+            backend.orNull?.let { "$BACKEND_PROPERTY=${validated(it)}" },
         )
         if (properties.isEmpty()) return
         val file = directory.resolve(AKKI_PROPERTIES_RESOURCE)
         file.parentFile.mkdirs()
         file.writeText(properties.joinToString("\n", postfix = "\n"))
+    }
+
+    private fun validated(backend: String): String {
+        if (!backend.isClassName()) {
+            throw GradleException(
+                "akki: '$backend' in akki.jvm.backend is not a class name: expected the class name of a LogBackend, " +
+                    "for example ${AkkiJvmOptions.SLF4J_BACKEND}",
+            )
+        }
+        if (backend == AkkiJvmOptions.SLF4J_BACKEND && !includeSlf4jBackend.get()) {
+            throw GradleException(
+                "akki: akki.jvm.backend selects akki-slf4j, but akki.jvm.includeSlf4jBackend is false. " +
+                    "Include akki-slf4j or select another backend",
+            )
+        }
+        return backend
+    }
+
+    private fun String.isClassName(): Boolean = split('.').all { segment ->
+        segment.isNotEmpty() && segment.first().isJavaIdentifierStart() && segment.all { it.isJavaIdentifierPart() }
     }
 
     companion object {

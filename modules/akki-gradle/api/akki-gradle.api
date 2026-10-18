@@ -22,10 +22,15 @@ public final class io/akki/gradle/AkkiGradlePlugin : org/jetbrains/kotlin/gradle
 }
 
 public abstract class io/akki/gradle/AkkiJvmOptions {
+	public static final field Companion Lio/akki/gradle/AkkiJvmOptions$Companion;
+	public static final field SLF4J_BACKEND Ljava/lang/String;
 	public fun <init> ()V
 	public abstract fun getBackend ()Lorg/gradle/api/provider/Property;
 	public abstract fun getIncludeSlf4jBackend ()Lorg/gradle/api/provider/Property;
 	public abstract fun getLoggerNameStyle ()Lorg/gradle/api/provider/Property;
+}
+
+public final class io/akki/gradle/AkkiJvmOptions$Companion {
 }
 
 public final class io/akki/gradle/LoggerNameStyle : java/lang/Enum {

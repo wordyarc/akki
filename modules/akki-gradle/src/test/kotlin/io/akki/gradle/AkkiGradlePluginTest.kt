@@ -204,11 +204,50 @@ class AkkiGradlePluginTest {
         assertContains(declared, "AKKI DECLARED consumer.OrderService - received A-1")
         assertEquals(null, akkiProperties(projectDirectory))
 
-        val selected: String = runConsumer(projectDirectory, "-Pbackend=io.akki.slf4j.Slf4jBackend").output
+        val selected: String = runConsumer(projectDirectory, "-Pbackend=${AkkiJvmOptions.SLF4J_BACKEND}").output
         val line = lineOf(Consumer.Selected, """log.info("received""")
         assertContains(selected, "AKKI INFO consumer.OrderService [consumer.OrderService.handle:$line] - received A-1")
         assertFalse(selected.contains("AKKI DECLARED"), selected)
-        assertEquals("io.akki.backend=io.akki.slf4j.Slf4jBackend\n", akkiProperties(projectDirectory))
+        assertEquals("io.akki.backend=${AkkiJvmOptions.SLF4J_BACKEND}\n", akkiProperties(projectDirectory))
+    }
+
+    @Test
+    fun `rejects a backend that is not a class name`(@TempDir projectDirectory: Path) {
+        prepareConsumer(projectDirectory, Consumer.Core, extra = """akki { jvm { backend = "akki-slf4j" } }""")
+
+        val output: String = consumerRunner(projectDirectory).buildAndFail().output
+
+        assertContains(output, "Execution failed for task ':writeMainAkkiProperties'")
+        assertContains(
+            output,
+            "akki: 'akki-slf4j' in akki.jvm.backend is not a class name: expected the class name of a LogBackend, " +
+                "for example ${AkkiJvmOptions.SLF4J_BACKEND}",
+        )
+    }
+
+    @Test
+    fun `rejects selecting akki-slf4j while excluding it`(@TempDir projectDirectory: Path) {
+        prepareConsumer(
+            projectDirectory,
+            Consumer.Core,
+            extra = """
+                akki {
+                    jvm {
+                        backend = io.akki.gradle.AkkiJvmOptions.SLF4J_BACKEND
+                        includeSlf4jBackend = false
+                    }
+                }
+            """.trimIndent(),
+        )
+
+        val output: String = consumerRunner(projectDirectory).buildAndFail().output
+
+        assertContains(output, "Execution failed for task ':writeMainAkkiProperties'")
+        assertContains(
+            output,
+            "akki: akki.jvm.backend selects akki-slf4j, but akki.jvm.includeSlf4jBackend is false. " +
+                "Include akki-slf4j or select another backend",
+        )
     }
 
     @Test

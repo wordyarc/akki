@@ -1,6 +1,7 @@
 package io.akki
 
 import io.akki.internal.LoggerNameStyle
+import io.akki.internal.Setting
 import io.akki.internal.loggerName
 import io.akki.internal.parseLoggerNameStyle
 import kotlin.test.Test
@@ -48,11 +49,11 @@ class JvmLoggerNamesTest {
     @Test
     fun `parses JVM logger name styles`(): Unit {
         assertEquals(LoggerNameStyle.SOURCE, parseLoggerNameStyle(null))
-        assertEquals(LoggerNameStyle.SOURCE, parseLoggerNameStyle("source"))
-        assertEquals(LoggerNameStyle.JVM_CLASS, parseLoggerNameStyle("jvm-class"))
-        assertFailsWith<IllegalStateException> {
-            parseLoggerNameStyle("binary")
-        }
+        assertEquals(LoggerNameStyle.SOURCE, parseLoggerNameStyle(Setting("source", "the test")))
+        assertEquals(LoggerNameStyle.JVM_CLASS, parseLoggerNameStyle(Setting("JVM_CLASS", "the test")))
+        val failure = assertFailsWith<IllegalStateException> { parseLoggerNameStyle(Setting("binary", "the test")) }
+
+        assertEquals("akki: unknown value 'binary' set by the test: expected 'source' or 'jvm-class'", failure.message)
     }
 
     @Test
