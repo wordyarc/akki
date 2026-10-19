@@ -1,6 +1,7 @@
 package io.akki.internal
 
 import io.akki.InternalAkkiApi
+import io.akki.LogContext
 import io.akki.LogScope
 
 @InternalAkkiApi
@@ -8,4 +9,11 @@ public fun LogScope.detachedEntry(): LogScope.Entry = LogScope.Entry(this, null)
 
 @InternalAkkiApi
 public fun exchangeCurrentScopeEntry(entry: LogScope.Entry?): LogScope.Entry? =
-    currentScopeEntry().also { setCurrentScopeEntry(entry) }
+    scopeEntries.get().also { scopeEntries.set(entry) }
+
+@InternalAkkiApi
+public fun LogContext.detachedEntry(): LogContext.Entry = LogContext.Entry(this, null)
+
+@InternalAkkiApi
+public fun exchangeCurrentContextEntry(entry: LogContext.Entry?): LogContext.Entry? =
+    contextEntries.get().also { contextEntries.set(entry) }

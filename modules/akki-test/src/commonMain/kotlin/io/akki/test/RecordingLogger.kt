@@ -1,6 +1,7 @@
 package io.akki.test
 
 import io.akki.Level
+import io.akki.LogContext
 import io.akki.Logger
 import io.akki.backend.Sink
 import io.akki.test.internal.LockFreeAppendList
@@ -13,7 +14,7 @@ public class RecordingLogger(
 
     private val sinks: Array<Sink> = Array(Level.entries.size) { ordinal ->
         val level = Level.entries[ordinal]
-        Sink { message, cause, fields -> recorded.add(LogRecord(name, level, message, cause, fields)) }
+        Sink { message, cause, fields -> recorded.add(LogRecord(name, level, message, cause, fields, LogContext.current())) }
     }
 
     public val records: List<LogRecord>

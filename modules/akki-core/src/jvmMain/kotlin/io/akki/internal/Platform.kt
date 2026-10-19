@@ -1,10 +1,7 @@
 package io.akki.internal
 
-import io.akki.LogScope
 import io.akki.backend.LoggerBinding
 import java.util.concurrent.ConcurrentHashMap
-
-private val scopeEntries = ThreadLocal<LogScope.Entry?>()
 
 internal actual fun printlnToStdErr(message: String): Unit = System.err.println(message)
 
@@ -12,10 +9,14 @@ internal actual val Throwable.isFatal: Boolean get() = this is VirtualMachineErr
 
 internal actual val Throwable.isPermanent: Boolean get() = this is LinkageError
 
-internal actual fun currentScopeEntry(): LogScope.Entry? = scopeEntries.get()
+internal actual class ThreadSlot<T : Any> actual constructor() {
+    private val values = ThreadLocal<T?>()
 
-internal actual fun setCurrentScopeEntry(entry: LogScope.Entry?) {
-    if (entry == null) scopeEntries.remove() else scopeEntries.set(entry)
+    actual fun get(): T? = values.get()
+
+    actual fun set(value: T?) {
+        if (value == null) values.remove() else values.set(value)
+    }
 }
 
 internal actual class ScopeBindings actual constructor() {

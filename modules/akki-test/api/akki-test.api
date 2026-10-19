@@ -1,8 +1,9 @@
 public final class io/akki/test/LogRecord {
-	public fun <init> (Ljava/lang/String;Lio/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
-	public synthetic fun <init> (Ljava/lang/String;Lio/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;Lio/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;Lio/akki/LogContext;)V
+	public synthetic fun <init> (Ljava/lang/String;Lio/akki/Level;Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;Lio/akki/LogContext;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getCause ()Ljava/lang/Throwable;
+	public final fun getContext ()Lio/akki/LogContext;
 	public final fun getFields ()Ljava/util/Map;
 	public final fun getLevel ()Lio/akki/Level;
 	public final fun getLoggerName ()Ljava/lang/String;

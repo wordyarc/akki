@@ -5,9 +5,8 @@ package io.akki
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import io.akki.internal.ScopeBindings
-import io.akki.internal.akkiError
-import io.akki.internal.currentScopeEntry
-import io.akki.internal.setCurrentScopeEntry
+import io.akki.internal.exit
+import io.akki.internal.scopeEntries
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.contracts.ExperimentalContracts
@@ -29,7 +28,7 @@ public class LogScope(public val backend: LogBackend) {
         if (!anyScopeCreated.load()) anyScopeCreated.store(true)
     }
 
-    public fun enter(): Entry = Entry(this, currentScopeEntry()).also(::setCurrentScopeEntry)
+    public fun enter(): Entry = Entry(this, scopeEntries.get()).also(scopeEntries::set)
 
     internal inline fun <T> run(crossinline block: () -> T): T {
         contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
@@ -49,16 +48,13 @@ public class LogScope(public val backend: LogBackend) {
 
         override fun close() {
             if (closed) return
-            if (currentScopeEntry() !== this) {
-                akkiError("a logging scope must be exited on the thread that entered it, innermost first")
-            }
+            scopeEntries.exit(this, previous, "scope")
             closed = true
-            setCurrentScopeEntry(previous)
         }
     }
 
     public companion object {
         @JvmStatic
-        public fun currentOrNull(): LogScope? = if (anyScopeCreated.load()) currentScopeEntry()?.scope else null
+        public fun currentOrNull(): LogScope? = if (anyScopeCreated.load()) scopeEntries.get()?.scope else null
     }
 }

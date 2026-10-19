@@ -1,5 +1,6 @@
 package io.akki.slf4j
 
+import io.akki.LogContext
 import io.akki.backend.Sink
 import org.slf4j.Logger
 import org.slf4j.spi.CallerBoundaryAware
@@ -13,6 +14,7 @@ internal class Slf4jSink(
         val event = logger.atLevel(level)
         if (event is CallerBoundaryAware) event.setCallerBoundary(CALLER_BOUNDARY)
         cause?.let(event::setCause)
+        LogContext.current().fields.forEach { (key, value) -> if (key !in fields) event.addKeyValue(key, value) }
         fields.forEach { (key, value) -> event.addKeyValue(key, value) }
         event.log(message)
     }

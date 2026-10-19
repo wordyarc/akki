@@ -8,6 +8,7 @@ import io.akki.BackendInstallation
 import io.akki.DelicateAkkiApi
 import io.akki.Level
 import io.akki.Log
+import io.akki.withLogFields
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -73,6 +74,26 @@ class Slf4jBackendTest {
         val event = appender.list.single()
         assertEquals("with fields", event.message)
         assertEquals(listOf("user" to 42, "tenant" to null), event.keyValuePairs.map { it.key to it.value })
+    }
+
+    @Test
+    fun `passes the context as key value pairs before the fields`() {
+        withLogFields("requestId" to 7, "tenant" to "acme") {
+            Log.named("context").info("with context", fields = mapOf("orderId" to 42, "tenant" to "other"))
+        }
+
+        val event = appender.list.single()
+        assertEquals(
+            listOf("requestId" to 7, "orderId" to 42, "tenant" to "other"),
+            event.keyValuePairs.map { it.key to it.value },
+        )
+    }
+
+    @Test
+    fun `passes the context without fields`() {
+        withLogFields("requestId" to 7) { Log.named("context.only").info("with context") }
+
+        assertEquals(listOf("requestId" to 7), appender.list.single().keyValuePairs.map { it.key to it.value })
     }
 
     @Test

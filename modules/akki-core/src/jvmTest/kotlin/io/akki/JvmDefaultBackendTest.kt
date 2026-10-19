@@ -19,6 +19,17 @@ class JvmDefaultBackendTest {
     }
 
     @Test
+    fun `default backend writes the context before the fields`(): Unit {
+        val output = defaultBackendOutput {
+            withLogFields("requestId" to 7, "tenant" to "acme") {
+                Log.named("acme.Context").info("started", fields = mapOf("orderId" to 42, "tenant" to "other"))
+            }
+        }
+
+        assertContains(output, "INFO  acme.Context - started {requestId=7, orderId=42, tenant=other}")
+    }
+
+    @Test
     fun `default backend announces once which backend to add`(): Unit {
         val output = defaultBackendOutput {
             Log.named("acme.Notice").error("first")

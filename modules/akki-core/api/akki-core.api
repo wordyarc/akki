@@ -33,6 +33,35 @@ public final class io/akki/Log {
 	public static final fun of (Lkotlin/reflect/KClass;)Lio/akki/Logger;
 }
 
+public final class io/akki/LogContext {
+	public static final field Companion Lio/akki/LogContext$Companion;
+	public static final field EMPTY Lio/akki/LogContext;
+	public fun <init> (Ljava/util/Map;)V
+	public fun <init> ([Lkotlin/Pair;)V
+	public static final fun current ()Lio/akki/LogContext;
+	public final fun enter ()Lio/akki/LogContext$Entry;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun get (Ljava/lang/String;)Ljava/lang/Object;
+	public final fun getFields ()Ljava/util/Map;
+	public fun hashCode ()I
+	public final fun minus (Ljava/lang/String;)Lio/akki/LogContext;
+	public final fun plus (Lio/akki/LogContext;)Lio/akki/LogContext;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/akki/LogContext$Companion {
+	public final fun current ()Lio/akki/LogContext;
+}
+
+public final class io/akki/LogContext$Entry : java/lang/AutoCloseable {
+	public fun close ()V
+}
+
+public final class io/akki/LogContextKt {
+	public static final fun withLogContext (Lio/akki/LogContext;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
+	public static final fun withLogFields ([Lkotlin/Pair;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
+}
+
 public final class io/akki/LogScope {
 	public static final field Companion Lio/akki/LogScope$Companion;
 	public fun <init> (Lio/akki/backend/LogBackend;)V
@@ -124,7 +153,9 @@ public abstract interface class io/akki/internal/LogBackendFactory {
 }
 
 public final class io/akki/internal/ThreadContextKt {
+	public static final fun detachedEntry (Lio/akki/LogContext;)Lio/akki/LogContext$Entry;
 	public static final fun detachedEntry (Lio/akki/LogScope;)Lio/akki/LogScope$Entry;
+	public static final fun exchangeCurrentContextEntry (Lio/akki/LogContext$Entry;)Lio/akki/LogContext$Entry;
 	public static final fun exchangeCurrentScopeEntry (Lio/akki/LogScope$Entry;)Lio/akki/LogScope$Entry;
 }
 

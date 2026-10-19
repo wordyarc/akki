@@ -21,6 +21,11 @@ class JvmHotPathAllocationTest {
         withLogScope(LogScope(silent)) { assertNoAllocation(Log.named("hot.scoped")) }
     }
 
+    @Test
+    fun `a suppressed record allocates nothing inside a context`(): Unit {
+        Log.install(silent).use { withLogFields("user" to 42) { assertNoAllocation(Log.named("hot.context")) } }
+    }
+
     private fun assertNoAllocation(logger: Logger) {
         val windows = List(WINDOWS) { allocatedBytes { repeat(ITERATIONS) { emit(logger, it) } } }
 

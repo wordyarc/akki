@@ -1,6 +1,7 @@
 package io.akki.internal
 
 import io.akki.Level
+import io.akki.LogContext
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import io.akki.backend.Sink
@@ -35,13 +36,17 @@ internal class DefaultBackend(private val notice: String) : LogBackend {
         append(loggerName)
         append(" - ")
         append(message)
-        if (fields.isNotEmpty()) {
-            fields.entries.joinTo(this, prefix = " {", postfix = "}") { (key, value) -> "$key=$value" }
-        }
+        appendFields(LogContext.current().fields, fields)
         cause?.let {
             append('\n')
             append(it.stackTraceToString().trimEnd())
         }
+    }
+
+    private fun StringBuilder.appendFields(context: Map<String, Any?>, fields: Map<String, Any?>) {
+        if (context.isEmpty() && fields.isEmpty()) return
+        val entries = context.entries.filter { it.key !in fields } + fields.entries
+        entries.joinTo(this, prefix = " {", postfix = "}") { (key, value) -> "$key=$value" }
     }
 
     override fun toString(): String = "DefaultBackend"

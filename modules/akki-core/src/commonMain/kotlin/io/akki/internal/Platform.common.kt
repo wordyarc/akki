@@ -1,6 +1,5 @@
 package io.akki.internal
 
-import io.akki.LogScope
 import io.akki.Logger
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
@@ -22,9 +21,11 @@ internal expect val Throwable.isFatal: Boolean
 
 internal expect val Throwable.isPermanent: Boolean
 
-internal expect fun currentScopeEntry(): LogScope.Entry?
+internal expect class ThreadSlot<T : Any>() {
+    fun get(): T?
 
-internal expect fun setCurrentScopeEntry(entry: LogScope.Entry?)
+    fun set(value: T?)
+}
 
 internal expect class ScopeBindings() {
     operator fun get(name: String): LoggerBinding?

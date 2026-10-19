@@ -2,6 +2,8 @@ package io.akki.test.coroutines
 
 import io.akki.Level
 import io.akki.Log
+import io.akki.LogContext
+import io.akki.coroutines.withLogFields
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.coroutines.Dispatchers
@@ -13,6 +15,18 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 
 class SuspendingRecordingTest {
+    @Test
+    fun `records carry the context of the coroutine`() = runTest {
+        val logger = Log.named("suspending.context")
+
+        val records = recordLogs {
+            withLogFields("job" to "nightly") { withContext(Dispatchers.Default) { logger.info("inside") } }
+            logger.info("outside")
+        }
+
+        assertEquals(listOf(LogContext("job" to "nightly"), LogContext.EMPTY), records.map { it.context })
+    }
+
     @Test
     fun `captures records across dispatchers`() = runTest {
         val logger = Log.named("suspending.dispatchers")

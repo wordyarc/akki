@@ -1,3 +1,8 @@
+public final class io/akki/coroutines/LogContextElementKt {
+	public static final fun asContextElement (Lio/akki/LogContext;)Lkotlin/coroutines/CoroutineContext$Element;
+	public static final fun withLogFields ([Lkotlin/Pair;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class io/akki/coroutines/LogScopeElementKt {
 	public static final fun asContextElement (Lio/akki/LogScope;)Lkotlin/coroutines/CoroutineContext$Element;
 }
