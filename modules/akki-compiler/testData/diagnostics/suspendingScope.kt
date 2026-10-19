@@ -9,6 +9,8 @@ suspend fun pause() {}
 
 suspend fun scoped(): Int {
     withLogScope(LogScope(RecordingBackend())) { <!NON_LOCAL_SUSPENSION_POINT!>pause<!>() }
+    withLogContext(LogContext("requestId" to 7)) { <!NON_LOCAL_SUSPENSION_POINT!>pause<!>() }
+    withLogFields("requestId" to 7) { <!NON_LOCAL_SUSPENSION_POINT!>pause<!>() }
     recordLogs { <!NON_LOCAL_SUSPENSION_POINT!>pause<!>() }
     return withLogScope(LogScope(RecordingBackend())) { 42 }
 }

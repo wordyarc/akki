@@ -1,9 +1,11 @@
 package io.akki
 
 import io.akki.test.LogRecord
+import io.akki.test.RecordingBackend
 import io.akki.test.recordLogs
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFails
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
@@ -99,6 +101,33 @@ class LogContextTest {
         source["b"] = 2
 
         assertEquals(mapOf<String, Any?>("a" to 1), context.fields)
+    }
+
+    @Test
+    fun `fields cannot be modified through a cast`(): Unit {
+        val contexts = listOf(
+            LogContext("a" to 1),
+            LogContext(mapOf("a" to 1, "b" to 2)),
+            LogContext("a" to 1) + LogContext("b" to 2),
+            LogContext("a" to 1, "b" to 2) - "b",
+            LogContext.EMPTY,
+        )
+
+        contexts.forEach { context ->
+            val fields = context.fields
+            assertFails(context.toString()) { (fields as MutableMap<String, Any?>)["c"] = 3 }
+            assertEquals(fields, context.fields)
+        }
+    }
+
+    @Test
+    fun `an entry names its context`(): Unit {
+        LogContext("a" to 1).enter().use { entry ->
+            assertEquals("LogContext.Entry(LogContext(a=1))", entry.toString())
+        }
+        LogScope(RecordingBackend()).enter().use { entry ->
+            assertTrue(entry.toString().startsWith("LogScope.Entry(LogScope("), entry.toString())
+        }
     }
 
     @Test

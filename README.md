@@ -180,7 +180,8 @@ shares the field used by `log`. `Log.of(javaClass)` always looks up the logger a
 
 `LogContext` holds fields that every record written on the current thread carries, such as a request id. A context is
 an immutable value, safe to keep and to pass to other threads: `+` merges two contexts and prefers the right operand,
-`-` removes a key, and `LogContext.EMPTY` has no fields. Fields of a record shadow context fields with the same key.
+`-` removes a key, a `null` value keeps its key, and `LogContext.EMPTY` has no fields. Fields of a record shadow
+context fields with the same key.
 `withLogFields` adds fields to the current context for the duration of a block. `withLogContext` enters exactly the
 given context; use it to clear the context or to re-enter one captured earlier:
 

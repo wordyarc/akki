@@ -51,6 +51,8 @@ public class LogScope(public val backend: LogBackend) {
             scopeEntries.exit(this, previous, "scope")
             closed = true
         }
+
+        override fun toString(): String = "LogScope.Entry($scope)"
     }
 
     public companion object {

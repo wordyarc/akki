@@ -24,26 +24,29 @@ public inline fun <T> withLogFields(vararg fields: Pair<String, Any?>, crossinli
     return withLogContext(LogContext.current() + LogContext(*fields), block)
 }
 
-public class LogContext(fields: Map<String, Any?>) {
-    public val fields: Map<String, Any?> = fields.toMap()
-
+public class LogContext private constructor(public val fields: Map<String, Any?>, validated: Boolean) {
     init {
-        require(this.fields.keys.none { it.isBlank() }) {
-            "akki: a log context key must not be blank: every backend writes it as a field name"
+        if (!validated) {
+            require(fields.keys.none { it.isBlank() }) {
+                "akki: a log context key must not be blank: every backend writes it as a field name"
+            }
         }
     }
 
-    public constructor(vararg fields: Pair<String, Any?>) : this(fields.toMap())
+    public constructor(fields: Map<String, Any?>) : this(buildMap<String, Any?> { putAll(fields) }, false)
+
+    public constructor(vararg fields: Pair<String, Any?>) : this(buildMap<String, Any?> { putAll(fields) }, false)
 
     public operator fun get(key: String): Any? = fields[key]
 
     public operator fun plus(other: LogContext): LogContext = when {
         other.fields.isEmpty() -> this
         fields.isEmpty() -> other
-        else -> LogContext(fields + other.fields)
+        else -> LogContext(buildMap { putAll(fields); putAll(other.fields) }, true)
     }
 
-    public operator fun minus(key: String): LogContext = if (key in fields) LogContext(fields - key) else this
+    public operator fun minus(key: String): LogContext =
+        if (key in fields) LogContext(buildMap { putAll(fields); remove(key) }, true) else this
 
     public fun enter(): Entry = Entry(this, contextEntries.get()).also(contextEntries::set)
 
@@ -69,11 +72,13 @@ public class LogContext(fields: Map<String, Any?>) {
             contextEntries.exit(this, previous, "context")
             closed = true
         }
+
+        override fun toString(): String = "LogContext.Entry($context)"
     }
 
     public companion object {
         @JvmField
-        public val EMPTY: LogContext = LogContext(emptyMap())
+        public val EMPTY: LogContext = LogContext(emptyMap(), true)
 
         @JvmStatic
         public fun current(): LogContext =
