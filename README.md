@@ -202,7 +202,7 @@ The entry returned by `enter()` must be closed on the thread that entered it, in
 `new LogContext(Map)`, combine contexts with `plus`, and close the entry in try-with-resources.
 
 To run a task on another thread with the context of the submitting thread, wrap it: `LogContext.current().wrap(task)`
-accepts a `Runnable` or a `Callable` and enters the context around the task. In Spring, that is a `TaskDecorator`.
+accepts a `Runnable` or a `Callable` and enters the context around the task.
 
 The block of `withLogFields` and `withLogContext` cannot suspend. In coroutines, use `withLogFields` from
 `akki-coroutines`: the fields follow the coroutine across dispatchers. `LogContext.asContextElement()` does the same
@@ -218,23 +218,25 @@ An entry opened with `enter()` inside a coroutine lasts until the next suspensio
 context is restored.
 
 Reactor and Spring propagate thread-local state with Micrometer `context-propagation`. `akki-context-propagation`
-registers a `ThreadLocalAccessor` for the context under `LogContextAccessor.KEY`. With
-`Hooks.enableAutomaticContextPropagation()`, which Spring Boot enables, a context written to the Reactor `Context` is
-in effect in every operator, and `ContextSnapshot` and Spring's `ContextPropagatingTaskDecorator` carry it to other
-threads. The module needs `context-propagation` on the classpath; on the module path the application declares
-`requires context.propagation` itself.
+registers a `ThreadLocalAccessor` for the context under `LogContextAccessor.KEY`, so `ContextSnapshot` and Spring's
+`ContextPropagatingTaskDecorator` carry the context to other threads. With `Hooks.enableAutomaticContextPropagation()`,
+which Spring Boot turns on with `spring.reactor.context-propagation=auto`, a context written to the Reactor `Context`
+is in effect in every operator. A `WebFilter` puts it there:
 
 ```kotlin
 chain.filter(exchange).contextWrite { it.put(LogContextAccessor.KEY, LogContext("requestId" to id)) }
 ```
 
+The module needs Micrometer `context-propagation` on the classpath; on the module path the application declares
+`requires context.propagation` itself.
+
 ### Backends
 
 `akki-slf4j` passes the context and the fields to SLF4J as key-value pairs, context first, and uses the exception as
-the cause. Logback pattern layouts print key-value pairs with `%kvp`. An application whose patterns read `%X{...}`
-sets `io.akki.slf4j.context` to `mdc`, see [Configuration](#configuration): the context and the fields of a record
-then go to MDC for the duration of the record instead of key-value pairs. A custom `LogBackend` reads the context with
-`LogContext.current()` inside `Sink.emit`: akki does not merge it into `fields`.
+the cause. Logback pattern layouts print key-value pairs with `%kvp`. For patterns that read `%X{...}`, the
+`io.akki.slf4j.context` setting in [Configuration](#configuration) switches `akki-slf4j` to MDC: the context and the
+fields of a record go there instead of key-value pairs, and MDC is restored after the record. A custom `LogBackend`
+reads the context with `LogContext.current()` inside `Sink.emit`: akki does not merge it into `fields`.
 
 If a `LogBackend` is registered with `ServiceLoader`, akki chooses it over `akki-slf4j`; when several are registered,
 it takes the first by class name and reports the others to stderr. The `io.akki.backend` setting names the class of
@@ -242,10 +244,10 @@ the backend to use instead; for `akki-slf4j`, that is `io.akki.slf4j.Slf4jBacken
 backend, or a selected backend that cannot start, is an error: akki throws instead of falling back. Calling
 `Log.install(backend)` replaces the backend for the whole process.
 
-`LogBackend.filter` wraps a backend with a predicate over the logger name and the level, evaluated on every record
-before the backend is asked. The predicate can read `LogContext.current()`, which keeps `DEBUG` records for one tenant
-while the logger itself stays at `DEBUG`. An application installs the filtered backend by declaring it in
-`META-INF/services/io.akki.backend.LogBackend`:
+`LogBackend.filter` wraps a backend with a predicate over the logger name and the level. It runs in
+`sink(level)`, so a rejected record is as cheap as a disabled level: its message lambda is not run. The predicate can
+read `LogContext.current()`: the logger stays at `DEBUG`, and `DEBUG` records of every tenant but one are dropped. An
+application installs the filtered backend by declaring it in `META-INF/services/io.akki.backend.LogBackend`:
 
 ```kotlin
 class TenantBackend : LogBackend by Slf4jBackend().filter { name, level ->
@@ -309,8 +311,8 @@ akki {
 
 `SLF4J_BACKEND` holds the class name of the `akki-slf4j` backend; the build fails on a value that is not a class name.
 
-Set `slf4jContext` to `MDC` when logback patterns read `%X{...}`: `akki-slf4j` then writes the context and the fields
-of every record to MDC instead of key-value pairs and restores MDC afterwards:
+Set `slf4jContext` to `MDC` to have `akki-slf4j` write the context to MDC instead of key-value pairs, as described in
+[Backends](#backends):
 
 ```kotlin
 akki {
@@ -334,8 +336,8 @@ property, `-Dio.akki.backend=`, unsets the value shipped in the resource.
 These settings belong to the application. A library leaves them unset. An unknown property or value, or two
 resources with different values for one property, is an error: akki throws instead of falling back. The error names
 the system property or the file that set the value, and both files for a conflict. A property of a backend,
-`io.akki.<backend>.<name>`, is checked by that backend: a misspelled `io.akki.slf4j.*` key or an unknown value fails
-the first record, and nothing checks it while `akki-slf4j` is not on the classpath.
+`io.akki.<backend>.<name>`, is checked by that backend: a misspelled `io.akki.slf4j.*` key in a resource or an unknown
+value fails the first record, and the key goes unchecked while `akki-slf4j` is not on the classpath.
 
 `includeSlf4jBackend`, `true` by default, adds `akki-slf4j` to the runtime classpath of every `jvm` compilation. Set
 it to `false` in a library, or in an application that registers its own `LogBackend`. Selecting `akki-slf4j` with
@@ -355,7 +357,7 @@ it to `false` in a library, or in an application that registers its own `LogBack
 * Only a message passed as a lambda is lazy. Ordinary arguments, including fields, are evaluated even when the
   level is disabled.
 * `recordLogs`, `LogScope` and `LogContext` apply to the current thread. Executors and other threads use the global
-  backend and an empty context unless the task is wrapped with `LogContext.wrap` or carried by
+  backend. They start with an empty context unless the task is wrapped with `LogContext.wrap` or carried by
   `akki-context-propagation`.
 * `io.akki.loggerNameStyle`, `io.akki.backend` and `io.akki.slf4j.context` are read once, when the first logger is
   created or the first record is written. Set them in `jvm {}` or with the `-D` option; `System.setProperty` in `main`

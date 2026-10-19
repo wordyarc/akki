@@ -94,7 +94,7 @@ class JvmBackendPropertyTest {
         assertContains(
             output,
             "java.lang.IllegalStateException: akki: unknown property 'io.akki.backned' in " +
-                "${directory.akkiPropertiesUrl()}: expected '$LOGGER_NAME_STYLE_PROPERTY' or '$BACKEND_PROPERTY', " +
+                "${directory.akkiPropertiesUrl()}: expected '$LOGGER_NAME_STYLE_PROPERTY', '$BACKEND_PROPERTY' " +
                 "or a backend setting 'io.akki.<backend>.<name>'",
         )
         assertFalse(output.contains("name="), output)

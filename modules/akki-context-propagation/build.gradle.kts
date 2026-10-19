@@ -4,7 +4,7 @@ plugins {
     id("org.jetbrains.kotlinx.kover")
 }
 
-description = "Carries the akki LogContext through Micrometer context-propagation: Reactor, Spring and wrapped executors"
+description = "Carries the akki LogContext through Micrometer context-propagation to Reactor and Spring"
 
 kotlin {
     explicitApi()

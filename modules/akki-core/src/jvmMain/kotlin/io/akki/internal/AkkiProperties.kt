@@ -40,9 +40,9 @@ public object AkkiProperties {
             val properties = url.openStream().use { Properties().apply { load(it) } }
             for (name in properties.stringPropertyNames()) {
                 if (name !in CORE_PROPERTIES && !name.isBackendProperty()) {
-                    val expected = CORE_PROPERTIES.joinToString(" or ") { "'$it'" }
+                    val expected = CORE_PROPERTIES.joinToString(", ") { "'$it'" }
                     akkiError(
-                        "unknown property '$name' in $url: expected $expected, " +
+                        "unknown property '$name' in $url: expected $expected " +
                             "or a backend setting '${PROPERTY_PREFIX}<backend>.<name>'",
                     )
                 }

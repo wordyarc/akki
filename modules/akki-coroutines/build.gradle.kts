@@ -4,7 +4,7 @@ plugins {
     id("org.jetbrains.kotlinx.kover")
 }
 
-description = "Keeps an akki LogScope attached to a coroutine as it moves between dispatchers"
+description = "Keeps an akki LogScope and LogContext attached to a coroutine as it moves between dispatchers"
 
 kotlin {
     explicitApi()
