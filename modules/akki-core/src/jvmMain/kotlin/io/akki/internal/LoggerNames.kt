@@ -48,7 +48,7 @@ internal fun loggerName(jClass: Class<*>, style: LoggerNameStyle): String {
 internal fun parseLoggerNameStyle(setting: Setting?): LoggerNameStyle {
     if (setting == null) return LoggerNameStyle.SOURCE
     val normalized = setting.value.lowercase().replace('_', '-')
-    return LoggerNameStyle.entries.firstOrNull { it.propertyValue == normalized } ?: akkiError(
+    return LoggerNameStyle.entries.firstOrNull { it.propertyValue == normalized } ?: configurationError(
         "unknown value '${setting.value}' set by ${setting.source}: " +
             "expected ${LoggerNameStyle.entries.joinToString(" or ") { "'${it.propertyValue}'" }}",
     )

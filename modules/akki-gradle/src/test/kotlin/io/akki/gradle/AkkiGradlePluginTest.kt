@@ -99,7 +99,7 @@ class AkkiGradlePluginTest {
 
         val output: String = consumerRunner(projectDirectory, "-PloggerNameStyle=invalid").buildAndFail().output
         assertContains(output, "java.lang.ExceptionInInitializerError")
-        assertContains(output, "Caused by: java.lang.IllegalStateException: akki:")
+        assertContains(output, "Caused by: io.akki.internal.AkkiConfigurationException: akki:")
         assertContains(output, "io.akki.loggerNameStyle")
         assertContains(output, "invalid")
         assertContains(output, "source")

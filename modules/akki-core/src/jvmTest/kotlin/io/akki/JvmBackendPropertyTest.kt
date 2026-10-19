@@ -63,7 +63,7 @@ class JvmBackendPropertyTest {
         assertContains(output, "entered main")
         assertContains(
             output,
-            "java.lang.IllegalStateException: akki: the backend 'acme.Missing' set by the system property " +
+            "io.akki.internal.AkkiConfigurationException: akki: the backend 'acme.Missing' set by the system property " +
                 "'$BACKEND_PROPERTY' was not found: the classpath declares $FIRST, $SECOND",
         )
         assertFalse(output.contains("backend="), output)
@@ -78,7 +78,7 @@ class JvmBackendPropertyTest {
         assertNotEquals(0, exit, output)
         assertContains(
             output,
-            "java.lang.IllegalStateException: akki: the backend 'acme.Missing' set by '$BACKEND_PROPERTY' in " +
+            "io.akki.internal.AkkiConfigurationException: akki: the backend 'acme.Missing' set by '$BACKEND_PROPERTY' in " +
                 "${directory.akkiPropertiesUrl()} was not found: the classpath declares $FIRST, $SECOND",
         )
         assertFalse(output.contains("backend="), output)
@@ -93,7 +93,7 @@ class JvmBackendPropertyTest {
         assertNotEquals(0, exit, output)
         assertContains(
             output,
-            "java.lang.IllegalStateException: akki: unknown property 'io.akki.backned' in " +
+            "io.akki.internal.AkkiConfigurationException: akki: unknown property 'io.akki.backned' in " +
                 "${directory.akkiPropertiesUrl()}: expected '$LOGGER_NAME_STYLE_PROPERTY', '$BACKEND_PROPERTY' " +
                 "or a backend setting 'io.akki.<backend>.<name>'",
         )
@@ -122,8 +122,30 @@ class JvmBackendPropertyTest {
         assertNotEquals(0, exit, output)
         assertContains(
             output,
-            "java.lang.IllegalStateException: akki: conflicting values for '$BACKEND_PROPERTY' on the classpath: " +
+            "io.akki.internal.AkkiConfigurationException: akki: conflicting values for '$BACKEND_PROPERTY' on the classpath: " +
                 "'$FIRST' in ${first.akkiPropertiesUrl()} and '$SECOND' in ${second.akkiPropertiesUrl()}",
+        )
+        assertFalse(output.contains("backend="), output)
+    }
+
+    @Test
+    fun `resources that disagree fail the first lookup even when every setting is a system property`(
+        @TempDir directory: Path,
+    ): Unit {
+        val first = directory.resolve("first").akkiProperties(BACKEND_PROPERTY to FIRST)
+        val second = directory.resolve("second").akkiProperties(BACKEND_PROPERTY to SECOND)
+
+        val (exit, output) = probe(
+            BackendProbe::class.java,
+            properties = mapOf(BACKEND_PROPERTY to FIRST, LOGGER_NAME_STYLE_PROPERTY to "source"),
+            resources = listOf(directory.declareProbeBackends(), first, second),
+        )
+
+        assertNotEquals(0, exit, output)
+        assertContains(
+            output,
+            "io.akki.internal.AkkiConfigurationException: akki: conflicting values for '$BACKEND_PROPERTY' on the " +
+                "classpath: '$FIRST' in ${first.akkiPropertiesUrl()} and '$SECOND' in ${second.akkiPropertiesUrl()}",
         )
         assertFalse(output.contains("backend="), output)
     }

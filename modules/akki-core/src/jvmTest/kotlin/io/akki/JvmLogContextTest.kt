@@ -86,7 +86,9 @@ class JvmLogContextTest {
             ),
             methods.filterNot { it.isSynthetic }.map { it.parameterTypes.toList() }.toSet(),
         )
-        assertTrue(methods.any { it.isSynthetic && it.parameterTypes.last() == Function0::class.java })
+        assertTrue(methods.none { it.isSynthetic })
+        val common = Class.forName("io.akki.LogContextKt").methods.filter { it.name == "wrap" }
+        assertEquals(listOf(true), common.map { it.isSynthetic && it.parameterTypes.last() == Function0::class.java })
     }
 
     @Test

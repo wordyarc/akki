@@ -80,7 +80,7 @@ class JvmLoggerNameStylePropertyTest {
         assertNotEquals(0, exit, output)
         assertContains(
             output,
-            "java.lang.IllegalStateException: akki: conflicting values for '$LOGGER_NAME_STYLE_PROPERTY' on the " +
+            "io.akki.internal.AkkiConfigurationException: akki: conflicting values for '$LOGGER_NAME_STYLE_PROPERTY' on the " +
                 "classpath: 'source' in ${first.akkiPropertiesUrl()} and 'jvm-class' in ${second.akkiPropertiesUrl()}",
         )
         assertFalse(output.contains("name="), output)
@@ -98,7 +98,7 @@ class JvmLoggerNameStylePropertyTest {
     }
 
     private fun unknownValue(value: String, source: String): String =
-        "java.lang.IllegalStateException: akki: unknown value '$value' set by $source: " +
+        "io.akki.internal.AkkiConfigurationException: akki: unknown value '$value' set by $source: " +
             "expected '${LoggerNameStyle.SOURCE.propertyValue}' or '${LoggerNameStyle.JVM_CLASS.propertyValue}'"
 
     private fun Path.styleResource(style: LoggerNameStyle): Path =

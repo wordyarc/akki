@@ -226,6 +226,32 @@ class Slf4jDiscoveryTest {
     }
 
     @Test
+    fun `an unknown core property fails the first record even when the backend property is empty`(@TempDir directory: Path) {
+        directory.akkiProperties("io.akki.backned=x")
+
+        val failure = withProperty(BACKEND_PROPERTY, "") {
+            isolatedRuntime(directory).use { assertFailsWith<InvocationTargetException> { it.writeLog() } }
+        }
+
+        assertEquals("io.akki.internal.AkkiConfigurationException", failure.cause?.javaClass?.name)
+        assertContains(failure.cause?.message.orEmpty(), "akki: unknown property 'io.akki.backned' in file:")
+    }
+
+    @Test
+    fun `a selected backend reports its own configuration error unwrapped`(@TempDir directory: Path) {
+        directory.akkiProperties("io.akki.slf4j.context=both")
+
+        val failure = withProperty(BACKEND_PROPERTY, Slf4jBackend::class.java.name) {
+            isolatedRuntime(directory).use { assertFailsWith<InvocationTargetException> { it.writeLog() } }
+        }
+
+        val message = failure.cause?.message.orEmpty()
+        assertEquals("io.akki.internal.AkkiConfigurationException", failure.cause?.javaClass?.name)
+        assertContains(message, "akki: unknown value 'both' set by 'io.akki.slf4j.context' in file:")
+        assertContains(message, "expected 'key-value-pairs' or 'mdc'")
+    }
+
+    @Test
     fun `a classpath resource selects the mdc target`(@TempDir directory: Path) {
         directory.akkiProperties("io.akki.slf4j.context=mdc")
         directory.resolve("logback-test.xml").writeText(

@@ -12,6 +12,7 @@ import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
+import kotlin.jvm.JvmSynthetic
 
 private val anyContextEntered = AtomicBoolean(false)
 
@@ -24,6 +25,9 @@ public inline fun <T> withLogFields(vararg fields: Pair<String, Any?>, crossinli
     contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
     return withLogContext(LogContext.current().plusFields(fields), block)
 }
+
+@JvmSynthetic
+public fun <T> LogContext.wrap(task: () -> T): () -> T = { withLogContext(this) { task() } }
 
 public class LogContext internal constructor(public val fields: Map<String, Any?>, validated: Boolean) {
     init {

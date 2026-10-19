@@ -62,12 +62,12 @@ public final class io/akki/LogContext$Entry : java/lang/AutoCloseable {
 public final class io/akki/LogContextKt {
 	public static final fun withLogContext (Lio/akki/LogContext;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 	public static final fun withLogFields ([Lkotlin/Pair;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
+	public static final synthetic fun wrap (Lio/akki/LogContext;Lkotlin/jvm/functions/Function0;)Lkotlin/jvm/functions/Function0;
 }
 
 public final class io/akki/LogContexts {
 	public static final fun wrap (Lio/akki/LogContext;Ljava/lang/Runnable;)Ljava/lang/Runnable;
 	public static final fun wrap (Lio/akki/LogContext;Ljava/util/concurrent/Callable;)Ljava/util/concurrent/Callable;
-	public static final synthetic fun wrap (Lio/akki/LogContext;Lkotlin/jvm/functions/Function0;)Lkotlin/jvm/functions/Function0;
 }
 
 public final class io/akki/LogScope {

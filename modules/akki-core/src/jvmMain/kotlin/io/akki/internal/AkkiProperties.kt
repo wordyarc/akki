@@ -20,8 +20,10 @@ public object AkkiProperties {
         (AkkiProperties::class.java.classLoader ?: ClassLoader.getSystemClassLoader()).loadAkkiProperties()
     }
 
-    public operator fun get(name: String): Setting? =
-        (systemProperty(name) ?: resources[name])?.takeIf { it.value.isNotEmpty() }
+    public operator fun get(name: String): Setting? {
+        val declared = resources[name]
+        return (systemProperty(name) ?: declared)?.takeIf { it.value.isNotEmpty() }
+    }
 
     public fun resourceSettings(prefix: String): Map<String, Setting> = resources.filterKeys { it.startsWith(prefix) }
 
@@ -41,7 +43,7 @@ public object AkkiProperties {
             for (name in properties.stringPropertyNames()) {
                 if (name !in CORE_PROPERTIES && !name.isBackendProperty()) {
                     val expected = CORE_PROPERTIES.joinToString(", ") { "'$it'" }
-                    akkiError(
+                    configurationError(
                         "unknown property '$name' in $url: expected $expected " +
                             "or a backend setting '${PROPERTY_PREFIX}<backend>.<name>'",
                     )
@@ -49,7 +51,7 @@ public object AkkiProperties {
                 val declaration = Declaration(url, properties.getProperty(name).trim())
                 val previous = merged.putIfAbsent(name, declaration) ?: continue
                 if (previous.value != declaration.value) {
-                    akkiError(
+                    configurationError(
                         "conflicting values for '$name' on the classpath: " +
                             "'${previous.value}' in ${previous.url} and '${declaration.value}' in ${declaration.url}",
                     )

@@ -368,7 +368,7 @@ class JvmBackendDiscoveryTest {
         directory.declareFactories(CreatingFactory::class.java.name)
 
         val failure = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
-            assertFailsWith<IllegalStateException> { discover(loader, selected("acme.Missing")) }
+            assertFailsWith<AkkiConfigurationException> { discover(loader, selected("acme.Missing")) }
         }
 
         assertEquals(
@@ -380,7 +380,7 @@ class JvmBackendDiscoveryTest {
 
     @Test
     fun `rejects a selected backend when nothing is declared`(): Unit {
-        val failure = assertFailsWith<IllegalStateException> {
+        val failure = assertFailsWith<AkkiConfigurationException> {
             discover(javaClass.classLoader, selected("acme.Missing"))
         }
 
@@ -395,7 +395,7 @@ class JvmBackendDiscoveryTest {
         directory.declareFactories(DecliningFactory::class.java.name)
 
         val failure = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
-            assertFailsWith<IllegalStateException> { discover(loader, selected("acme.Declined")) }
+            assertFailsWith<AkkiConfigurationException> { discover(loader, selected("acme.Declined")) }
         }
 
         assertEquals(
@@ -409,11 +409,23 @@ class JvmBackendDiscoveryTest {
         directory.declareFactories(FailingFactory::class.java.name)
 
         val failure = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
-            assertFailsWith<IllegalStateException> { discover(loader, selected("acme.Failing")) }
+            assertFailsWith<AkkiConfigurationException> { discover(loader, selected("acme.Failing")) }
         }
 
         assertEquals("akki: the backend 'acme.Failing' set by the test failed to start", failure.message)
         assertEquals("broken factory", failure.cause?.message)
+    }
+
+    @Test
+    fun `passes a configuration error of the selected factory through unwrapped`(@TempDir directory: Path): Unit {
+        directory.declareFactories(MisconfiguredFactory::class.java.name)
+
+        val failure = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
+            assertFailsWith<AkkiConfigurationException> { discover(loader, selected("acme.Misconfigured")) }
+        }
+
+        assertEquals("akki: bad setting", failure.message)
+        assertEquals(null, failure.cause)
     }
 
     @Test
@@ -433,7 +445,7 @@ class JvmBackendDiscoveryTest {
 
         var failure: Throwable? = null
         val output = captureStderr {
-            failure = assertFailsWith<IllegalStateException> { discover(loader, selected("acme.Missing")) }
+            failure = assertFailsWith<AkkiConfigurationException> { discover(loader, selected("acme.Missing")) }
         }
 
         assertContains(output, "akki: backend discovery failed")

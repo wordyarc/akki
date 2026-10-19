@@ -30,16 +30,16 @@ private fun select(selected: Setting, declared: List<LogBackend>, services: Serv
     val name = selected.value
     declared.firstOrNull { it::class.java.name == name }?.let { return it }
     val factories = services.load(LogBackendFactory::class.java)
-    val factory = factories.firstOrNull { it.backendClassName == name } ?: akkiError(
+    val factory = factories.firstOrNull { it.backendClassName == name } ?: configurationError(
         "the backend '$name' set by ${selected.source} was not found: ${services.candidates(declared, factories)}",
     )
     val backend = try {
         factory.createBackend()
     } catch (failure: Throwable) {
-        if (failure.isFatal) throw failure
-        akkiError("the backend '$name' set by ${selected.source} failed to start", failure)
+        if (failure.isFatal || failure is AkkiConfigurationException) throw failure
+        configurationError("the backend '$name' set by ${selected.source} failed to start", failure)
     }
-    return backend ?: akkiError(
+    return backend ?: configurationError(
         "the backend '$name' set by ${selected.source} is not available. ${factory.hintOnMissing()}",
     )
 }
