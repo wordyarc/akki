@@ -83,6 +83,15 @@ class LogContextTest {
     }
 
     @Test
+    fun `plus adds a field and prefers it`(): Unit {
+        val context = LogContext("a" to 1, "b" to 2) + ("b" to 3) + ("c" to null)
+
+        assertEquals(LogContext("a" to 1, "b" to 3, "c" to null), context)
+        assertEquals(listOf("a", "b", "c"), context.fields.keys.toList())
+        assertEquals(LogContext("a" to 1), LogContext.EMPTY + ("a" to 1))
+    }
+
+    @Test
     fun `contexts are values`(): Unit {
         val context = LogContext("a" to 1, "b" to null)
 
@@ -110,6 +119,8 @@ class LogContextTest {
             LogContext(mapOf("a" to 1, "b" to 2)),
             LogContext("a" to 1) + LogContext("b" to 2),
             LogContext("a" to 1, "b" to 2) - "b",
+            LogContext("a" to 1) + ("b" to 2),
+            withLogFields("a" to 1) { withLogFields("b" to 2) { LogContext.current() } },
             LogContext.EMPTY,
         )
 
@@ -139,6 +150,9 @@ class LogContextTest {
             failure.message,
         )
         assertFailsWith<IllegalArgumentException> { LogContext(mapOf("" to 1)) }
+        assertFailsWith<IllegalArgumentException> { LogContext.EMPTY + ("" to 1) }
+        assertFailsWith<IllegalArgumentException> { withLogFields("a" to 1, " " to 2) {} }
+        assertSame(LogContext.EMPTY, LogContext.current())
     }
 
     @Test

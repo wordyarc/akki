@@ -46,6 +46,7 @@ public final class io/akki/LogContext {
 	public fun hashCode ()I
 	public final fun minus (Ljava/lang/String;)Lio/akki/LogContext;
 	public final fun plus (Lio/akki/LogContext;)Lio/akki/LogContext;
+	public final fun plus (Lkotlin/Pair;)Lio/akki/LogContext;
 	public fun toString ()Ljava/lang/String;
 }
 
@@ -63,9 +64,10 @@ public final class io/akki/LogContextKt {
 	public static final fun withLogFields ([Lkotlin/Pair;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 }
 
-public final class io/akki/LogContextTasksKt {
+public final class io/akki/LogContexts {
 	public static final fun wrap (Lio/akki/LogContext;Ljava/lang/Runnable;)Ljava/lang/Runnable;
 	public static final fun wrap (Lio/akki/LogContext;Ljava/util/concurrent/Callable;)Ljava/util/concurrent/Callable;
+	public static final synthetic fun wrap (Lio/akki/LogContext;Lkotlin/jvm/functions/Function0;)Lkotlin/jvm/functions/Function0;
 }
 
 public final class io/akki/LogScope {
@@ -172,6 +174,10 @@ public abstract interface class io/akki/internal/LogBackendFactory {
 	public abstract fun createBackend ()Lio/akki/backend/LogBackend;
 	public abstract fun getBackendClassName ()Ljava/lang/String;
 	public abstract fun hintOnMissing ()Ljava/lang/String;
+}
+
+public final class io/akki/internal/LogContextFieldsKt {
+	public static final fun plusFields (Lio/akki/LogContext;[Lkotlin/Pair;)Lio/akki/LogContext;
 }
 
 public final class io/akki/internal/Setting {

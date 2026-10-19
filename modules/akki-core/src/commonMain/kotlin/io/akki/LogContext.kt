@@ -1,9 +1,10 @@
-@file:OptIn(ExperimentalContracts::class, ExperimentalAtomicApi::class)
+@file:OptIn(ExperimentalContracts::class, ExperimentalAtomicApi::class, InternalAkkiApi::class)
 
 package io.akki
 
 import io.akki.internal.contextEntries
 import io.akki.internal.exit
+import io.akki.internal.plusFields
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.contracts.ExperimentalContracts
@@ -21,16 +22,12 @@ public inline fun <T> withLogContext(context: LogContext, crossinline block: () 
 
 public inline fun <T> withLogFields(vararg fields: Pair<String, Any?>, crossinline block: () -> T): T {
     contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
-    return withLogContext(LogContext.current() + LogContext(*fields), block)
+    return withLogContext(LogContext.current().plusFields(fields), block)
 }
 
-public class LogContext private constructor(public val fields: Map<String, Any?>, validated: Boolean) {
+public class LogContext internal constructor(public val fields: Map<String, Any?>, validated: Boolean) {
     init {
-        if (!validated) {
-            require(fields.keys.none { it.isBlank() }) {
-                "akki: a log context key must not be blank: every backend writes it as a field name"
-            }
-        }
+        if (!validated) fields.keys.forEach(::checkLogContextKey)
     }
 
     public constructor(fields: Map<String, Any?>) : this(buildMap<String, Any?> { putAll(fields) }, false)
@@ -43,6 +40,11 @@ public class LogContext private constructor(public val fields: Map<String, Any?>
         other.fields.isEmpty() -> this
         fields.isEmpty() -> other
         else -> LogContext(buildMap { putAll(fields); putAll(other.fields) }, true)
+    }
+
+    public operator fun plus(field: Pair<String, Any?>): LogContext {
+        checkLogContextKey(field.first)
+        return LogContext(buildMap { putAll(fields); put(field.first, field.second) }, true)
     }
 
     public operator fun minus(key: String): LogContext =
@@ -84,4 +86,8 @@ public class LogContext private constructor(public val fields: Map<String, Any?>
         public fun current(): LogContext =
             if (anyContextEntered.load()) contextEntries.get()?.context ?: EMPTY else EMPTY
     }
+}
+
+internal fun checkLogContextKey(key: String) {
+    require(key.isNotBlank()) { "akki: a log context key must not be blank: every backend writes it as a field name" }
 }

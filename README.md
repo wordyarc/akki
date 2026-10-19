@@ -181,9 +181,9 @@ shares the field used by `log`. `Log.of(javaClass)` always looks up the logger a
 ### Context fields
 
 `LogContext` holds fields that every record written on the current thread carries, such as a request id. A context is
-an immutable value, safe to keep and to pass to other threads: `+` merges two contexts and prefers the right operand,
-`-` removes a key, a `null` value keeps its key, and `LogContext.EMPTY` has no fields. Fields of a record shadow
-context fields with the same key.
+an immutable value, safe to keep and to pass to other threads: `+` merges two contexts or adds one field and prefers
+the right operand, `-` removes a key, a `null` value keeps its key, and `LogContext.EMPTY` has no fields. Fields of a
+record shadow context fields with the same key.
 `withLogFields` adds fields to the current context for the duration of a block. `withLogContext` enters exactly the
 given context; use it to clear the context or to re-enter one captured earlier:
 
@@ -194,7 +194,7 @@ withLogFields("requestId" to request.id, "tenant" to tenant) {
     withLogContext(LogContext.EMPTY) { cleanup() }          // no context
 }
 
-val entry = (LogContext.current() + LogContext("requestId" to id)).enter() // an interceptor that cannot wrap the call
+val entry = (LogContext.current() + ("requestId" to id)).enter() // an interceptor that cannot wrap the call
 try { chain.proceed() } finally { entry.close() }
 ```
 
@@ -202,10 +202,12 @@ The entry returned by `enter()` must be closed on the thread that entered it, in
 `new LogContext(Map)`, combine contexts with `plus`, and close the entry in try-with-resources.
 
 To run a task on another thread with the context of the submitting thread, wrap it: `LogContext.current().wrap(task)`
-accepts a `Runnable` or a `Callable` and enters the context around the task.
+accepts a `Runnable`, a `Callable` or a lambda and enters the context around the task. From Java, call
+`LogContexts.wrap(context, task)`.
 
 The block of `withLogFields` and `withLogContext` cannot suspend. In coroutines, use `withLogFields` from
-`akki-coroutines`: the fields follow the coroutine across dispatchers. `LogContext.asContextElement()` does the same
+`akki-coroutines`: the fields follow the coroutine across dispatchers. Import one of the two `withLogFields`
+explicitly: with star imports of both packages the call is ambiguous. `LogContext.asContextElement()` does the same
 for a whole context:
 
 ```kotlin
@@ -363,6 +365,7 @@ it to `false` in a library, or in an application that registers its own `LogBack
   created or the first record is written. Set them in `jvm {}` or with the `-D` option; `System.setProperty` in `main`
   may come too late.
 * Records removed by `minLevel` cannot be restored through runtime logging configuration.
-* Markers are not supported. MDC receives the context only with `io.akki.slf4j.context=mdc`.
+* Markers are not supported. With `io.akki.slf4j.context=mdc`, MDC holds the context only while akki writes a record:
+  logs that other code writes through SLF4J do not get the fields unless the application puts them into MDC itself.
 * `Log.named` keeps every logger it creates, so applications need a bounded set of names.
 * The API is experimental. Releases before `1.0` may break compatibility.

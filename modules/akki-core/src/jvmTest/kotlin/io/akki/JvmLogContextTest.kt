@@ -2,12 +2,14 @@ package io.akki
 
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
+import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit.SECONDS
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import kotlin.test.assertTrue
 
 class JvmLogContextTest {
     @Test
@@ -49,6 +51,42 @@ class JvmLogContextTest {
         } finally {
             executor.shutdownNow()
         }
+    }
+
+    @Test
+    fun `a wrapped lambda keeps its result`(): Unit {
+        val context = LogContext("requestId" to 7)
+        val executor = Executors.newSingleThreadExecutor()
+
+        try {
+            val submitted: Future<LogContext> = executor.submit(context.wrap { LogContext.current() })
+            val executed = AtomicReference<LogContext>()
+            executor.execute(context.wrap { executed.set(LogContext.current()) })
+            val afterwards = executor.submit(Callable { LogContext.current() }).get(10, SECONDS)
+            val task: () -> LogContext = context.wrap { LogContext.current() }
+
+            assertEquals(context, submitted.get(10, SECONDS))
+            assertEquals(context, executed.get())
+            assertSame(LogContext.EMPTY, afterwards)
+            assertEquals(context, task())
+            assertSame(LogContext.EMPTY, LogContext.current())
+        } finally {
+            executor.shutdownNow()
+        }
+    }
+
+    @Test
+    fun `java sees wrap for runnables and callables only`(): Unit {
+        val methods = Class.forName("io.akki.LogContexts").methods.filter { it.name == "wrap" }
+
+        assertEquals(
+            setOf(
+                listOf(LogContext::class.java, Runnable::class.java),
+                listOf(LogContext::class.java, Callable::class.java),
+            ),
+            methods.filterNot { it.isSynthetic }.map { it.parameterTypes.toList() }.toSet(),
+        )
+        assertTrue(methods.any { it.isSynthetic && it.parameterTypes.last() == Function0::class.java })
     }
 
     @Test
