@@ -28,7 +28,9 @@ public class LogContext(fields: Map<String, Any?>) {
     public val fields: Map<String, Any?> = fields.toMap()
 
     init {
-        require(this.fields.keys.none { it.isBlank() }) { "akki: a log context key must not be blank" }
+        require(this.fields.keys.none { it.isBlank() }) {
+            "akki: a log context key must not be blank: every backend writes it as a field name"
+        }
     }
 
     public constructor(vararg fields: Pair<String, Any?>) : this(fields.toMap())

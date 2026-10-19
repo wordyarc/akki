@@ -30,15 +30,15 @@ caller line. An optional compile-time threshold removes records below the select
   * `Log.of<T>()` and `Log.named("...")` work without the compiler plugin. From Java, call `Log.of(Class)` or
     `Log.named`.
   * `Logger` provides eager and lazy overloads of `trace`, `debug`, `info`, `warn`, and `error`.
-  * `LogBackend` connects a backend; `LogScope` selects one for the current thread; `LogContext` adds fields to
-    every record of the current thread.
+  * `LogBackend` connects a backend; `LogScope` selects one for the current thread.
+  * `LogContext` carries fields that every record of the current thread gets.
 * `akki-slf4j`: backend for SLF4J 2, enabled when an SLF4J 2 provider is available at runtime.
 * `akki-compiler`: Kotlin compiler plugin, one artifact for every supported Kotlin release.
 * `akki-gradle`: applies the compiler plugin, adds `akki-core` and `akki-slf4j`, and keeps every akki module at the
   plugin version.
 * `akki-test`: captures test logs with `recordLogs { }` or `RecordingBackend`.
-* `akki-coroutines`: carries a `LogScope` or a `LogContext` in a coroutine context via `asContextElement()` and adds a
-  suspending `withLogFields { }`.
+* `akki-coroutines`: carries a `LogScope` or a `LogContext` in a coroutine context via `asContextElement()` and
+  provides a suspending `withLogFields { }`.
 * `akki-test-coroutines`: provides suspending `recordLogs { }` for coroutine tests.
 * `akki-bom`: supplies the version of every akki artifact as a Gradle platform.
 
@@ -176,12 +176,13 @@ private val history = Log.named("jobs.history") // from an arbitrary name
 The compiler plugin can fold constant factory calls into static field reads. A folded `Log.of` for the enclosing type
 shares the field used by `log`. `Log.of(javaClass)` always looks up the logger at runtime.
 
-### Context
+### Context fields
 
 `LogContext` holds fields that every record written on the current thread carries, such as a request id. A context is
-an immutable value: `plus` merges two contexts and prefers the right operand, `minus` removes a key, and
-`LogContext.EMPTY` has no fields. `withLogFields` adds fields to the current context for the duration of a block.
-`withLogContext` installs exactly the given context, which is how a block clears it or re-enters a captured one:
+an immutable value, safe to keep and to pass to other threads: `+` merges two contexts and prefers the right operand,
+`-` removes a key, and `LogContext.EMPTY` has no fields. Fields of a record shadow context fields with the same key.
+`withLogFields` adds fields to the current context for the duration of a block. `withLogContext` enters exactly the
+given context; use it to clear the context or to re-enter one captured earlier:
 
 ```kotlin
 withLogFields("requestId" to request.id, "tenant" to tenant) {
@@ -190,29 +191,31 @@ withLogFields("requestId" to request.id, "tenant" to tenant) {
     withLogContext(LogContext.EMPTY) { cleanup() }          // no context
 }
 
-val entry = (LogContext.current() + LogContext("requestId" to id)).enter() // in an interceptor without a block
+val entry = (LogContext.current() + LogContext("requestId" to id)).enter() // an interceptor that cannot wrap the call
 try { chain.proceed() } finally { entry.close() }
 ```
 
-Fields of a record shadow context fields with the same key. The block of `withLogFields` and `withLogContext` cannot
-suspend. In coroutines, `withLogFields` from `akki-coroutines` adds fields to the context of the coroutine, and
-`LogContext.asContextElement()` carries a context across dispatchers:
+The entry returned by `enter()` must be closed on the thread that entered it, innermost first. From Java, create
+`new LogContext(Map)`, combine contexts with `plus`, and close the entry in try-with-resources.
+
+The block of `withLogFields` and `withLogContext` cannot suspend. In coroutines, use `withLogFields` from
+`akki-coroutines`: the fields follow the coroutine across dispatchers. `LogContext.asContextElement()` does the same
+for a whole context:
 
 ```kotlin
 withLogFields("jobId" to job.id) { run(job) }                         // suspending, from io.akki.coroutines
-runBlocking(LogContext.current().asContextElement()) { ... }          // the thread's context enters the coroutines
+runBlocking(LogContext.current().asContextElement()) { ... }          // carry the thread's context into coroutines
 launch(Dispatchers.IO + LogContext.EMPTY.asContextElement()) { ... }  // background work without the context
 ```
 
-A context entered with `enter()` or `withLogContext` inside a coroutine lasts until the next suspension; afterwards
-the element of the coroutine restores its own context. An entry must be closed on the thread that entered it, innermost
-first.
+An entry opened with `enter()` inside a coroutine lasts until the next suspension; afterwards the coroutine's own
+context is restored.
 
 ### Backends
 
 `akki-slf4j` passes the context and the fields to SLF4J as key-value pairs, context first, and uses the exception as
-the cause. Pattern layouts print key-value pairs with `%kvp`; the context is not written to MDC. A backend reads the
-context itself with `LogContext.current()` inside `Sink.emit`.
+the cause. Logback pattern layouts print key-value pairs with `%kvp`; the context is not written to MDC. A custom
+`LogBackend` reads the context with `LogContext.current()` inside `Sink.emit`: akki does not merge it into `fields`.
 
 If a `LogBackend` is registered with `ServiceLoader`, akki chooses it over `akki-slf4j`; when several are registered,
 it takes the first by class name and reports the others to stderr. The `io.akki.backend` setting names the class of
@@ -229,7 +232,11 @@ assertEquals("started nightly-report", records.single().message)
 
 A capture belongs to one thread, so tests running in parallel never see each other's records. For coroutine tests,
 import `recordLogs` from `akki-test-coroutines`: it keeps capturing when the coroutine moves between dispatchers.
-`LogRecord.context` holds the context in effect when the record was written, separately from its `fields`.
+`LogRecord.context` holds the context in effect when the record was written, separately from its `fields`:
+
+```kotlin
+assertEquals(LogContext("requestId" to 7), records.single().context)
+```
 
 ### Configuration
 
@@ -307,6 +314,6 @@ it to `false` in a library, or in an application that registers its own `LogBack
 * `io.akki.loggerNameStyle` and `io.akki.backend` are read once, when the first logger is created or the first record
   is written. Set them in `jvm {}` or with the `-D` option; `System.setProperty` in `main` may come too late.
 * Records removed by `minLevel` cannot be restored through runtime logging configuration.
-* Markers are not supported. The context is passed as key-value pairs, not as MDC: `%X{requestId}` does not show it.
+* Markers are not supported, and the context is not bridged to MDC.
 * `Log.named` keeps every logger it creates, so applications need a bounded set of names.
 * The API is experimental. Releases before `1.0` may break compatibility.

@@ -105,7 +105,10 @@ class LogContextTest {
     fun `a blank key is rejected`(): Unit {
         val failure = assertFailsWith<IllegalArgumentException> { LogContext(" " to 1) }
 
-        assertEquals("akki: a log context key must not be blank", failure.message)
+        assertEquals(
+            "akki: a log context key must not be blank: every backend writes it as a field name",
+            failure.message,
+        )
         assertFailsWith<IllegalArgumentException> { LogContext(mapOf("" to 1)) }
     }
 
@@ -149,7 +152,14 @@ class LogContextTest {
         }
 
         assertEquals(
-            LogRecord("context.records", Level.INFO, "scoped", null, mapOf("orderId" to 42), LogContext("requestId" to 7)),
+            LogRecord(
+                "context.records",
+                Level.INFO,
+                "scoped",
+                null,
+                mapOf("orderId" to 42),
+                LogContext("requestId" to 7),
+            ),
             records[0],
         )
         assertSame(LogContext.EMPTY, records[1].context)
