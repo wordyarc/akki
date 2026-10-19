@@ -8,8 +8,14 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.slf4j.event.Level as Slf4jLevel
 
-public class Slf4jBackend internal constructor(private val target: ContextTarget) : LogBackend {
+public class Slf4jBackend : LogBackend {
+    private val target: ContextTarget
+
     public constructor() : this(configuredContextTarget())
+
+    internal constructor(target: ContextTarget) {
+        this.target = target
+    }
 
     override fun bind(loggerName: String): LoggerBinding = Slf4jBinding(loggerName, target)
 
