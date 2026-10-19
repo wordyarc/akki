@@ -5,6 +5,7 @@ package io.akki
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import io.akki.backend.Sink
+import io.akki.internal.AkkiConfigurationException
 import io.akki.internal.DefaultBackend
 import io.akki.internal.LogBackendFactory
 import io.akki.internal.Setting
@@ -179,6 +180,20 @@ class JvmBackendDiscoveryTest {
                 "java.lang.IllegalStateException: broken factory",
         )
         assertContains(output, "writing INFO and higher to stderr. Add the failing provider.\nINFO  acme.Failed - failed")
+    }
+
+    @Test
+    fun `a configuration error of a factory is not isolated`(@TempDir directory: Path): Unit {
+        directory.declareFactories(MisconfiguredFactory::class.java.name)
+
+        val output = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
+            captureStderr {
+                val failure = assertFailsWith<AkkiConfigurationException> { discover(loader) }
+                assertEquals("akki: bad setting", failure.message)
+            }
+        }
+
+        assertEquals("", output)
     }
 
     @Test
@@ -538,6 +553,14 @@ class DecliningFactory : LogBackendFactory {
     override fun createBackend(): LogBackend? = null
 
     override fun hintOnMissing(): String = "Add the declining provider."
+}
+
+class MisconfiguredFactory : LogBackendFactory {
+    override val backendClassName: String = "acme.Misconfigured"
+
+    override fun createBackend(): LogBackend? = throw AkkiConfigurationException("akki: bad setting")
+
+    override fun hintOnMissing(): String = "Add the misconfigured provider."
 }
 
 class FailingFactory : LogBackendFactory {

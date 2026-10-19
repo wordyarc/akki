@@ -18,6 +18,11 @@ public enum class LoggerNameStyle {
     JVM_CLASS,
 }
 
+public enum class Slf4jContext {
+    KEY_VALUE_PAIRS,
+    MDC,
+}
+
 public abstract class AkkiCompilerOptions {
 
     public abstract val minLevel: Property<MinLevel>
@@ -30,6 +35,8 @@ public abstract class AkkiJvmOptions {
     public abstract val backend: Property<String>
 
     public abstract val includeSlf4jBackend: Property<Boolean>
+
+    public abstract val slf4jContext: Property<Slf4jContext>
 
     init {
         includeSlf4jBackend.convention(true)

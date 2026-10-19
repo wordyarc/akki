@@ -15,5 +15,11 @@ public fun exchangeCurrentScopeEntry(entry: LogScope.Entry?): LogScope.Entry? =
 public fun LogContext.detachedEntry(): LogContext.Entry = LogContext.Entry(this, null)
 
 @InternalAkkiApi
+public fun currentContextEntry(): LogContext.Entry? = contextEntries.get()
+
+@InternalAkkiApi
+public fun currentContextOrNull(): LogContext? = contextEntries.get()?.context
+
+@InternalAkkiApi
 public fun exchangeCurrentContextEntry(entry: LogContext.Entry?): LogContext.Entry? =
     contextEntries.get().also { contextEntries.set(entry) }

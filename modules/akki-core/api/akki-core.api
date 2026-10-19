@@ -63,6 +63,11 @@ public final class io/akki/LogContextKt {
 	public static final fun withLogFields ([Lkotlin/Pair;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 }
 
+public final class io/akki/LogContextTasksKt {
+	public static final fun wrap (Lio/akki/LogContext;Ljava/lang/Runnable;)Ljava/lang/Runnable;
+	public static final fun wrap (Lio/akki/LogContext;Ljava/util/concurrent/Callable;)Ljava/util/concurrent/Callable;
+}
+
 public final class io/akki/LogScope {
 	public static final field Companion Lio/akki/LogScope$Companion;
 	public fun <init> (Lio/akki/backend/LogBackend;)V
@@ -136,12 +141,27 @@ public abstract interface class io/akki/backend/LogBackend {
 	public abstract fun bind (Ljava/lang/String;)Lio/akki/backend/LoggerBinding;
 }
 
+public final class io/akki/backend/LogBackendsKt {
+	public static final fun filter (Lio/akki/backend/LogBackend;Lkotlin/jvm/functions/Function2;)Lio/akki/backend/LogBackend;
+}
+
 public abstract interface class io/akki/backend/LoggerBinding {
 	public abstract fun resolve (Lio/akki/Level;)Lio/akki/backend/Sink;
 }
 
 public abstract interface class io/akki/backend/Sink {
 	public abstract fun emit (Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
+}
+
+public final class io/akki/internal/AkkiConfigurationException : java/lang/IllegalStateException {
+	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+}
+
+public final class io/akki/internal/AkkiProperties {
+	public static final field INSTANCE Lio/akki/internal/AkkiProperties;
+	public final fun get (Ljava/lang/String;)Lio/akki/internal/Setting;
+	public final fun resourceSettings (Ljava/lang/String;)Ljava/util/Map;
 }
 
 public final class io/akki/internal/DeclarationLoggers {
@@ -154,7 +174,15 @@ public abstract interface class io/akki/internal/LogBackendFactory {
 	public abstract fun hintOnMissing ()Ljava/lang/String;
 }
 
+public final class io/akki/internal/Setting {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun getSource ()Ljava/lang/String;
+	public final fun getValue ()Ljava/lang/String;
+}
+
 public final class io/akki/internal/ThreadContextKt {
+	public static final fun currentContextEntry ()Lio/akki/LogContext$Entry;
+	public static final fun currentContextOrNull ()Lio/akki/LogContext;
 	public static final fun detachedEntry (Lio/akki/LogContext;)Lio/akki/LogContext$Entry;
 	public static final fun detachedEntry (Lio/akki/LogScope;)Lio/akki/LogScope$Entry;
 	public static final fun exchangeCurrentContextEntry (Lio/akki/LogContext$Entry;)Lio/akki/LogContext$Entry;

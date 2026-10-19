@@ -45,6 +45,20 @@ class JvmModuleTest {
         assertTrue(test.requires().any { it.name() == "io.akki.core" && TRANSITIVE in it.modifiers() })
     }
 
+    @Test
+    fun `context propagation provides its accessor and makes micrometer optional`() {
+        val propagation = descriptor("akki.context.propagation.jar")
+
+        assertEquals("io.akki.context.propagation", propagation.name())
+        assertEquals(setOf("io.akki.context.propagation"), propagation.exports().map { it.source() }.toSet())
+        assertEquals(
+            listOf("io.akki.context.propagation.LogContextAccessor"),
+            propagation.provides().single { it.service() == "io.micrometer.context.ThreadLocalAccessor" }.providers(),
+        )
+        assertTrue(propagation.requires().any { it.name() == "io.akki.core" && TRANSITIVE in it.modifiers() })
+        assertTrue(propagation.requires().any { it.name() == "context.propagation" && STATIC in it.modifiers() })
+    }
+
     private fun descriptor(property: String): ModuleDescriptor {
         val descriptor = ModuleFinder.of(Path.of(System.getProperty(property))).findAll().single().descriptor()
         assertFalse(descriptor.isAutomatic, descriptor.toString())

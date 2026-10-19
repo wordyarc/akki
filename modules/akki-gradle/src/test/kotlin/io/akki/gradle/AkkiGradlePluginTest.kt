@@ -274,6 +274,45 @@ class AkkiGradlePluginTest {
     }
 
     @Test
+    fun `ships the slf4j context target with the compiled classes`(@TempDir projectDirectory: Path) {
+        prepareConsumer(
+            projectDirectory,
+            Consumer.Bootstrap,
+            extra = "akki { jvm { slf4jContext = io.akki.gradle.Slf4jContext.MDC } }",
+        )
+
+        runConsumer(projectDirectory, "jar")
+
+        assertEquals("io.akki.slf4j.context=mdc\n", akkiProperties(projectDirectory))
+        assertEquals("io.akki.slf4j.context=mdc\n", jarEntry(projectDirectory, AKKI_PROPERTIES))
+    }
+
+    @Test
+    fun `rejects an slf4j context target while excluding akki-slf4j`(@TempDir projectDirectory: Path) {
+        prepareConsumer(
+            projectDirectory,
+            Consumer.Core,
+            extra = """
+                akki {
+                    jvm {
+                        slf4jContext = io.akki.gradle.Slf4jContext.MDC
+                        includeSlf4jBackend = false
+                    }
+                }
+            """.trimIndent(),
+        )
+
+        val output: String = consumerRunner(projectDirectory).buildAndFail().output
+
+        assertContains(output, "Execution failed for task ':writeMainAkkiProperties'")
+        assertContains(
+            output,
+            "akki: akki.jvm.slf4jContext configures akki-slf4j, but akki.jvm.includeSlf4jBackend is false. " +
+                "Include akki-slf4j or remove the setting",
+        )
+    }
+
+    @Test
     fun `writes to stderr after an slf4j-api downgrade`(@TempDir projectDirectory: Path) {
         val output = build(
             projectDirectory,

@@ -94,9 +94,22 @@ class JvmBackendPropertyTest {
         assertContains(
             output,
             "java.lang.IllegalStateException: akki: unknown property 'io.akki.backned' in " +
-                "${directory.akkiPropertiesUrl()}: expected '$LOGGER_NAME_STYLE_PROPERTY' or '$BACKEND_PROPERTY'",
+                "${directory.akkiPropertiesUrl()}: expected '$LOGGER_NAME_STYLE_PROPERTY' or '$BACKEND_PROPERTY', " +
+                "or a backend setting 'io.akki.<backend>.<name>'",
         )
         assertFalse(output.contains("name="), output)
+    }
+
+    @Test
+    fun `a backend setting in a classpath resource is left to its backend`(@TempDir directory: Path): Unit {
+        val resources = listOf(
+            directory.declareProbeBackends().akkiProperties(BACKEND_PROPERTY to SECOND, "io.akki.acme.setting" to "x"),
+        )
+
+        val (exit, output) = probe(resources = resources)
+
+        assertEquals(0, exit, output)
+        assertContains(output, "backend=$SECOND")
     }
 
     @Test

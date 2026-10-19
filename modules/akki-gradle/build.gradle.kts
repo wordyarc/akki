@@ -22,6 +22,7 @@ val testRepositories: Configuration = testRepositoriesOf(
     ":akki-test",
     ":akki-coroutines",
     ":akki-test-coroutines",
+    ":akki-context-propagation",
     ":akki-bom",
 )
 
@@ -39,12 +40,14 @@ fun artifactConfiguration(name: String): Configuration = configurations.create(n
 val akkiCoreJar: Configuration = artifactConfiguration("akkiCoreJar")
 val akkiSlf4jJar: Configuration = artifactConfiguration("akkiSlf4jJar")
 val akkiTestJar: Configuration = artifactConfiguration("akkiTestJar")
+val akkiContextPropagationJar: Configuration = artifactConfiguration("akkiContextPropagationJar")
 
 dependencies {
     compileOnly(libs.kotlin.gradle.plugin.api)
     akkiCoreJar(project(":akki-core"))
     akkiSlf4jJar(project(":akki-slf4j"))
     akkiTestJar(project(":akki-test"))
+    akkiContextPropagationJar(project(":akki-context-propagation"))
     testImplementation(gradleTestKit())
 }
 
@@ -72,6 +75,7 @@ tasks.test {
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.core.jar", akkiCoreJar))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.slf4j.jar", akkiSlf4jJar))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.test.jar", akkiTestJar))
+    jvmArgumentProviders.add(ClasspathSystemProperty("akki.context.propagation.jar", akkiContextPropagationJar))
     systemProperty("org.gradle.testkit.dir", layout.buildDirectory.dir("test-kit").get().asFile)
     systemProperty("akki.maven.group", mavenGroup)
     systemProperty("akki.plugin.id", gradlePluginId)

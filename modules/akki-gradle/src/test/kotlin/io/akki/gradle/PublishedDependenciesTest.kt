@@ -43,6 +43,7 @@ class PublishedDependenciesTest {
             Arguments.of("akki-slf4j", setOf(akki("akki-core-jvm"), STDLIB, BOM)),
             Arguments.of("akki-test-jvm", setOf(akki("akki-core-jvm"), STDLIB, BOM)),
             Arguments.of("akki-coroutines-jvm", setOf(akki("akki-core-jvm"), COROUTINES, STDLIB, BOM)),
+            Arguments.of("akki-context-propagation", setOf(akki("akki-core-jvm"), STDLIB, BOM)),
             Arguments.of(
                 "akki-test-coroutines-jvm",
                 setOf(akki("akki-test-jvm"), akki("akki-coroutines-jvm", "runtime"), COROUTINES, STDLIB, BOM),

@@ -214,6 +214,48 @@ class Slf4jDiscoveryTest {
         )
     }
 
+    @Test
+    fun `rejects an unknown slf4j setting in a classpath resource`(@TempDir directory: Path) {
+        directory.akkiProperties("io.akki.slf4j.contxt=mdc")
+
+        val failure = isolatedRuntime(directory).use { assertFailsWith<InvocationTargetException> { it.writeLog() } }
+
+        val message = failure.cause?.message.orEmpty()
+        assertContains(message, "akki: unknown property 'io.akki.slf4j.contxt' in file:")
+        assertContains(message, "META-INF/akki.properties: expected 'io.akki.slf4j.context'")
+    }
+
+    @Test
+    fun `a classpath resource selects the mdc target`(@TempDir directory: Path) {
+        directory.akkiProperties("io.akki.slf4j.context=mdc")
+        directory.resolve("logback-test.xml").writeText(
+            """
+            <configuration>
+                <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+                    <target>System.err</target>
+                    <encoder>
+                        <pattern>AKKI-MDC %X{requestId} %logger - %msg%kvp%n</pattern>
+                    </encoder>
+                </appender>
+                <root level="INFO">
+                    <appender-ref ref="STDERR"/>
+                </root>
+            </configuration>
+            """.trimIndent(),
+        )
+
+        val output = captureStderr { isolatedRuntime(directory).use { it.writeLog(context = mapOf("requestId" to 7)) } }
+
+        assertContains(output, "AKKI-MDC 7 discovered - from isolated runtime\n")
+        assertFalse(output.contains("requestId=\"7\""), output)
+    }
+
+    private fun Path.akkiProperties(content: String) {
+        val file = resolve("META-INF/akki.properties")
+        file.parent.createDirectories()
+        file.writeText(content + "\n")
+    }
+
     private fun isolatedRuntime(directory: Path): URLClassLoader =
         URLClassLoader((listOf(directory.toFile()) + classpath()).urls(), ClassLoader.getPlatformClassLoader())
 
@@ -256,10 +298,14 @@ class Slf4jDiscoveryTest {
         return factory.javaClass.getMethod("createBackend").invoke(factory)
     }
 
-    private fun ClassLoader.writeLog() {
+    private fun ClassLoader.writeLog(context: Map<String, Any?> = emptyMap()) {
         val logger = loadClass("io.akki.Log").getMethod("named", String::class.java).invoke(null, "discovered")
-        loadClass("io.akki.Logger").getMethod("info", String::class.java, Throwable::class.java, Map::class.java)
-            .invoke(logger, "from isolated runtime", null, emptyMap<String, Any?>())
+        val entry = loadClass("io.akki.LogContext").getConstructor(Map::class.java).newInstance(context)
+            .let { it.javaClass.getMethod("enter").invoke(it) as AutoCloseable }
+        entry.use {
+            loadClass("io.akki.Logger").getMethod("info", String::class.java, Throwable::class.java, Map::class.java)
+                .invoke(logger, "from isolated runtime", null, emptyMap<String, Any?>())
+        }
     }
 
     private fun Path.declareProviders(vararg names: String) {

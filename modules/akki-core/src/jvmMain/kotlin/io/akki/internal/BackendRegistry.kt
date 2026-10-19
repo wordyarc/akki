@@ -1,3 +1,5 @@
+@file:OptIn(InternalAkkiApi::class)
+
 package io.akki.internal
 
 import io.akki.InternalAkkiApi
@@ -107,7 +109,7 @@ private inline fun <T : Any> LogBackendFactory.isolated(call: LogBackendFactory.
     try {
         call()
     } catch (failure: Throwable) {
-        if (failure.isFatal) throw failure
+        if (failure.isFatal || failure is AkkiConfigurationException) throw failure
         printlnToStdErr("akki: backend factory ${javaClass.name} failed and is skipped: $failure")
         null
     }

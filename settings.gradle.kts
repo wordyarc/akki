@@ -36,6 +36,7 @@ listOf(
     "akki-test",
     "akki-coroutines",
     "akki-test-coroutines",
+    "akki-context-propagation",
     "akki-bom",
     "akki-benchmark",
     "test-utils",

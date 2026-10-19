@@ -76,6 +76,7 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
             it.loggerNameStyle.set(options.loggerNameStyle)
             it.backend.set(options.backend)
             it.includeSlf4jBackend.set(options.includeSlf4jBackend)
+            it.slf4jContext.set(options.slf4jContext)
             it.outputDirectory.set(project.layout.buildDirectory.dir("generated/akki/${sourceSet.name}/resources"))
         }
         sourceSet.resources.srcDir(properties)

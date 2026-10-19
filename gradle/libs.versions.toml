@@ -11,6 +11,8 @@ lincheck = "3.7"
 asm = "9.10.1"
 kotlinx-coroutines = "1.11.0"
 maven-publish = "0.37.0"
+micrometer-context-propagation = "1.2.1"
+reactor = "3.8.7"
 plugin-publish = "2.2.1"
 
 # -- Logging ------------------------------------------------------------------
@@ -28,6 +30,8 @@ asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
 kotlinx-benchmark-runtime = { module = "org.jetbrains.kotlinx:kotlinx-benchmark-runtime", version.ref = "kotlinx-benchmark" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
+micrometer-context-propagation = { module = "io.micrometer:context-propagation", version.ref = "micrometer-context-propagation" }
+reactor-core = { module = "io.projectreactor:reactor-core", version.ref = "reactor" }
 
 # -- Compiler API -------------------------------------------------------------
 kotlin-compiler = { group = "org.jetbrains.kotlin", name = "kotlin-compiler", version.ref = "kotlin" }

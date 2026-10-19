@@ -23,6 +23,10 @@ internal abstract class WriteAkkiProperties : DefaultTask() {
     @get:Input
     abstract val includeSlf4jBackend: Property<Boolean>
 
+    @get:Input
+    @get:Optional
+    abstract val slf4jContext: Property<Slf4jContext>
+
     @get:OutputDirectory
     abstract val outputDirectory: DirectoryProperty
 
@@ -32,8 +36,9 @@ internal abstract class WriteAkkiProperties : DefaultTask() {
         directory.deleteRecursively()
         directory.mkdirs()
         val properties = listOfNotNull(
-            loggerNameStyle.orNull?.let { "$LOGGER_NAME_STYLE_PROPERTY=${it.name.lowercase().replace('_', '-')}" },
+            loggerNameStyle.orNull?.let { "$LOGGER_NAME_STYLE_PROPERTY=${it.propertyValue()}" },
             backend.orNull?.let { "$BACKEND_PROPERTY=${validated(it)}" },
+            slf4jContext.orNull?.let { "$SLF4J_CONTEXT_PROPERTY=${validated(it).propertyValue()}" },
         )
         if (properties.isEmpty()) return
         val file = directory.resolve(AKKI_PROPERTIES_RESOURCE)
@@ -57,6 +62,18 @@ internal abstract class WriteAkkiProperties : DefaultTask() {
         return backend
     }
 
+    private fun validated(context: Slf4jContext): Slf4jContext {
+        if (!includeSlf4jBackend.get()) {
+            throw GradleException(
+                "akki: akki.jvm.slf4jContext configures akki-slf4j, but akki.jvm.includeSlf4jBackend is false. " +
+                    "Include akki-slf4j or remove the setting",
+            )
+        }
+        return context
+    }
+
+    private fun Enum<*>.propertyValue(): String = name.lowercase().replace('_', '-')
+
     private fun String.isClassName(): Boolean = split('.').all { segment ->
         segment.isNotEmpty() && segment.first().isJavaIdentifierStart() && segment.all { it.isJavaIdentifierPart() }
     }
@@ -65,6 +82,7 @@ internal abstract class WriteAkkiProperties : DefaultTask() {
         const val AKKI_PROPERTIES_RESOURCE: String = "META-INF/akki.properties"
         const val LOGGER_NAME_STYLE_PROPERTY: String = "io.akki.loggerNameStyle"
         const val BACKEND_PROPERTY: String = "io.akki.backend"
+        const val SLF4J_CONTEXT_PROPERTY: String = "io.akki.slf4j.context"
 
         fun name(sourceSet: String): String =
             "write${sourceSet.replaceFirstChar(Char::uppercaseChar)}AkkiProperties"

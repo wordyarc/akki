@@ -8,15 +8,17 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.slf4j.event.Level as Slf4jLevel
 
-public class Slf4jBackend : LogBackend {
-    override fun bind(loggerName: String): LoggerBinding = Slf4jBinding(loggerName)
+public class Slf4jBackend internal constructor(private val target: ContextTarget) : LogBackend {
+    public constructor() : this(configuredContextTarget())
+
+    override fun bind(loggerName: String): LoggerBinding = Slf4jBinding(loggerName, target)
 
     override fun toString(): String = "Slf4jBackend"
 }
 
-private class Slf4jBinding(name: String) : LoggerBinding {
+private class Slf4jBinding(name: String, target: ContextTarget) : LoggerBinding {
     private val logger: Logger = LoggerFactory.getLogger(name)
-    private val sinks: Array<Sink> = Array(LEVELS.size) { Slf4jSink(logger, LEVELS[it]) }
+    private val sinks: Array<Sink> = Array(LEVELS.size) { Slf4jSink(logger, LEVELS[it], target) }
 
     override fun resolve(level: Level): Sink? =
         if (logger.isEnabledForLevel(LEVELS[level.ordinal])) sinks[level.ordinal] else null
@@ -32,7 +34,7 @@ private val LEVELS: Array<Slf4jLevel> = Array(Level.entries.size) { ordinal ->
     }
 }
 
-internal fun createSlf4jBackend(): Slf4jBackend {
+internal fun createSlf4jBackend(target: ContextTarget): Slf4jBackend {
     LoggerFactory.getILoggerFactory()
-    return Slf4jBackend()
+    return Slf4jBackend(target)
 }

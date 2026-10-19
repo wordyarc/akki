@@ -1,5 +1,9 @@
 package io.akki
 
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit.SECONDS
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -26,6 +30,25 @@ class JvmLogContextTest {
         thread { withLogContext(captured) { seen = LogContext.current() } }.join()
 
         assertEquals(captured, seen)
+    }
+
+    @Test
+    fun `wrapped tasks carry the context to another thread and leave it clean`(): Unit {
+        val context = LogContext("requestId" to 7)
+        val executor = Executors.newSingleThreadExecutor()
+
+        try {
+            val inRunnable = AtomicReference<LogContext>()
+            executor.submit(context.wrap(Runnable { inRunnable.set(LogContext.current()) })).get(10, SECONDS)
+            val inCallable = executor.submit(context.wrap(Callable { LogContext.current() })).get(10, SECONDS)
+            val afterwards = executor.submit(Callable { LogContext.current() }).get(10, SECONDS)
+
+            assertEquals(context, inRunnable.get())
+            assertEquals(context, inCallable)
+            assertSame(LogContext.EMPTY, afterwards)
+        } finally {
+            executor.shutdownNow()
+        }
     }
 
     @Test

@@ -1,5 +1,8 @@
+@file:OptIn(InternalAkkiApi::class)
+
 package io.akki
 
+import io.akki.InternalAkkiApi
 import io.akki.internal.LoggerNameStyle
 import io.akki.internal.Setting
 import io.akki.internal.loggerName

@@ -28,6 +28,7 @@ public abstract class io/akki/gradle/AkkiJvmOptions {
 	public abstract fun getBackend ()Lorg/gradle/api/provider/Property;
 	public abstract fun getIncludeSlf4jBackend ()Lorg/gradle/api/provider/Property;
 	public abstract fun getLoggerNameStyle ()Lorg/gradle/api/provider/Property;
+	public abstract fun getSlf4jContext ()Lorg/gradle/api/provider/Property;
 }
 
 public final class io/akki/gradle/AkkiJvmOptions$Companion {
@@ -51,5 +52,13 @@ public final class io/akki/gradle/MinLevel : java/lang/Enum {
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lio/akki/gradle/MinLevel;
 	public static fun values ()[Lio/akki/gradle/MinLevel;
+}
+
+public final class io/akki/gradle/Slf4jContext : java/lang/Enum {
+	public static final field KEY_VALUE_PAIRS Lio/akki/gradle/Slf4jContext;
+	public static final field MDC Lio/akki/gradle/Slf4jContext;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/akki/gradle/Slf4jContext;
+	public static fun values ()[Lio/akki/gradle/Slf4jContext;
 }
 

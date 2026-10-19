@@ -1,5 +1,8 @@
+@file:OptIn(InternalAkkiApi::class)
+
 package io.akki.internal
 
+import io.akki.InternalAkkiApi
 import kotlin.reflect.KClass
 
 private const val FACADE_SUFFIX: String = "Kt"

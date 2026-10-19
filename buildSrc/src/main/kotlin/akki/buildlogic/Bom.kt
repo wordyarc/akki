@@ -23,6 +23,7 @@ val BOM_ARTIFACTS: List<String> = listOf(
     "akki-coroutines-jvm",
     "akki-test-coroutines",
     "akki-test-coroutines-jvm",
+    "akki-context-propagation",
     "akki-compiler",
     "akki-gradle",
 )
