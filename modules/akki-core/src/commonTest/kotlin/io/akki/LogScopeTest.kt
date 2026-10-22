@@ -1,8 +1,12 @@
+@file:OptIn(InternalAkkiApi::class)
+
 package io.akki
 
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import io.akki.backend.Sink
+import io.akki.internal.LogScope
+import io.akki.internal.withLogScope
 import io.akki.test.RecordingBackend
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -16,7 +20,7 @@ class LogScopeTest {
         val backend = RecordingBackend()
         val logger = Log.named("scope.shared")
 
-        LogScope(backend).run {
+        withLogScope(LogScope(backend)) {
             logger.info("eager")
             logger.warn { "lazy" }
         }
@@ -31,9 +35,9 @@ class LogScopeTest {
         val inner = RecordingBackend()
         val logger = Log.named("scope.nested")
 
-        LogScope(outer).run {
+        withLogScope(LogScope(outer)) {
             logger.info("before")
-            LogScope(inner).run { logger.info("inside") }
+            withLogScope(LogScope(inner)) { logger.info("inside") }
             logger.info("after")
         }
 
@@ -117,7 +121,7 @@ class LogScopeTest {
         }
         val logger = Log.named("scope.bound-once")
 
-        LogScope(backend).run {
+        withLogScope(LogScope(backend)) {
             repeat(3) { logger.info("bound") }
             logger.isEnabled(Level.DEBUG)
         }
@@ -129,7 +133,7 @@ class LogScopeTest {
     fun `a failing scope backend fails the caller`(): Unit {
         val logger = Log.named("scope.failing")
 
-        LogScope(LogBackend { name -> error("broken for $name") }).run {
+        withLogScope(LogScope(LogBackend { name -> error("broken for $name") })) {
             val failure = assertFailsWith<IllegalStateException> { logger.info("dropped") }
             assertEquals("broken for scope.failing", failure.message)
         }
@@ -148,7 +152,7 @@ class LogScopeTest {
 
         Log.install(installed).use {
             logger.info("installed")
-            LogScope(scoped).run { logger.info("scoped") }
+            withLogScope(LogScope(scoped)) { logger.info("scoped") }
             logger.info("installed again")
         }
 

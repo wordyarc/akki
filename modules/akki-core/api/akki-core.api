@@ -10,8 +10,8 @@ public abstract interface annotation class io/akki/InternalAkkiApi : java/lang/a
 }
 
 public final class io/akki/IntrinsicKt {
-	public static final fun getLog ()Lio/akki/Logger;
-	public static final fun logger ()Lio/akki/Logger;
+	public static final synthetic fun getLog ()Lio/akki/Logger;
+	public static final synthetic fun logger ()Lio/akki/Logger;
 }
 
 public final class io/akki/Level : java/lang/Enum {
@@ -38,6 +38,7 @@ public final class io/akki/LogContext {
 	public static final field EMPTY Lio/akki/LogContext;
 	public fun <init> (Ljava/util/Map;)V
 	public fun <init> ([Lkotlin/Pair;)V
+	public final fun contains (Ljava/lang/String;)Z
 	public static final fun current ()Lio/akki/LogContext;
 	public final fun enter ()Lio/akki/LogContext$Entry;
 	public fun equals (Ljava/lang/Object;)Z
@@ -68,28 +69,6 @@ public final class io/akki/LogContextKt {
 public final class io/akki/LogContexts {
 	public static final fun wrap (Lio/akki/LogContext;Ljava/lang/Runnable;)Ljava/lang/Runnable;
 	public static final fun wrap (Lio/akki/LogContext;Ljava/util/concurrent/Callable;)Ljava/util/concurrent/Callable;
-}
-
-public final class io/akki/LogScope {
-	public static final field Companion Lio/akki/LogScope$Companion;
-	public fun <init> (Lio/akki/backend/LogBackend;)V
-	public static final fun currentOrNull ()Lio/akki/LogScope;
-	public final fun enter ()Lio/akki/LogScope$Entry;
-	public final fun getBackend ()Lio/akki/backend/LogBackend;
-	public fun toString ()Ljava/lang/String;
-}
-
-public final class io/akki/LogScope$Companion {
-	public final fun currentOrNull ()Lio/akki/LogScope;
-}
-
-public final class io/akki/LogScope$Entry : java/lang/AutoCloseable {
-	public fun close ()V
-	public fun toString ()Ljava/lang/String;
-}
-
-public final class io/akki/LogScopeKt {
-	public static final fun withLogScope (Lio/akki/LogScope;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 }
 
 public abstract class io/akki/Logger {
@@ -155,11 +134,6 @@ public abstract interface class io/akki/backend/Sink {
 	public abstract fun emit (Ljava/lang/String;Ljava/lang/Throwable;Ljava/util/Map;)V
 }
 
-public final class io/akki/internal/AkkiConfigurationException : java/lang/IllegalStateException {
-	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-}
-
 public final class io/akki/internal/AkkiProperties {
 	public static final field INSTANCE Lio/akki/internal/AkkiProperties;
 	public final fun get (Ljava/lang/String;)Lio/akki/internal/Setting;
@@ -180,6 +154,28 @@ public final class io/akki/internal/LogContextFieldsKt {
 	public static final fun plusFields (Lio/akki/LogContext;[Lkotlin/Pair;)Lio/akki/LogContext;
 }
 
+public final class io/akki/internal/LogScope {
+	public static final field Companion Lio/akki/internal/LogScope$Companion;
+	public fun <init> (Lio/akki/backend/LogBackend;)V
+	public static final fun currentOrNull ()Lio/akki/internal/LogScope;
+	public final fun enter ()Lio/akki/internal/LogScope$Entry;
+	public final fun getBackend ()Lio/akki/backend/LogBackend;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/akki/internal/LogScope$Companion {
+	public final fun currentOrNull ()Lio/akki/internal/LogScope;
+}
+
+public final class io/akki/internal/LogScope$Entry : java/lang/AutoCloseable {
+	public fun close ()V
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/akki/internal/LogScopeKt {
+	public static final fun withLogScope (Lio/akki/internal/LogScope;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
+}
+
 public final class io/akki/internal/Setting {
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
 	public final fun getSource ()Ljava/lang/String;
@@ -190,8 +186,8 @@ public final class io/akki/internal/ThreadContextKt {
 	public static final fun currentContextEntry ()Lio/akki/LogContext$Entry;
 	public static final fun currentContextOrNull ()Lio/akki/LogContext;
 	public static final fun detachedEntry (Lio/akki/LogContext;)Lio/akki/LogContext$Entry;
-	public static final fun detachedEntry (Lio/akki/LogScope;)Lio/akki/LogScope$Entry;
+	public static final fun detachedEntry (Lio/akki/internal/LogScope;)Lio/akki/internal/LogScope$Entry;
 	public static final fun exchangeCurrentContextEntry (Lio/akki/LogContext$Entry;)Lio/akki/LogContext$Entry;
-	public static final fun exchangeCurrentScopeEntry (Lio/akki/LogScope$Entry;)Lio/akki/LogScope$Entry;
+	public static final fun exchangeCurrentScopeEntry (Lio/akki/internal/LogScope$Entry;)Lio/akki/internal/LogScope$Entry;
 }
 

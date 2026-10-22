@@ -67,6 +67,9 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
     val sink: IrSimpleFunctionSymbol =
         logger.functionOrFail(AkkiNames.SINK, SINK_SIGNATURE, parameters = 1).symbol
 
+    private val isEnabled: IrSimpleFunctionSymbol =
+        logger.functionOrFail(AkkiNames.IS_ENABLED, IS_ENABLED_SIGNATURE, parameters = 1).symbol
+
     val ofType: IrSimpleFunctionSymbol = log.owner.functions
         .singleOrNull {
             it.name == AkkiNames.OF &&
@@ -105,6 +108,8 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
     }
 
     fun callFor(function: IrSimpleFunction): LoggerCall? = calls[function.resolveFakeOverride()?.symbol]
+
+    fun isLevelCheck(function: IrSimpleFunction): Boolean = function.resolveFakeOverride()?.symbol == isEnabled
 
     fun isCallSite(function: IrSimpleFunction): Boolean =
         function.returnType.classOrNull == logger &&
@@ -152,6 +157,7 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
 
     companion object {
         private const val SINK_SIGNATURE: String = "Logger.sink(level: Level): Sink?"
+        private const val IS_ENABLED_SIGNATURE: String = "Logger.isEnabled(level: Level): Boolean"
         private const val DECLARATION_LOGGER_SIGNATURE: String =
             "io.akki.internal.declarationLogger(sourceName: String, jvmClassName: String): Logger"
         private const val OF_TYPE_SIGNATURE: String = "Log.of(kClass: KClass<*>): Logger"

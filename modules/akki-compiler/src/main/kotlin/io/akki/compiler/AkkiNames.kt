@@ -25,6 +25,7 @@ internal object AkkiNames {
     val OF: Name = Name.identifier("of")
     val NAMED: Name = Name.identifier("named")
     val SINK: Name = Name.identifier("sink")
+    val IS_ENABLED: Name = Name.identifier("isEnabled")
     val EMIT: Name = Name.identifier("emit")
 
     val NAMED_ID: CallableId = CallableId(LOG_ID, NAMED)

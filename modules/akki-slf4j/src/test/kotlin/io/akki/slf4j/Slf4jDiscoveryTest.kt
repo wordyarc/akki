@@ -13,7 +13,6 @@ import io.akki.testing.BackgroundTask
 import io.akki.testing.awaitSignal
 import io.akki.testing.captureStderr
 import java.io.File
-import java.lang.reflect.InvocationTargetException
 import java.net.URL
 import java.net.URLClassLoader
 import java.nio.file.Path
@@ -25,7 +24,6 @@ import kotlin.io.path.writeText
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import org.junit.jupiter.api.io.TempDir
@@ -200,55 +198,62 @@ class Slf4jDiscoveryTest {
     }
 
     @Test
-    fun `a selected slf4j backend without a provider fails with the provider hint`() {
-        val failure = withProperty(BACKEND_PROPERTY, Slf4jBackend::class.java.name) {
-            URLClassLoader(classpath().without("logback-").urls(), ClassLoader.getPlatformClassLoader()).use { loader ->
-                assertFailsWith<InvocationTargetException> { loader.writeLog() }
+    fun `a selected slf4j backend without a provider is reported and the backend is selected automatically`() {
+        val output = captureStderr {
+            withProperty(BACKEND_PROPERTY, Slf4jBackend::class.java.name) {
+                URLClassLoader(classpath().without("logback-").urls(), ClassLoader.getPlatformClassLoader()).use { loader ->
+                    loader.writeLog()
+                }
             }
         }
 
-        assertEquals(
+        assertContains(
+            output,
             "akki: the backend '${Slf4jBackend::class.java.name}' set by the system property '$BACKEND_PROPERTY' " +
-                "is not available. Add an SLF4J 2 provider to the runtime classpath, for example logback-classic.",
-            failure.cause?.message,
+                "is not available; selecting the backend automatically. $SLF4J_HINT\n" +
+                "akki: no backend is available, writing INFO and higher to stderr. $SLF4J_HINT\n" +
+                "INFO  discovered - from isolated runtime",
         )
     }
 
     @Test
-    fun `rejects an unknown slf4j setting in a classpath resource`(@TempDir directory: Path) {
+    fun `reports an unknown slf4j setting in a classpath resource and keeps logging through slf4j`(
+        @TempDir directory: Path,
+    ) {
         directory.akkiProperties("io.akki.slf4j.contxt=mdc")
 
-        val failure = isolatedRuntime(directory).use { assertFailsWith<InvocationTargetException> { it.writeLog() } }
+        val output = captureStderr { isolatedRuntime(directory.declareSlf4jPattern()).use { it.writeLog() } }
 
-        val message = failure.cause?.message.orEmpty()
-        assertContains(message, "akki: unknown property 'io.akki.slf4j.contxt' in file:")
-        assertContains(message, "META-INF/akki.properties: expected 'io.akki.slf4j.context'")
+        assertContains(output, "akki: unknown property 'io.akki.slf4j.contxt' in file:")
+        assertContains(output, "META-INF/akki.properties: expected 'io.akki.slf4j.context'; ignoring it\n")
+        assertContains(output, "AKKI-SLF4J discovered - from isolated runtime")
     }
 
     @Test
-    fun `an unknown core property fails the first record even when the backend property is empty`(@TempDir directory: Path) {
+    fun `reports an unknown core property and keeps the automatic selection`(@TempDir directory: Path) {
         directory.akkiProperties("io.akki.backned=x")
 
-        val failure = withProperty(BACKEND_PROPERTY, "") {
-            isolatedRuntime(directory).use { assertFailsWith<InvocationTargetException> { it.writeLog() } }
+        val output = captureStderr {
+            withProperty(BACKEND_PROPERTY, "") { isolatedRuntime(directory.declareSlf4jPattern()).use { it.writeLog() } }
         }
 
-        assertEquals("io.akki.internal.AkkiConfigurationException", failure.cause?.javaClass?.name)
-        assertContains(failure.cause?.message.orEmpty(), "akki: unknown property 'io.akki.backned' in file:")
+        assertContains(output, "akki: unknown property 'io.akki.backned' in file:")
+        assertContains(output, "AKKI-SLF4J discovered - from isolated runtime")
     }
 
     @Test
-    fun `a selected backend reports its own configuration error unwrapped`(@TempDir directory: Path) {
+    fun `a selected slf4j backend reports its unknown setting and keeps key value pairs`(@TempDir directory: Path) {
         directory.akkiProperties("io.akki.slf4j.context=both")
 
-        val failure = withProperty(BACKEND_PROPERTY, Slf4jBackend::class.java.name) {
-            isolatedRuntime(directory).use { assertFailsWith<InvocationTargetException> { it.writeLog() } }
+        val output = captureStderr {
+            withProperty(BACKEND_PROPERTY, Slf4jBackend::class.java.name) {
+                isolatedRuntime(directory.declareSlf4jPattern()).use { it.writeLog() }
+            }
         }
 
-        val message = failure.cause?.message.orEmpty()
-        assertEquals("io.akki.internal.AkkiConfigurationException", failure.cause?.javaClass?.name)
-        assertContains(message, "akki: unknown value 'both' set by 'io.akki.slf4j.context' in file:")
-        assertContains(message, "expected 'key-value-pairs' or 'mdc'")
+        assertContains(output, "akki: unknown value 'both' set by 'io.akki.slf4j.context' in file:")
+        assertContains(output, "expected 'key-value-pairs' or 'mdc'; using 'key-value-pairs'\n")
+        assertContains(output, "AKKI-SLF4J discovered - from isolated runtime")
     }
 
     @Test
@@ -288,6 +293,10 @@ class Slf4jDiscoveryTest {
     private fun Path.declareStderrBackend(): Path {
         resolve("META-INF/services/${LogBackend::class.java.name}").also { it.parent.createDirectories() }
             .writeText(StderrBackend::class.java.name)
+        return declareSlf4jPattern()
+    }
+
+    private fun Path.declareSlf4jPattern(): Path {
         resolve("logback-test.xml").writeText(
             """
             <configuration>
@@ -371,3 +380,4 @@ private const val PROVIDER_DECLARATIONS: String = "META-INF/services/org.slf4j.s
 private const val PROVIDER_PROPERTY: String = "slf4j.provider"
 private const val BACKEND_PROPERTY: String = "io.akki.backend"
 private const val INITIALIZER: String = "slf4j-initializer"
+private const val SLF4J_HINT: String = "Add an SLF4J 2 provider to the runtime classpath, for example logback-classic."

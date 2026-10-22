@@ -1,10 +1,11 @@
-@file:OptIn(ExperimentalContracts::class)
+@file:OptIn(ExperimentalContracts::class, InternalAkkiApi::class)
 
 package io.akki.test
 
+import io.akki.InternalAkkiApi
 import io.akki.Level
-import io.akki.LogScope
-import io.akki.withLogScope
+import io.akki.internal.LogScope
+import io.akki.internal.withLogScope
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract

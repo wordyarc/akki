@@ -4,6 +4,6 @@ public final class io/akki/coroutines/LogContextElementKt {
 }
 
 public final class io/akki/coroutines/LogScopeElementKt {
-	public static final fun asContextElement (Lio/akki/LogScope;)Lkotlin/coroutines/CoroutineContext$Element;
+	public static final fun asContextElement (Lio/akki/internal/LogScope;)Lkotlin/coroutines/CoroutineContext$Element;
 }
 

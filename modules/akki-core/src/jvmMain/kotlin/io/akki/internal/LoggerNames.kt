@@ -48,10 +48,13 @@ internal fun loggerName(jClass: Class<*>, style: LoggerNameStyle): String {
 internal fun parseLoggerNameStyle(setting: Setting?): LoggerNameStyle {
     if (setting == null) return LoggerNameStyle.SOURCE
     val normalized = setting.value.lowercase().replace('_', '-')
-    return LoggerNameStyle.entries.firstOrNull { it.propertyValue == normalized } ?: configurationError(
-        "unknown value '${setting.value}' set by ${setting.source}: " +
-            "expected ${LoggerNameStyle.entries.joinToString(" or ") { "'${it.propertyValue}'" }}",
-    )
+    return LoggerNameStyle.entries.firstOrNull { it.propertyValue == normalized } ?: LoggerNameStyle.SOURCE.also {
+        printlnToStdErr(
+            "akki: unknown value '${setting.value}' set by ${setting.source}: " +
+                "expected ${LoggerNameStyle.entries.joinToString(" or ") { style -> "'${style.propertyValue}'" }}; " +
+                "using '${it.propertyValue}'",
+        )
+    }
 }
 
 private fun Class<*>.enclosingOwner(): Class<*>? {

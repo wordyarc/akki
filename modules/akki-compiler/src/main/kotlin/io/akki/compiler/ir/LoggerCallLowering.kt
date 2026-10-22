@@ -17,6 +17,7 @@ import org.jetbrains.kotlin.ir.builders.IrBlockBuilder
 import org.jetbrains.kotlin.ir.builders.IrBuilderWithScope
 import org.jetbrains.kotlin.ir.builders.irBlock
 import org.jetbrains.kotlin.ir.builders.irCall
+import org.jetbrains.kotlin.ir.builders.irFalse
 import org.jetbrains.kotlin.ir.builders.irGet
 import org.jetbrains.kotlin.ir.builders.irNotEquals
 import org.jetbrains.kotlin.ir.builders.irNull
@@ -27,6 +28,7 @@ import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
+import org.jetbrains.kotlin.ir.expressions.IrGetEnumValue
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetEnumValueImpl
 import org.jetbrains.kotlin.ir.expressions.isUnchanging
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
@@ -43,6 +45,7 @@ internal class LoggerCallLowering(
 
     override fun visitCall(expression: IrCall): IrExpression {
         expression.transformChildrenVoid()
+        if (symbols.isLevelCheck(expression.symbol.owner)) return foldLevelCheck(expression) ?: expression
         val target = symbols.callFor(expression.symbol.owner) ?: return expression
         return if (minLevel.clips(target.level.owner.name)) {
             clip(expression, target) ?: expression
@@ -72,6 +75,18 @@ internal class LoggerCallLowering(
                 +irUnit()
             }
         }
+    }
+
+    private fun foldLevelCheck(call: IrCall): IrExpression? {
+        val level = (call.arguments[1] as? IrGetEnumValue)?.symbol ?: return null
+        if (!minLevel.clips(level.owner.name)) return null
+        val receiver = call.arguments[0] ?: return null
+        val scope = currentScope?.scope?.scopeOwnerSymbol ?: return null
+        return DeclarationIrBuilder(context, scope, call.startOffset, call.endOffset)
+            .irBlock(resultType = context.irBuiltIns.booleanType) {
+                +receiver
+                +irFalse()
+            }
     }
 
     private fun lowerToEmit(call: IrCall, target: LoggerCall): IrExpression? {

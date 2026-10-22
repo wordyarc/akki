@@ -3,13 +3,14 @@
 package io.akki.coroutines
 
 import io.akki.InternalAkkiApi
-import io.akki.LogScope
+import io.akki.internal.LogScope
 import io.akki.internal.detachedEntry
 import io.akki.internal.exchangeCurrentScopeEntry
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.ThreadContextElement
 
+@InternalAkkiApi
 public fun LogScope.asContextElement(): CoroutineContext.Element = LogScopeElement(this)
 
 private class LogScopeElement(private val scope: LogScope) :

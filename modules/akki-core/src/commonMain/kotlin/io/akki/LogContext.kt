@@ -40,6 +40,8 @@ public class LogContext internal constructor(public val fields: Map<String, Any?
 
     public operator fun get(key: String): Any? = fields[key]
 
+    public operator fun contains(key: String): Boolean = key in fields
+
     public operator fun plus(other: LogContext): LogContext = when {
         other.fields.isEmpty() -> this
         fields.isEmpty() -> other

@@ -5,7 +5,6 @@ package io.akki
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import io.akki.backend.Sink
-import io.akki.internal.AkkiConfigurationException
 import io.akki.internal.DefaultBackend
 import io.akki.internal.LogBackendFactory
 import io.akki.internal.Setting
@@ -183,20 +182,6 @@ class JvmBackendDiscoveryTest {
     }
 
     @Test
-    fun `a configuration error of a factory is not isolated`(@TempDir directory: Path): Unit {
-        directory.declareFactories(MisconfiguredFactory::class.java.name)
-
-        val output = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
-            captureStderr {
-                val failure = assertFailsWith<AkkiConfigurationException> { discover(loader) }
-                assertEquals("akki: bad setting", failure.message)
-            }
-        }
-
-        assertEquals("", output)
-    }
-
-    @Test
     fun `a factory that fails to give its hint does not fail the lookup`(@TempDir directory: Path): Unit {
         directory.declareFactories(HintlessFactory::class.java.name)
 
@@ -367,26 +352,26 @@ class JvmBackendDiscoveryTest {
         directory.declareBackends(DeclaredBackend::class.java.name)
         directory.declareFactories(CreatingFactory::class.java.name)
 
-        val failure = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
-            assertFailsWith<AkkiConfigurationException> { discover(loader, selected("acme.Missing")) }
+        val output = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
+            captureStderr { assertIs<DeclaredBackend>(discover(loader, selected("acme.Missing"))) }
         }
 
         assertEquals(
             "akki: the backend 'acme.Missing' set by the test was not found: the classpath declares " +
-                "${DeclaredBackend::class.java.name}, ${CreatedBackend::class.java.name}",
-            failure.message,
+                "${DeclaredBackend::class.java.name}, ${CreatedBackend::class.java.name}; " +
+                "selecting the backend automatically.\n",
+            output,
         )
     }
 
     @Test
     fun `rejects a selected backend when nothing is declared`(): Unit {
-        val failure = assertFailsWith<AkkiConfigurationException> {
-            discover(javaClass.classLoader, selected("acme.Missing"))
-        }
+        val output = captureStderr { assertIs<DefaultBackend>(discover(javaClass.classLoader, selected("acme.Missing"))) }
 
         assertEquals(
-            "akki: the backend 'acme.Missing' set by the test was not found: the classpath declares no backend",
-            failure.message,
+            "akki: the backend 'acme.Missing' set by the test was not found: the classpath declares no backend; " +
+                "selecting the backend automatically.\n",
+            output,
         )
     }
 
@@ -394,13 +379,14 @@ class JvmBackendDiscoveryTest {
     fun `reports the factory hint when the selected factory declines`(@TempDir directory: Path): Unit {
         directory.declareFactories(DecliningFactory::class.java.name)
 
-        val failure = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
-            assertFailsWith<AkkiConfigurationException> { discover(loader, selected("acme.Declined")) }
+        val output = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
+            captureStderr { assertIs<DefaultBackend>(discover(loader, selected("acme.Declined"))) }
         }
 
         assertEquals(
-            "akki: the backend 'acme.Declined' set by the test is not available. Add the declining provider.",
-            failure.message,
+            "akki: the backend 'acme.Declined' set by the test is not available; selecting the backend " +
+                "automatically. Add the declining provider.\n",
+            output,
         )
     }
 
@@ -408,24 +394,15 @@ class JvmBackendDiscoveryTest {
     fun `reports the cause when the selected factory fails`(@TempDir directory: Path): Unit {
         directory.declareFactories(FailingFactory::class.java.name)
 
-        val failure = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
-            assertFailsWith<AkkiConfigurationException> { discover(loader, selected("acme.Failing")) }
+        val output = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
+            captureStderr { assertIs<DefaultBackend>(discover(loader, selected("acme.Failing"))) }
         }
 
-        assertEquals("akki: the backend 'acme.Failing' set by the test failed to start", failure.message)
-        assertEquals("broken factory", failure.cause?.message)
-    }
-
-    @Test
-    fun `passes a configuration error of the selected factory through unwrapped`(@TempDir directory: Path): Unit {
-        directory.declareFactories(MisconfiguredFactory::class.java.name)
-
-        val failure = URLClassLoader(arrayOf(directory.toUri().toURL()), javaClass.classLoader).use { loader ->
-            assertFailsWith<AkkiConfigurationException> { discover(loader, selected("acme.Misconfigured")) }
-        }
-
-        assertEquals("akki: bad setting", failure.message)
-        assertEquals(null, failure.cause)
+        assertContains(
+            output,
+            "akki: the backend 'acme.Failing' set by the test failed to start; selecting the backend automatically.\n" +
+                "java.lang.IllegalStateException: broken factory",
+        )
     }
 
     @Test
@@ -443,15 +420,13 @@ class JvmBackendDiscoveryTest {
             override fun getResources(name: String): Enumeration<URL> = error("broken resources")
         }
 
-        var failure: Throwable? = null
-        val output = captureStderr {
-            failure = assertFailsWith<AkkiConfigurationException> { discover(loader, selected("acme.Missing")) }
-        }
+        val output = captureStderr { assertIs<DefaultBackend>(discover(loader, selected("acme.Missing"))) }
 
         assertContains(output, "akki: backend discovery failed")
-        assertEquals(
-            "akki: the backend 'acme.Missing' set by the test was not found: the backend service lookup stopped early",
-            failure?.message,
+        assertContains(
+            output,
+            "akki: the backend 'acme.Missing' set by the test was not found: the backend service lookup stopped early; " +
+                "selecting the backend automatically.\n",
         )
     }
 
@@ -565,14 +540,6 @@ class DecliningFactory : LogBackendFactory {
     override fun createBackend(): LogBackend? = null
 
     override fun hintOnMissing(): String = "Add the declining provider."
-}
-
-class MisconfiguredFactory : LogBackendFactory {
-    override val backendClassName: String = "acme.Misconfigured"
-
-    override fun createBackend(): LogBackend? = throw AkkiConfigurationException("akki: bad setting")
-
-    override fun hintOnMissing(): String = "Add the misconfigured provider."
 }
 
 class FailingFactory : LogBackendFactory {

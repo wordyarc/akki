@@ -27,6 +27,14 @@ class JvmJavaFacadeTest {
     }
 
     @Test
+    fun `java does not see the intrinsics that only the compiler plugin resolves`(): Unit {
+        val intrinsics = Class.forName("io.akki.IntrinsicKt").declaredMethods.filter { it.name in setOf("getLog", "logger") }
+
+        assertEquals(setOf("getLog", "logger"), intrinsics.map { it.name }.toSet())
+        assertTrue(intrinsics.all { it.isSynthetic })
+    }
+
+    @Test
     fun `java writes eager records through the generated overloads`(): Unit {
         val log = Log.named("java.eager")
 

@@ -14,7 +14,7 @@ import java.util.concurrent.locks.ReentrantLock
 internal fun discover(loader: ClassLoader, selected: Setting? = null): LogBackend {
     val services = Services(loader)
     val declared = services.load(LogBackend::class.java)
-    if (selected != null) return select(selected, declared, services)
+    if (selected != null) select(selected, declared, services)?.let { return it }
     if (declared.isNotEmpty() || !services.isComplete) return chooseBackend(declared)
     val factories = services.load(LogBackendFactory::class.java)
     val created = factories.mapNotNull { it.tryCreateBackend() }
@@ -26,22 +26,25 @@ internal fun discover(loader: ClassLoader, selected: Setting? = null): LogBacken
 }
 
 @OptIn(InternalAkkiApi::class)
-private fun select(selected: Setting, declared: List<LogBackend>, services: Services): LogBackend {
+private fun select(selected: Setting, declared: List<LogBackend>, services: Services): LogBackend? {
     val name = selected.value
     declared.firstOrNull { it::class.java.name == name }?.let { return it }
     val factories = services.load(LogBackendFactory::class.java)
-    val factory = factories.firstOrNull { it.backendClassName == name } ?: configurationError(
-        "the backend '$name' set by ${selected.source} was not found: ${services.candidates(declared, factories)}",
-    )
+    val subject = "the backend '$name' set by ${selected.source}"
+    val factory = factories.firstOrNull { it.backendClassName == name }
+        ?: return unselected("$subject was not found: ${services.candidates(declared, factories)}")
     val backend = try {
         factory.createBackend()
     } catch (failure: Throwable) {
-        if (failure.isFatal || failure is AkkiConfigurationException) throw failure
-        configurationError("the backend '$name' set by ${selected.source} failed to start", failure)
+        if (failure.isFatal) throw failure
+        return unselected("$subject failed to start", "\n${failure.stackTraceToString().trimEnd()}")
     }
-    return backend ?: configurationError(
-        "the backend '$name' set by ${selected.source} is not available. ${factory.hintOnMissing()}",
-    )
+    return backend ?: unselected("$subject is not available", factory.tryHintOnMissing()?.let { " $it" }.orEmpty())
+}
+
+private fun unselected(problem: String, details: String = ""): LogBackend? {
+    printlnToStdErr("akki: $problem; selecting the backend automatically.$details")
+    return null
 }
 
 @OptIn(InternalAkkiApi::class)
@@ -109,7 +112,7 @@ private inline fun <T : Any> LogBackendFactory.isolated(call: LogBackendFactory.
     try {
         call()
     } catch (failure: Throwable) {
-        if (failure.isFatal || failure is AkkiConfigurationException) throw failure
+        if (failure.isFatal) throw failure
         printlnToStdErr("akki: backend factory ${javaClass.name} failed and is skipped: $failure")
         null
     }

@@ -57,6 +57,7 @@ internal class AkkiCommandLineProcessor : CommandLineProcessor {
         override val description: String =
             "Minimum level to retain in compiled code. Lower-level records are removed permanently. " +
                 "Ordinary arguments are still evaluated, but lazy messages are not invoked. " +
+                "'isEnabled' with a constant lower level is 'false'. " +
                 "Each removed call produces an INFO diagnostic. If the build log hides INFO diagnostics, use " +
                 "-Xwarning-level=LOGGING_CALL_REMOVED:warning to display them."
 

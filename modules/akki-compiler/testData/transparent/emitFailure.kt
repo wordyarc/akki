@@ -1,11 +1,13 @@
+@file:OptIn(io.akki.InternalAkkiApi::class)
+
 package fixture
 
 import io.akki.Log
-import io.akki.LogScope
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import io.akki.backend.Sink
-import io.akki.withLogScope
+import io.akki.internal.LogScope
+import io.akki.internal.withLogScope
 import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
 

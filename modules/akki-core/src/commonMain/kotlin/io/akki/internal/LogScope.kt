@@ -1,12 +1,10 @@
 @file:OptIn(ExperimentalContracts::class, ExperimentalAtomicApi::class)
 
-package io.akki
+package io.akki.internal
 
+import io.akki.InternalAkkiApi
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
-import io.akki.internal.ScopeBindings
-import io.akki.internal.exit
-import io.akki.internal.scopeEntries
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.contracts.ExperimentalContracts
@@ -16,11 +14,13 @@ import kotlin.jvm.JvmStatic
 
 private val anyScopeCreated = AtomicBoolean(false)
 
+@InternalAkkiApi
 public inline fun <T> withLogScope(scope: LogScope, crossinline block: () -> T): T {
     contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
     return scope.enter().use { block() }
 }
 
+@InternalAkkiApi
 public class LogScope(public val backend: LogBackend) {
     private val bindings = ScopeBindings()
 

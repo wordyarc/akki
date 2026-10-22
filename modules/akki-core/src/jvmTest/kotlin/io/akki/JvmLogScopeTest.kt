@@ -1,7 +1,11 @@
+@file:OptIn(InternalAkkiApi::class)
+
 package io.akki
 
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
+import io.akki.internal.LogScope
+import io.akki.internal.withLogScope
 import io.akki.test.RecordingBackend
 import io.akki.testing.allocatedBytes
 import kotlin.concurrent.thread
@@ -19,7 +23,7 @@ class JvmLogScopeTest {
         val logger = Log.named("scope.thread")
 
         Log.install(installed).use {
-            LogScope(scoped).run {
+            withLogScope(LogScope(scoped)) {
                 thread {
                     assertNull(LogScope.currentOrNull())
                     logger.info("worker")
@@ -37,7 +41,7 @@ class JvmLogScopeTest {
         val loggers = List(20_000) { Log.named("scope.many.$it") }
         val scope = LogScope(LogBackend { LoggerBinding { null } })
 
-        val allocated = allocatedBytes { scope.run { loggers.forEach { it.info("dropped") } } }
+        val allocated = allocatedBytes { withLogScope(scope) { loggers.forEach { it.info("dropped") } } }
 
         assertTrue(allocated < 64L * 1024 * 1024, "allocated $allocated bytes")
     }

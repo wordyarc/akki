@@ -1,9 +1,13 @@
+@file:OptIn(InternalAkkiApi::class)
+
 package io.akki
 
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding
 import io.akki.backend.Sink
 import io.akki.backend.filter
+import io.akki.internal.LogScope
+import io.akki.internal.withLogScope
 import io.akki.test.RecordingBackend
 import kotlin.test.Test
 import kotlin.test.assertEquals

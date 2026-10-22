@@ -1,7 +1,10 @@
+@file:OptIn(InternalAkkiApi::class)
+
 package io.akki.test.coroutines
 
+import io.akki.InternalAkkiApi
 import io.akki.Level
-import io.akki.LogScope
+import io.akki.internal.LogScope
 import io.akki.coroutines.asContextElement
 import io.akki.test.LogRecord
 import io.akki.test.RecordingBackend

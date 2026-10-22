@@ -30,14 +30,14 @@ caller line. An optional compile-time threshold removes records below the select
   * `Log.of<T>()` and `Log.named("...")` work without the compiler plugin. From Java, call `Log.of(Class)` or
     `Log.named`.
   * `Logger` provides eager and lazy overloads of `trace`, `debug`, `info`, `warn`, and `error`.
-  * `LogBackend` connects a backend; `LogScope` selects one for the current thread.
+  * `LogBackend` connects a backend.
   * `LogContext` carries fields that every record of the current thread gets.
 * `akki-slf4j`: backend for SLF4J 2, enabled when an SLF4J 2 provider is available at runtime.
 * `akki-compiler`: Kotlin compiler plugin, one artifact for every supported Kotlin release.
 * `akki-gradle`: applies the compiler plugin, adds `akki-core` and `akki-slf4j`, and keeps every akki module at the
   plugin version.
 * `akki-test`: captures test logs with `recordLogs { }` or `RecordingBackend`.
-* `akki-coroutines`: carries a `LogScope` or a `LogContext` in a coroutine context via `asContextElement()` and
+* `akki-coroutines`: carries a `LogContext` in a coroutine context via `asContextElement()` and
   provides a suspending `withLogFields { }`.
 * `akki-test-coroutines`: provides suspending `recordLogs { }` for coroutine tests.
 * `akki-context-propagation`: registers a Micrometer `ThreadLocalAccessor` for `LogContext`, so Reactor and Spring
@@ -70,7 +70,9 @@ dependencies {
 
 If no provider is available, akki prints a one-time notice and writes records at `INFO` and higher to stderr.
 
-A library, or an application with its own `LogBackend`, leaves `akki-slf4j` out:
+A library keeps `akki-slf4j`: an application that does not use akki then gets the library's records through its own
+SLF4J provider. Without a provider `akki-slf4j` stays inactive, and a `LogBackend` that the application registers wins
+over it. To keep `akki-slf4j` off the classpath, for example in an application without SLF4J:
 
 ```kotlin
 akki {
@@ -182,8 +184,8 @@ shares the field used by `log`. `Log.of(javaClass)` always looks up the logger a
 
 `LogContext` holds fields that every record written on the current thread carries, such as a request id. A context is
 an immutable value, safe to keep and to pass to other threads: `+` merges two contexts or adds one field and prefers
-the right operand, `-` removes a key, a `null` value keeps its key, and `LogContext.EMPTY` has no fields. Fields of a
-record shadow context fields with the same key.
+the right operand, `-` removes a key, a `null` value keeps its key, `key in context` tells such a key from a missing
+one, and `LogContext.EMPTY` has no fields. Fields of a record shadow context fields with the same key.
 `withLogFields` adds fields to the current context for the duration of a block. `withLogContext` enters exactly the
 given context; use it to clear the context or to re-enter one captured earlier:
 
@@ -242,9 +244,10 @@ reads the context with `LogContext.current()` inside `Sink.emit`: akki does not 
 
 If a `LogBackend` is registered with `ServiceLoader`, akki chooses it over `akki-slf4j`; when several are registered,
 it takes the first by class name and reports the others to stderr. The `io.akki.backend` setting names the class of
-the backend to use instead; for `akki-slf4j`, that is `io.akki.slf4j.Slf4jBackend`. A selection that matches no
-backend, or a selected backend that cannot start, is an error: akki throws instead of falling back. Calling
-`Log.install(backend)` replaces the backend for the whole process.
+the backend to use instead; for `akki-slf4j`, that is `io.akki.slf4j.Slf4jBackend`. If the selection matches no
+backend, or the selected backend cannot start, akki reports it to stderr once and chooses the backend as if the
+setting were unset.
+Calling `Log.install(backend)` replaces the backend for the whole process.
 
 `LogBackend.filter` wraps a backend with a predicate over the logger name and the level. It runs in
 `sink(level)`, so a rejected record is as cheap as a disabled level: its message lambda is not run. The predicate can
@@ -288,6 +291,10 @@ akki {
     }
 }
 ```
+
+`isEnabled` with a constant level below `minLevel` compiles to `false`, so a block guarded by it is skipped together
+with the records it prepares. A level computed at runtime and a reference such as `log::isEnabled` keep the runtime
+answer.
 
 By default, logger names use source notation, such as `com.example.Outer.Inner`. Set `loggerNameStyle` to use JVM
 names instead: `com.example.Outer$Inner` and `JobsKt` for files:
@@ -335,15 +342,17 @@ property, `-Dio.akki.backend=`, unsets the value shipped in the resource.
 | `io.akki.backend`         | class name of a registered `LogBackend`, or `io.akki.slf4j.Slf4jBackend` | a registered `LogBackend`, otherwise `akki-slf4j` |
 | `io.akki.slf4j.context`   | `key-value-pairs`, `mdc`                                                 | `key-value-pairs`                                 |
 
-These settings belong to the application. A library leaves them unset. An unknown property or value, or two
-resources with different values for one property, is an error: akki throws instead of falling back. The error names
-the system property or the file that set the value, and both files for a conflict. A property of a backend,
-`io.akki.<backend>.<name>`, is checked by that backend: a misspelled `io.akki.slf4j.*` key in a resource or an unknown
-value fails the first record, and the key goes unchecked while `akki-slf4j` is not on the classpath.
+These settings belong to the application. A library leaves them unset: they ship in its jar and apply to every
+application that uses it. A setting never makes logging throw. akki reports an unknown property or value to stderr
+once, naming the system property or the file that set it, and uses the default instead. Two resources with different
+values for one property are reported with both files, and the property stays unset until a system property sets it.
+A property of a backend, `io.akki.<backend>.<name>`, is checked by that backend: `akki-slf4j` reports a misspelled
+`io.akki.slf4j.*` key or an unknown value the same way, and the key goes unchecked while `akki-slf4j` is not on the
+classpath.
 
-`includeSlf4jBackend`, `true` by default, adds `akki-slf4j` to the runtime classpath of every `jvm` compilation. Set
-it to `false` in a library, or in an application that registers its own `LogBackend`. Selecting `akki-slf4j` with
-`backend` or setting `slf4jContext` while it is `false` fails the build.
+`includeSlf4jBackend`, `true` by default, adds `akki-slf4j` to the runtime classpath of every `jvm` compilation. A
+library keeps the default, as described in [Backend](#backend). Set it to `false` only to keep `akki-slf4j` off the
+classpath. Selecting `akki-slf4j` with `backend` or setting `slf4jContext` while it is `false` fails the build.
 
 ## Limitations
 
@@ -358,7 +367,7 @@ it to `false` in a library, or in an application that registers its own `LogBack
   calls report `io.akki.Logger` unless that class is registered in logback's `frameworkPackages`.
 * Only a message passed as a lambda is lazy. Ordinary arguments, including fields, are evaluated even when the
   level is disabled.
-* `recordLogs`, `LogScope` and `LogContext` apply to the current thread. Executors and other threads use the global
+* `recordLogs` and `LogContext` apply to the current thread. Executors and other threads use the global
   backend. They start with an empty context unless the task is wrapped with `LogContext.wrap` or carried by
   `akki-context-propagation`.
 * `io.akki.loggerNameStyle`, `io.akki.backend` and `io.akki.slf4j.context` are read once, when the first logger is

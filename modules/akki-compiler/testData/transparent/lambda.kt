@@ -1,9 +1,13 @@
 // CHECK_BYTECODE_TEXT
 // 0 kotlin/jvm/functions/Function0
 // 0 box\$lambda
+@file:OptIn(io.akki.InternalAkkiApi::class)
+
 package fixture
 
 import io.akki.*
+import io.akki.internal.LogScope
+import io.akki.internal.withLogScope
 import io.akki.test.*
 import kotlin.test.assertEquals
 

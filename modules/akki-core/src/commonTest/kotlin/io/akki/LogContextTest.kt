@@ -1,5 +1,8 @@
+@file:OptIn(InternalAkkiApi::class)
+
 package io.akki
 
+import io.akki.internal.LogScope
 import io.akki.test.LogRecord
 import io.akki.test.RecordingBackend
 import io.akki.test.recordLogs
@@ -7,6 +10,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertSame
@@ -89,6 +93,16 @@ class LogContextTest {
         assertEquals(LogContext("a" to 1, "b" to 3, "c" to null), context)
         assertEquals(listOf("a", "b", "c"), context.fields.keys.toList())
         assertEquals(LogContext("a" to 1), LogContext.EMPTY + ("a" to 1))
+    }
+
+    @Test
+    fun `contains tells a missing key from a null value`(): Unit {
+        val context = LogContext("a" to 1, "b" to null)
+
+        assertTrue("b" in context)
+        assertFalse("c" in context)
+        assertNull(context["b"])
+        assertFalse("b" in context - "b")
     }
 
     @Test

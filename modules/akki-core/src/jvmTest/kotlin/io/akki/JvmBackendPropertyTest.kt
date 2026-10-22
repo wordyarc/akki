@@ -11,7 +11,6 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNotEquals
 import org.junit.jupiter.api.io.TempDir
 
 class JvmBackendPropertyTest {
@@ -56,17 +55,17 @@ class JvmBackendPropertyTest {
     }
 
     @Test
-    fun `an unknown backend fails the first record instead of falling back`(@TempDir directory: Path): Unit {
+    fun `an unknown backend is reported and the backend is selected automatically`(@TempDir directory: Path): Unit {
         val (exit, output) = probe(property = "acme.Missing", resources = listOf(directory.declareProbeBackends()))
 
-        assertNotEquals(0, exit, output)
-        assertContains(output, "entered main")
+        assertEquals(0, exit, output)
         assertContains(
             output,
-            "io.akki.internal.AkkiConfigurationException: akki: the backend 'acme.Missing' set by the system property " +
-                "'$BACKEND_PROPERTY' was not found: the classpath declares $FIRST, $SECOND",
+            "akki: the backend 'acme.Missing' set by the system property '$BACKEND_PROPERTY' was not found: " +
+                "the classpath declares $FIRST, $SECOND; selecting the backend automatically.\n" +
+                "akki: multiple backends on the classpath, using $FIRST: $FIRST, $SECOND",
         )
-        assertFalse(output.contains("backend="), output)
+        assertContains(output, "backend=$FIRST")
     }
 
     @Test
@@ -75,29 +74,30 @@ class JvmBackendPropertyTest {
 
         val (exit, output) = probe(resources = resources)
 
-        assertNotEquals(0, exit, output)
+        assertEquals(0, exit, output)
         assertContains(
             output,
-            "io.akki.internal.AkkiConfigurationException: akki: the backend 'acme.Missing' set by '$BACKEND_PROPERTY' in " +
-                "${directory.akkiPropertiesUrl()} was not found: the classpath declares $FIRST, $SECOND",
+            "akki: the backend 'acme.Missing' set by '$BACKEND_PROPERTY' in ${directory.akkiPropertiesUrl()} " +
+                "was not found: the classpath declares $FIRST, $SECOND; selecting the backend automatically.",
         )
-        assertFalse(output.contains("backend="), output)
+        assertContains(output, "backend=$FIRST")
     }
 
     @Test
-    fun `an unknown property in a classpath resource fails the first lookup`(@TempDir directory: Path): Unit {
+    fun `an unknown property in a classpath resource is reported and ignored`(@TempDir directory: Path): Unit {
         val resources = listOf(directory.declareProbeBackends().akkiProperties("io.akki.backned" to SECOND))
 
         val (exit, output) = probe(resources = resources)
 
-        assertNotEquals(0, exit, output)
+        assertEquals(0, exit, output)
         assertContains(
             output,
-            "io.akki.internal.AkkiConfigurationException: akki: unknown property 'io.akki.backned' in " +
-                "${directory.akkiPropertiesUrl()}: expected '$LOGGER_NAME_STYLE_PROPERTY', '$BACKEND_PROPERTY' " +
-                "or a backend setting 'io.akki.<backend>.<name>'",
+            "akki: unknown property 'io.akki.backned' in ${directory.akkiPropertiesUrl()}: " +
+                "expected '$LOGGER_NAME_STYLE_PROPERTY', '$BACKEND_PROPERTY' " +
+                "or a backend setting 'io.akki.<backend>.<name>'; ignoring it",
         )
-        assertFalse(output.contains("name="), output)
+        assertContains(output, "name=" + BackendProbe.Owner.Nested::class.java.canonicalName)
+        assertContains(output, "backend=$FIRST")
     }
 
     @Test
@@ -113,41 +113,33 @@ class JvmBackendPropertyTest {
     }
 
     @Test
-    fun `resources that disagree on the backend fail the first lookup`(@TempDir directory: Path): Unit {
-        val first = directory.resolve("first").akkiProperties(BACKEND_PROPERTY to FIRST)
-        val second = directory.resolve("second").akkiProperties(BACKEND_PROPERTY to SECOND)
+    fun `resources that disagree on the backend are reported and ignored`(@TempDir directory: Path): Unit {
+        val first = directory.resolve("first").akkiProperties(BACKEND_PROPERTY to SECOND)
+        val second = directory.resolve("second").akkiProperties(BACKEND_PROPERTY to FIRST)
 
         val (exit, output) = probe(resources = listOf(directory.declareProbeBackends(), first, second))
 
-        assertNotEquals(0, exit, output)
+        assertEquals(0, exit, output)
         assertContains(
             output,
-            "io.akki.internal.AkkiConfigurationException: akki: conflicting values for '$BACKEND_PROPERTY' on the classpath: " +
-                "'$FIRST' in ${first.akkiPropertiesUrl()} and '$SECOND' in ${second.akkiPropertiesUrl()}",
+            "akki: conflicting values for '$BACKEND_PROPERTY' on the classpath: " +
+                "'$SECOND' in ${first.akkiPropertiesUrl()} and '$FIRST' in ${second.akkiPropertiesUrl()}; " +
+                "ignoring the property, set the system property '$BACKEND_PROPERTY' to choose a value",
         )
-        assertFalse(output.contains("backend="), output)
+        assertContains(output, "akki: multiple backends on the classpath, using $FIRST: $FIRST, $SECOND")
+        assertContains(output, "backend=$FIRST")
     }
 
     @Test
-    fun `resources that disagree fail the first lookup even when every setting is a system property`(
-        @TempDir directory: Path,
-    ): Unit {
+    fun `a system property settles resources that disagree on the backend`(@TempDir directory: Path): Unit {
         val first = directory.resolve("first").akkiProperties(BACKEND_PROPERTY to FIRST)
         val second = directory.resolve("second").akkiProperties(BACKEND_PROPERTY to SECOND)
 
-        val (exit, output) = probe(
-            BackendProbe::class.java,
-            properties = mapOf(BACKEND_PROPERTY to FIRST, LOGGER_NAME_STYLE_PROPERTY to "source"),
-            resources = listOf(directory.declareProbeBackends(), first, second),
-        )
+        val (exit, output) = probe(property = SECOND, resources = listOf(directory.declareProbeBackends(), first, second))
 
-        assertNotEquals(0, exit, output)
-        assertContains(
-            output,
-            "io.akki.internal.AkkiConfigurationException: akki: conflicting values for '$BACKEND_PROPERTY' on the " +
-                "classpath: '$FIRST' in ${first.akkiPropertiesUrl()} and '$SECOND' in ${second.akkiPropertiesUrl()}",
-        )
-        assertFalse(output.contains("backend="), output)
+        assertEquals(0, exit, output)
+        assertFalse(output.contains("conflicting"), output)
+        assertContains(output, "backend=$SECOND")
     }
 
     @Test

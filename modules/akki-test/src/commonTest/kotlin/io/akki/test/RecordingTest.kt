@@ -1,9 +1,12 @@
+@file:OptIn(InternalAkkiApi::class)
+
 package io.akki.test
 
+import io.akki.InternalAkkiApi
 import io.akki.Level
 import io.akki.Log
-import io.akki.LogScope
-import io.akki.withLogScope
+import io.akki.internal.LogScope
+import io.akki.internal.withLogScope
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

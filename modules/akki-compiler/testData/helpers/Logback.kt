@@ -1,12 +1,14 @@
+@file:OptIn(io.akki.InternalAkkiApi::class)
+
 package helpers
 
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.AppenderBase
-import io.akki.LogScope
+import io.akki.internal.LogScope
+import io.akki.internal.withLogScope
 import io.akki.slf4j.Slf4jBackend
-import io.akki.withLogScope
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 

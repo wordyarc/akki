@@ -1,7 +1,9 @@
+@file:OptIn(InternalAkkiApi::class)
+
 package io.akki.internal
 
+import io.akki.InternalAkkiApi
 import io.akki.Level
-import io.akki.LogScope
 import io.akki.Logger
 import io.akki.backend.LogBackend
 import io.akki.backend.LoggerBinding

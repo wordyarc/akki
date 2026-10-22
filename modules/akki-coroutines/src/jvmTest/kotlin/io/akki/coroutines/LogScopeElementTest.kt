@@ -1,7 +1,10 @@
+@file:OptIn(InternalAkkiApi::class)
+
 package io.akki.coroutines
 
+import io.akki.InternalAkkiApi
 import io.akki.Log
-import io.akki.LogScope
+import io.akki.internal.LogScope
 import io.akki.test.RecordingBackend
 import java.util.concurrent.Executors
 import kotlin.test.Test

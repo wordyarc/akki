@@ -1,8 +1,11 @@
+@file:OptIn(InternalAkkiApi::class)
+
 package io.akki.test
 
+import io.akki.InternalAkkiApi
 import io.akki.Log
-import io.akki.LogScope
-import io.akki.withLogScope
+import io.akki.internal.LogScope
+import io.akki.internal.withLogScope
 import java.util.concurrent.Callable
 import java.util.concurrent.CyclicBarrier
 import java.util.concurrent.ExecutorService

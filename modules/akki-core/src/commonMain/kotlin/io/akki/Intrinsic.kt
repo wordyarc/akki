@@ -2,12 +2,14 @@ package io.akki
 
 import io.akki.internal.CallSite
 import io.akki.internal.akkiError
+import kotlin.jvm.JvmSynthetic
 
 @CallSite
 public val log: Logger
-    get() = pluginNotApplied()
+    @JvmSynthetic get() = pluginNotApplied()
 
 @CallSite
+@JvmSynthetic
 public fun logger(): Logger = pluginNotApplied()
 
 private fun pluginNotApplied(): Nothing = akkiError(

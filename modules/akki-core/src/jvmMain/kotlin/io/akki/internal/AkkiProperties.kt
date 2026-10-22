@@ -1,6 +1,7 @@
 package io.akki.internal
 
 import io.akki.InternalAkkiApi
+import java.io.IOException
 import java.net.URL
 import java.util.Properties
 
@@ -38,28 +39,49 @@ public object AkkiProperties {
 
     private fun ClassLoader.loadAkkiProperties(): Map<String, Setting> {
         val merged = mutableMapOf<String, Declaration>()
-        for (url in getResources(AKKI_PROPERTIES_RESOURCE)) {
-            val properties = url.openStream().use { Properties().apply { load(it) } }
+        val conflicting = mutableSetOf<String>()
+        for (url in resourceUrls()) {
+            val properties = url.readProperties() ?: continue
             for (name in properties.stringPropertyNames()) {
                 if (name !in CORE_PROPERTIES && !name.isBackendProperty()) {
                     val expected = CORE_PROPERTIES.joinToString(", ") { "'$it'" }
-                    configurationError(
-                        "unknown property '$name' in $url: expected $expected " +
-                            "or a backend setting '${PROPERTY_PREFIX}<backend>.<name>'",
+                    printlnToStdErr(
+                        "akki: unknown property '$name' in $url: expected $expected " +
+                            "or a backend setting '${PROPERTY_PREFIX}<backend>.<name>'; ignoring it",
                     )
+                    continue
                 }
                 val declaration = Declaration(url, properties.getProperty(name).trim())
                 val previous = merged.putIfAbsent(name, declaration) ?: continue
-                if (previous.value != declaration.value) {
-                    configurationError(
-                        "conflicting values for '$name' on the classpath: " +
-                            "'${previous.value}' in ${previous.url} and '${declaration.value}' in ${declaration.url}",
+                if (previous.value != declaration.value && conflicting.add(name) && systemProperty(name) == null) {
+                    printlnToStdErr(
+                        "akki: conflicting values for '$name' on the classpath: " +
+                            "'${previous.value}' in ${previous.url} and '${declaration.value}' in ${declaration.url}; " +
+                            "ignoring the property, set the system property '$name' to choose a value",
                     )
                 }
             }
         }
-        return merged.mapValues { (name, declaration) -> Setting(declaration.value, "'$name' in ${declaration.url}") }
+        return merged
+            .filterKeys { it !in conflicting }
+            .mapValues { (name, declaration) -> Setting(declaration.value, "'$name' in ${declaration.url}") }
     }
+
+    private fun ClassLoader.resourceUrls(): List<URL> =
+        try {
+            getResources(AKKI_PROPERTIES_RESOURCE).toList()
+        } catch (failure: IOException) {
+            printlnToStdErr("akki: cannot list the $AKKI_PROPERTIES_RESOURCE resources: $failure; ignoring them")
+            emptyList()
+        }
+
+    private fun URL.readProperties(): Properties? =
+        try {
+            openStream().use { Properties().apply { load(it) } }
+        } catch (failure: Exception) {
+            printlnToStdErr("akki: cannot read $this: $failure; ignoring its settings")
+            null
+        }
 
     private fun String.isBackendProperty(): Boolean =
         startsWith(PROPERTY_PREFIX) && '.' in removePrefix(PROPERTY_PREFIX)

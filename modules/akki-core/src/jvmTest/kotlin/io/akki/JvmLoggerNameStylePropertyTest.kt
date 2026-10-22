@@ -10,17 +10,17 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNotEquals
 import org.junit.jupiter.api.io.TempDir
 
 class JvmLoggerNameStylePropertyTest {
     @Test
-    fun `an unknown style fails the first lookup instead of falling back`(): Unit {
+    fun `an unknown style is reported once and the default style names the logger`(): Unit {
         val (exit, output) = probe(property = "binary")
 
-        assertNotEquals(0, exit, output)
-        assertContains(output, unknownValue("binary", "the system property '$LOGGER_NAME_STYLE_PROPERTY'"))
-        assertFalse(output.contains("name="), output)
+        assertEquals(0, exit, output)
+        val reported = unknownValue("binary", "the system property '$LOGGER_NAME_STYLE_PROPERTY'")
+        assertEquals(1, output.split(reported).size - 1, output)
+        assertContains(output, "name=" + NameStyleProbe.Owner.Nested::class.java.canonicalName)
     }
 
     @Test
@@ -61,29 +61,57 @@ class JvmLoggerNameStylePropertyTest {
     }
 
     @Test
-    fun `an unknown style in a classpath resource fails the first lookup`(@TempDir directory: Path): Unit {
+    fun `an unknown style in a classpath resource names the resource`(@TempDir directory: Path): Unit {
         val (exit, output) = probe(resources = listOf(directory.akkiProperties(LOGGER_NAME_STYLE_PROPERTY to "binary")))
 
-        assertNotEquals(0, exit, output)
+        assertEquals(0, exit, output)
         val source = "'$LOGGER_NAME_STYLE_PROPERTY' in ${directory.akkiPropertiesUrl()}"
         assertContains(output, unknownValue("binary", source))
-        assertFalse(output.contains("name="), output)
+        assertContains(output, "name=" + NameStyleProbe.Owner.Nested::class.java.canonicalName)
     }
 
     @Test
-    fun `resources that disagree on the style fail the first lookup`(@TempDir directory: Path): Unit {
-        val first = directory.resolve("first").styleResource(LoggerNameStyle.SOURCE)
-        val second = directory.resolve("second").styleResource(LoggerNameStyle.JVM_CLASS)
+    fun `resources that disagree on the style are reported and ignored`(@TempDir directory: Path): Unit {
+        val first = directory.resolve("first").styleResource(LoggerNameStyle.JVM_CLASS)
+        val second = directory.resolve("second").styleResource(LoggerNameStyle.SOURCE)
 
         val (exit, output) = probe(resources = listOf(first, second))
 
-        assertNotEquals(0, exit, output)
+        assertEquals(0, exit, output)
         assertContains(
             output,
-            "io.akki.internal.AkkiConfigurationException: akki: conflicting values for '$LOGGER_NAME_STYLE_PROPERTY' on the " +
-                "classpath: 'source' in ${first.akkiPropertiesUrl()} and 'jvm-class' in ${second.akkiPropertiesUrl()}",
+            "akki: conflicting values for '$LOGGER_NAME_STYLE_PROPERTY' on the classpath: " +
+                "'jvm-class' in ${first.akkiPropertiesUrl()} and 'source' in ${second.akkiPropertiesUrl()}; " +
+                "ignoring the property, set the system property '$LOGGER_NAME_STYLE_PROPERTY' to choose a value",
         )
-        assertFalse(output.contains("name="), output)
+        assertContains(output, "name=" + NameStyleProbe.Owner.Nested::class.java.canonicalName)
+    }
+
+    @Test
+    fun `a system property settles resources that disagree on the style`(@TempDir directory: Path): Unit {
+        val first = directory.resolve("first").styleResource(LoggerNameStyle.SOURCE)
+        val second = directory.resolve("second").styleResource(LoggerNameStyle.JVM_CLASS)
+
+        val (exit, output) = probe(property = LoggerNameStyle.JVM_CLASS.propertyValue, resources = listOf(first, second))
+
+        assertEquals(0, exit, output)
+        assertFalse(output.contains("akki:"), output)
+        assertContains(output, "name=" + NameStyleProbe.Owner.Nested::class.java.name)
+    }
+
+    @Test
+    fun `a class that keeps its logger in a static field loads despite resources that disagree`(
+        @TempDir directory: Path,
+    ): Unit {
+        val first = directory.resolve("first").styleResource(LoggerNameStyle.SOURCE)
+        val second = directory.resolve("second").styleResource(LoggerNameStyle.JVM_CLASS)
+
+        val (exit, output) = probe(StaticLoggerProbe::class.java, resources = listOf(first, second))
+
+        assertEquals(0, exit, output)
+        assertContains(output, "akki: conflicting values for '$LOGGER_NAME_STYLE_PROPERTY'")
+        assertContains(output, "name=" + StaticLoggerProbe::class.java.canonicalName)
+        assertContains(output, "INFO  ${StaticLoggerProbe::class.java.canonicalName} - record")
     }
 
     @Test
@@ -98,8 +126,9 @@ class JvmLoggerNameStylePropertyTest {
     }
 
     private fun unknownValue(value: String, source: String): String =
-        "io.akki.internal.AkkiConfigurationException: akki: unknown value '$value' set by $source: " +
-            "expected '${LoggerNameStyle.SOURCE.propertyValue}' or '${LoggerNameStyle.JVM_CLASS.propertyValue}'"
+        "akki: unknown value '$value' set by $source: " +
+            "expected '${LoggerNameStyle.SOURCE.propertyValue}' or '${LoggerNameStyle.JVM_CLASS.propertyValue}'; " +
+            "using '${LoggerNameStyle.SOURCE.propertyValue}'"
 
     private fun Path.styleResource(style: LoggerNameStyle): Path =
         akkiProperties(LOGGER_NAME_STYLE_PROPERTY to style.propertyValue)
@@ -110,6 +139,16 @@ class JvmLoggerNameStylePropertyTest {
             properties = listOfNotNull(property?.let { LOGGER_NAME_STYLE_PROPERTY to it }).toMap(),
             resources = resources,
         )
+}
+
+object StaticLoggerProbe {
+    private val log: Logger = Log.of<StaticLoggerProbe>()
+
+    @JvmStatic
+    fun main(args: Array<String>) {
+        println("name=" + log.name)
+        log.info("record")
+    }
 }
 
 object NameStyleProbe {

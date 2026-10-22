@@ -94,17 +94,17 @@ class AkkiGradlePluginTest {
     }
 
     @Test
-    fun `reports an invalid startup style through the initializer cause`(@TempDir projectDirectory: Path) {
+    fun `reports an invalid startup style and names loggers in the default style`(@TempDir projectDirectory: Path) {
         prepareBootstrapConsumer(projectDirectory)
 
-        val output: String = consumerRunner(projectDirectory, "-PloggerNameStyle=invalid").buildAndFail().output
-        assertContains(output, "java.lang.ExceptionInInitializerError")
-        assertContains(output, "Caused by: io.akki.internal.AkkiConfigurationException: akki:")
-        assertContains(output, "io.akki.loggerNameStyle")
-        assertContains(output, "invalid")
-        assertContains(output, "source")
-        assertContains(output, "jvm-class")
-        assertFalse(output.contains("AKKI entered main"), output)
+        val output = runConsumer(projectDirectory, "-PloggerNameStyle=invalid").output
+        assertContains(
+            output,
+            "akki: unknown value 'invalid' set by the system property 'io.akki.loggerNameStyle': " +
+                "expected 'source' or 'jvm-class'; using 'source'",
+        )
+        assertContains(output, "AKKI entered main")
+        assertContains(output, "AKKI name=consumer.Owner.Nested")
     }
 
     @Test

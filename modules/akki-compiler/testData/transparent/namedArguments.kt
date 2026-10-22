@@ -1,8 +1,12 @@
 // WITH_HELPERS
+@file:OptIn(io.akki.InternalAkkiApi::class)
+
 package fixture
 
 import helpers.Effects
 import io.akki.*
+import io.akki.internal.LogScope
+import io.akki.internal.withLogScope
 import io.akki.test.*
 import kotlin.test.assertEquals
 

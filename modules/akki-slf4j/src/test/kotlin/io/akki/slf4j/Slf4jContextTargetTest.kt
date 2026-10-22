@@ -9,13 +9,13 @@ import ch.qos.logback.core.read.ListAppender
 import io.akki.DelicateAkkiApi
 import io.akki.InternalAkkiApi
 import io.akki.Log
-import io.akki.internal.AkkiConfigurationException
+import io.akki.testing.captureStderr
 import io.akki.withLogFields
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import org.slf4j.LoggerFactory
 import org.slf4j.MDC
@@ -84,17 +84,19 @@ class Slf4jContextTargetTest {
     }
 
     @Test
-    fun `an unknown target value is a configuration error of the backend and of its factory`() {
+    fun `an unknown target value is reported by the backend and by its factory, which keep key value pairs`() {
         val expected = "akki: unknown value 'both' set by the system property '$CONTEXT_PROPERTY': " +
-            "expected 'key-value-pairs' or 'mdc'"
+            "expected 'key-value-pairs' or 'mdc'; using 'key-value-pairs'\n"
 
         withProperty(CONTEXT_PROPERTY, "both") {
-            assertEquals(expected, assertFailsWith<AkkiConfigurationException> { Slf4jBackend() }.message)
-            assertEquals(
-                expected,
-                assertFailsWith<AkkiConfigurationException> { Slf4jBackendFactory().createBackend() }.message,
-            )
+            assertEquals(expected, captureStderr { Slf4jBackend() })
+            assertEquals(expected, captureStderr { assertNotNull(Slf4jBackendFactory().createBackend()) })
+            Log.install(Slf4jBackend()).use { withLogFields("requestId" to 7) { Log.named("kvp").info("record") } }
         }
+
+        val event = appender.list.single()
+        assertEquals(emptyMap<String, String>(), event.mdcPropertyMap)
+        assertEquals(listOf("requestId" to 7), event.keyValuePairs.map { it.key to it.value })
     }
 
     private fun withTarget(target: String, block: () -> Unit) {

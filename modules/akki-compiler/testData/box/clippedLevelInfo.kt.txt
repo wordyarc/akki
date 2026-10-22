@@ -1,3 +1,4 @@
+@file:OptIn(markerClass = [InternalAkkiApi::class])
 package fixture
 
 package /* static final field */ val $$log$0: Logger = Log.named(name = "fixture")
@@ -5,6 +6,7 @@ fun box(): String {
   val backend: RecordingBackend = RecordingBackend()
   val logger: Logger = #$$log$0
   val effects: Effects = Effects()
+  val dynamic: Level = first<Level>(/* <this> = <get-entries>() */)
   val gate: String = withLogScope<String>(scope = LogScope(backend = backend), block = local fun <anonymous>(): String {
     { // BLOCK
       logger
@@ -50,15 +52,18 @@ fun box(): String {
         }
       }
     }
-    return "enabled=" + logger.isEnabled(level = Level.TRACE) + ",sink=" + EQEQ(arg0 = logger.sink(level = Level.DEBUG), arg1 = null).not()
+    return "enabled=" + { // BLOCK
+      effects.mark<Logger>(effect = "enabled-receiver", value = logger)
+      false
+    } + "," + "info=" + logger.isEnabled(level = Level.INFO) + ",dynamic=" + logger.isEnabled(level = dynamic) + "," + "sink=" + EQEQ(arg0 = logger.sink(level = Level.DEBUG), arg1 = null).not()
   }
 )
   assertEquals<String>(expected = "info-info,warn-warn", actual = joinToString<LogRecord>(/* <this> = backend.<get-records>(), */ separator = ",", transform = local fun <anonymous>(it: LogRecord): CharSequence {
     return it.<get-message>()
   }
 ))
-  assertEquals<String>(expected = "trace,receiver,receiver-message,debug-fields,info,warn", actual = effects.toString())
-  assertEquals<String>(expected = "enabled=true,sink=true", actual = gate)
+  assertEquals<String>(expected = "trace,receiver,receiver-message,debug-fields,info,warn,enabled-receiver", actual = effects.toString())
+  assertEquals<String>(expected = "enabled=false,info=true,dynamic=true,sink=true", actual = gate)
   return "OK"
 }
 
@@ -70,3 +75,4 @@ private fun suppressed(logger: Logger) {
     Unit
   }
 }
+

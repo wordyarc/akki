@@ -7,9 +7,9 @@ import io.akki.internal.LoggerNameStyle
 import io.akki.internal.Setting
 import io.akki.internal.loggerName
 import io.akki.internal.parseLoggerNameStyle
+import io.akki.testing.captureStderr
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
 
 class JvmLoggerNamesTest {
@@ -54,9 +54,14 @@ class JvmLoggerNamesTest {
         assertEquals(LoggerNameStyle.SOURCE, parseLoggerNameStyle(null))
         assertEquals(LoggerNameStyle.SOURCE, parseLoggerNameStyle(Setting("source", "the test")))
         assertEquals(LoggerNameStyle.JVM_CLASS, parseLoggerNameStyle(Setting("JVM_CLASS", "the test")))
-        val failure = assertFailsWith<IllegalStateException> { parseLoggerNameStyle(Setting("binary", "the test")) }
+        val output = captureStderr {
+            assertEquals(LoggerNameStyle.SOURCE, parseLoggerNameStyle(Setting("binary", "the test")))
+        }
 
-        assertEquals("akki: unknown value 'binary' set by the test: expected 'source' or 'jvm-class'", failure.message)
+        assertEquals(
+            "akki: unknown value 'binary' set by the test: expected 'source' or 'jvm-class'; using 'source'\n",
+            output,
+        )
     }
 
     @Test
