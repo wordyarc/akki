@@ -140,6 +140,10 @@ public final class io/akki/internal/AkkiProperties {
 	public final fun resourceSettings (Ljava/lang/String;)Ljava/util/Map;
 }
 
+public final class io/akki/internal/AkkiPropertiesKt {
+	public static final fun toEnum (Lio/akki/internal/Setting;Ljava/lang/Enum;)Ljava/lang/Enum;
+}
+
 public final class io/akki/internal/DeclarationLoggers {
 	public static final fun declarationLogger (Ljava/lang/String;Ljava/lang/String;)Lio/akki/Logger;
 }

@@ -6,7 +6,7 @@ import io.akki.InternalAkkiApi
 import io.akki.internal.LoggerNameStyle
 import io.akki.internal.Setting
 import io.akki.internal.loggerName
-import io.akki.internal.parseLoggerNameStyle
+import io.akki.internal.toEnum
 import io.akki.testing.captureStderr
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -51,11 +51,12 @@ class JvmLoggerNamesTest {
 
     @Test
     fun `parses JVM logger name styles`(): Unit {
-        assertEquals(LoggerNameStyle.SOURCE, parseLoggerNameStyle(null))
-        assertEquals(LoggerNameStyle.SOURCE, parseLoggerNameStyle(Setting("source", "the test")))
-        assertEquals(LoggerNameStyle.JVM_CLASS, parseLoggerNameStyle(Setting("JVM_CLASS", "the test")))
+        val unset: Setting? = null
+        assertEquals(LoggerNameStyle.SOURCE, unset.toEnum(LoggerNameStyle.SOURCE))
+        assertEquals(LoggerNameStyle.SOURCE, Setting("source", "the test").toEnum(LoggerNameStyle.SOURCE))
+        assertEquals(LoggerNameStyle.JVM_CLASS, Setting("JVM_CLASS", "the test").toEnum(LoggerNameStyle.SOURCE))
         val output = captureStderr {
-            assertEquals(LoggerNameStyle.SOURCE, parseLoggerNameStyle(Setting("binary", "the test")))
+            assertEquals(LoggerNameStyle.SOURCE, Setting("binary", "the test").toEnum(LoggerNameStyle.SOURCE))
         }
 
         assertEquals(

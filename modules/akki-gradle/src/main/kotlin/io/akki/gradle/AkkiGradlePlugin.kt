@@ -13,7 +13,9 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
     override fun apply(target: Project) {
         val extension = target.extensions.create(EXTENSION_NAME, AkkiExtension::class.java)
         val versions = target.configurations.create(VERSIONS_CONFIGURATION_NAME) {
-            it.description = "Pins every akki module to the compiler plugin version in compilations using the plugin"
+            it.description =
+                "Pins every akki module to the compiler plugin version on the compile classpath of compilations " +
+                    "using the plugin"
             it.isCanBeConsumed = false
             it.isCanBeResolved = false
         }
@@ -53,8 +55,7 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
             }
         }
         val versions = project.configurations.getByName(VERSIONS_CONFIGURATION_NAME)
-        listOfNotNull(kotlinCompilation.compileDependencyConfigurationName, kotlinCompilation.runtimeDependencyConfigurationName)
-            .forEach { name -> project.configurations.named(name) { it.extendsFrom(versions) } }
+        project.configurations.named(kotlinCompilation.compileDependencyConfigurationName) { it.extendsFrom(versions) }
         val minLevel = extension.compilerOptions.minLevel
         val notice = minLevel.map { if (it == MinLevel.TRACE) "" else notice(it) }.orElse("")
         kotlinCompilation.compileTaskProvider.configure { task ->

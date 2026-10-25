@@ -88,3 +88,20 @@ public object AkkiProperties {
 
     private class Declaration(val url: URL, val value: String)
 }
+
+@InternalAkkiApi
+public fun <E : Enum<E>> Setting?.toEnum(default: E): E {
+    if (this == null) return default
+    val entries = default.declaringJavaClass.enumConstants
+    val normalized = value.lowercase().replace('_', '-')
+    return entries.firstOrNull { it.settingValue == normalized } ?: default.also {
+        printlnToStdErr(
+            "akki: unknown value '$value' set by $source: " +
+                "expected ${entries.joinToString(" or ") { entry -> "'${entry.settingValue}'" }}; " +
+                "using '${it.settingValue}'",
+        )
+    }
+}
+
+internal val Enum<*>.settingValue: String
+    get() = name.lowercase().replace('_', '-')

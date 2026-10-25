@@ -22,12 +22,11 @@ private const val CLASS_KIND_COMPANION_OBJECT: Int = 6
 internal enum class LoggerNameStyle {
     SOURCE,
     JVM_CLASS,
-    ;
-
-    val propertyValue: String = name.lowercase().replace('_', '-')
 }
 
-private val configuredStyle: LoggerNameStyle by lazy { parseLoggerNameStyle(AkkiProperties[LOGGER_NAME_STYLE_PROPERTY]) }
+private val configuredStyle: LoggerNameStyle by lazy {
+    AkkiProperties[LOGGER_NAME_STYLE_PROPERTY].toEnum(LoggerNameStyle.SOURCE)
+}
 
 private val loggerNames: ClassValue<String> = object : ClassValue<String>() {
     override fun computeValue(type: Class<*>): String = loggerName(type, configuredStyle)
@@ -42,18 +41,6 @@ internal fun loggerName(jClass: Class<*>, style: LoggerNameStyle): String {
     return when (style) {
         LoggerNameStyle.SOURCE -> owner.sourceName()
         LoggerNameStyle.JVM_CLASS -> owner.name
-    }
-}
-
-internal fun parseLoggerNameStyle(setting: Setting?): LoggerNameStyle {
-    if (setting == null) return LoggerNameStyle.SOURCE
-    val normalized = setting.value.lowercase().replace('_', '-')
-    return LoggerNameStyle.entries.firstOrNull { it.propertyValue == normalized } ?: LoggerNameStyle.SOURCE.also {
-        printlnToStdErr(
-            "akki: unknown value '${setting.value}' set by ${setting.source}: " +
-                "expected ${LoggerNameStyle.entries.joinToString(" or ") { style -> "'${style.propertyValue}'" }}; " +
-                "using '${it.propertyValue}'",
-        )
     }
 }
 

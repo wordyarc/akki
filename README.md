@@ -36,7 +36,7 @@ caller line. An optional compile-time threshold removes records below the select
 * `akki-compiler`: Kotlin compiler plugin, one artifact for every supported Kotlin release.
 * `akki-gradle`: applies the compiler plugin, adds `akki-core` and `akki-slf4j`, and keeps every akki module at the
   plugin version.
-* `akki-test`: captures test logs with `recordLogs { }` or `RecordingBackend`.
+* `akki-test`: captures test logs with `recordLogs { }`, `RecordingBackend` or `RecordingLogger`.
 * `akki-coroutines`: carries a `LogContext` in a coroutine context via `asContextElement()` and
   provides a suspending `withLogFields { }`.
 * `akki-test-coroutines`: provides suspending `recordLogs { }` for coroutine tests.
@@ -108,11 +108,12 @@ dependencies {
 }
 ```
 
-In the compilations it applies to, the Gradle plugin resolves every akki module at its own version: a module declared at
-an older version is raised, a newer one that a dependency brings is lowered, and a newer one declared directly
-fails the build. The pin stays local to the build and never reaches published metadata. Gradle builds without the
-plugin still get a single akki version: each akki library depends on `akki-bom`, so Gradle aligns all of them to
-the newest akki version in the graph.
+In the compilations it applies to, the Gradle plugin compiles against every akki module at its own version: a module
+declared at an older version is raised, a newer one that a dependency brings is lowered, and a newer one declared
+directly fails the build. The runtime classpath is not pinned: a library built with a newer akki keeps the version it
+needs. The pin stays local to the build and never reaches published metadata. Every akki library depends on
+`akki-bom`, so Gradle aligns the runtime classpath, and builds without the plugin, to the newest akki version in the
+graph.
 
 ### Command line and other build tools
 
@@ -273,6 +274,15 @@ import `recordLogs` from `akki-test-coroutines`: it keeps capturing when the cor
 
 ```kotlin
 assertEquals(LogContext("requestId" to 7), records.single().context)
+```
+
+Code that takes a `Logger` as a parameter can get a `RecordingLogger` instead. It keeps its own `records`, needs no
+installed backend and records what every thread writes to it:
+
+```kotlin
+val logger = RecordingLogger(minLevel = Level.INFO)
+Processor(logger).run(Job("nightly-report"))
+assertEquals("started nightly-report", logger.records.single().message)
 ```
 
 ### Configuration

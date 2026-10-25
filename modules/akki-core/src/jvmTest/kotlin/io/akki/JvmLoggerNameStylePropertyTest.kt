@@ -5,6 +5,7 @@ package io.akki
 import io.akki.InternalAkkiApi
 import io.akki.internal.LOGGER_NAME_STYLE_PROPERTY
 import io.akki.internal.LoggerNameStyle
+import io.akki.internal.settingValue
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -25,7 +26,7 @@ class JvmLoggerNameStylePropertyTest {
 
     @Test
     fun `a known style names the logger`(): Unit {
-        val (exit, output) = probe(property = LoggerNameStyle.JVM_CLASS.propertyValue)
+        val (exit, output) = probe(property = LoggerNameStyle.JVM_CLASS.settingValue)
 
         assertEquals(0, exit, output)
         assertContains(output, "name=" + NameStyleProbe.Owner.Nested::class.java.name)
@@ -42,7 +43,7 @@ class JvmLoggerNameStylePropertyTest {
     @Test
     fun `the system property overrides a classpath resource`(@TempDir directory: Path): Unit {
         val (exit, output) = probe(
-            property = LoggerNameStyle.SOURCE.propertyValue,
+            property = LoggerNameStyle.SOURCE.settingValue,
             resources = listOf(directory.styleResource(LoggerNameStyle.JVM_CLASS)),
         )
 
@@ -92,7 +93,7 @@ class JvmLoggerNameStylePropertyTest {
         val first = directory.resolve("first").styleResource(LoggerNameStyle.SOURCE)
         val second = directory.resolve("second").styleResource(LoggerNameStyle.JVM_CLASS)
 
-        val (exit, output) = probe(property = LoggerNameStyle.JVM_CLASS.propertyValue, resources = listOf(first, second))
+        val (exit, output) = probe(property = LoggerNameStyle.JVM_CLASS.settingValue, resources = listOf(first, second))
 
         assertEquals(0, exit, output)
         assertFalse(output.contains("akki:"), output)
@@ -127,11 +128,11 @@ class JvmLoggerNameStylePropertyTest {
 
     private fun unknownValue(value: String, source: String): String =
         "akki: unknown value '$value' set by $source: " +
-            "expected '${LoggerNameStyle.SOURCE.propertyValue}' or '${LoggerNameStyle.JVM_CLASS.propertyValue}'; " +
-            "using '${LoggerNameStyle.SOURCE.propertyValue}'"
+            "expected '${LoggerNameStyle.SOURCE.settingValue}' or '${LoggerNameStyle.JVM_CLASS.settingValue}'; " +
+            "using '${LoggerNameStyle.SOURCE.settingValue}'"
 
     private fun Path.styleResource(style: LoggerNameStyle): Path =
-        akkiProperties(LOGGER_NAME_STYLE_PROPERTY to style.propertyValue)
+        akkiProperties(LOGGER_NAME_STYLE_PROPERTY to style.settingValue)
 
     private fun probe(property: String? = null, resources: List<Path> = emptyList()): Pair<Int, String> =
         probe(

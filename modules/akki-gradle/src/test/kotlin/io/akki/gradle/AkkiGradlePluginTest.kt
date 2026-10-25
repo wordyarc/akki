@@ -585,12 +585,16 @@ class AkkiGradlePluginTest {
     }
 
     @Test
-    fun `locks core version against a newer transitive dependency`(@TempDir projectDirectory: Path) {
+    fun `locks core version on the compile classpath against a newer transitive dependency`(
+        @TempDir projectDirectory: Path,
+    ) {
         checkVersionLock(projectDirectory, transitive = true)
     }
 
     @Test
-    fun `locks the jvm artifact of core against a newer transitive dependency`(@TempDir projectDirectory: Path) {
+    fun `locks the jvm artifact of core on the compile classpath against a newer transitive dependency`(
+        @TempDir projectDirectory: Path,
+    ) {
         checkVersionLock(projectDirectory, transitive = true, artifact = "akki-core-jvm")
     }
 
@@ -626,25 +630,22 @@ class AkkiGradlePluginTest {
     }
 
     @Test
-    fun `lowers every akki module that a dependency brings at a newer version`(@TempDir projectDirectory: Path) {
-        val repository = publishRepository(projectDirectory)
-        val newerVersion = "999.0.0"
-        BOM_ARTIFACTS.forEach { publish(repository, GROUP, it, null, version = newerVersion) }
-        publish(
-            repository,
-            "consumer",
-            "library",
-            null,
-            dependencies = BOM_ARTIFACTS.map { Triple(GROUP, it, newerVersion) },
-        )
-
-        val output = resolveAkkiModules(
-            projectDirectory,
-            configuration = "runtimeClasspath",
-            dependency = """implementation("consumer:library:$VERSION")""",
-        )
+    fun `lowers on the compile classpath every akki module that a dependency brings at a newer version`(
+        @TempDir projectDirectory: Path,
+    ) {
+        val output = resolveNewerTransitiveAkkiModules(projectDirectory, "compileClasspath", newerVersion = "999.0.0")
 
         BOM_ARTIFACTS.forEach { assertContains(output, "AKKI $it=$VERSION\n") }
+    }
+
+    @Test
+    fun `keeps on the runtime classpath every akki module that a dependency brings at a newer version`(
+        @TempDir projectDirectory: Path,
+    ) {
+        val newerVersion = "999.0.0"
+        val output = resolveNewerTransitiveAkkiModules(projectDirectory, "runtimeClasspath", newerVersion)
+
+        BOM_ARTIFACTS.forEach { assertContains(output, "AKKI $it=$newerVersion\n") }
     }
 
     @Test
@@ -778,7 +779,7 @@ class AkkiGradlePluginTest {
     }
 
     @Test
-    fun `pins the slf4j backend despite a newer transitive dependency`(@TempDir projectDirectory: Path) {
+    fun `keeps a newer slf4j backend that a dependency brings on the runtime classpath`(@TempDir projectDirectory: Path) {
         val repository = publishRepository(projectDirectory)
         val newerVersion = "999.0.0"
         publish(repository, GROUP, "akki-slf4j", path("akki.slf4j.jar"), version = newerVersion)
@@ -808,7 +809,7 @@ class AkkiGradlePluginTest {
             .build()
             .output
 
-        assertContains(output, "AKKI runtimeClasspath slf4j=$VERSION\n")
+        assertContains(output, "AKKI runtimeClasspath slf4j=$newerVersion\n")
     }
 
     private fun checkVersionLock(projectDirectory: Path, transitive: Boolean, artifact: String = "akki-core") {
@@ -833,12 +834,14 @@ class AkkiGradlePluginTest {
 
                 tasks.register("resolveCore") {
                     doLast {
-                        for (name in listOf("compileClasspath", "runtimeClasspath")) {
-                            val core = configurations.getByName(name).resolvedConfiguration.resolvedArtifacts
-                                .single { it.moduleVersion.id.group == "$GROUP" && it.name == "akki-core-jvm" }
-                            check(core.file.isFile)
-                            println("AKKI " + name + " core=" + core.moduleVersion.id.version)
-                        }
+                        val core = configurations.compileClasspath.get().resolvedConfiguration.resolvedArtifacts
+                            .single { it.moduleVersion.id.group == "$GROUP" && it.name == "akki-core-jvm" }
+                        check(core.file.isFile)
+                        println("AKKI compileClasspath core=" + core.moduleVersion.id.version)
+                        val runtime = configurations.runtimeClasspath.get().incoming.resolutionResult.allComponents
+                            .mapNotNull { it.moduleVersion }
+                            .single { it.group == "$GROUP" && it.name == "$artifact" }
+                        println("AKKI runtimeClasspath $artifact=" + runtime.version)
                     }
                 }
                 """.trimIndent()
@@ -850,13 +853,34 @@ class AkkiGradlePluginTest {
         val output = result.output
         if (transitive) {
             assertContains(output, "AKKI compileClasspath core=$VERSION\n")
-            assertContains(output, "AKKI runtimeClasspath core=$VERSION\n")
+            assertContains(output, "AKKI runtimeClasspath $artifact=$newerVersion\n")
         } else {
             assertContains(output, "Cannot find a version of '$GROUP:$artifact'")
             assertContains(output, "strictly $VERSION")
             assertContains(output, "$GROUP:$artifact:$newerVersion")
             assertContains(output, "akki modules must match the compiler plugin version")
         }
+    }
+
+    private fun resolveNewerTransitiveAkkiModules(
+        projectDirectory: Path,
+        configuration: String,
+        newerVersion: String,
+    ): String {
+        val repository = publishRepository(projectDirectory)
+        BOM_ARTIFACTS.forEach { publish(repository, GROUP, it, null, version = newerVersion) }
+        publish(
+            repository,
+            "consumer",
+            "library",
+            null,
+            dependencies = BOM_ARTIFACTS.map { Triple(GROUP, it, newerVersion) },
+        )
+        return resolveAkkiModules(
+            projectDirectory,
+            configuration = configuration,
+            dependency = """implementation("consumer:library:$VERSION")""",
+        )
     }
 
     private fun resolveAkkiModules(projectDirectory: Path, configuration: String, dependency: String): String {
