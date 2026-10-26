@@ -27,6 +27,19 @@ class GeneratedCodeContractTest {
     }
 
     @Test
+    fun `plusFields that withLogFields inlines is a public static method of LogContextFieldsKt`(): Unit {
+        val method = Class.forName("io.akki.internal.LogContextFieldsKt")
+            .getMethod("plusFields", LogContext::class.java, emptyArray<Pair<String, Any?>>().javaClass)
+
+        assertTrue(Modifier.isPublic(method.modifiers), method.toString())
+        assertTrue(Modifier.isStatic(method.modifiers), method.toString())
+        assertEquals(
+            LogContext("a" to 1, "b" to 3),
+            method.invoke(null, LogContext("a" to 1, "b" to 2), arrayOf("b" to 3)),
+        )
+    }
+
+    @Test
     fun `AKKI_VERSION is a static string constant of the internal package`(): Unit {
         val field = Class.forName("io.akki.internal.AkkiVersionKt").getDeclaredField("AKKI_VERSION")
 

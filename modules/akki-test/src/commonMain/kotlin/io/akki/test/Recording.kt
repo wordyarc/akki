@@ -10,9 +10,9 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
-public inline fun recordLogs(
+public fun recordLogs(
     minLevel: Level = Level.TRACE,
-    crossinline block: () -> Unit,
+    block: () -> Unit,
 ): List<LogRecord> {
     contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
     val backend = RecordingBackend(minLevel)

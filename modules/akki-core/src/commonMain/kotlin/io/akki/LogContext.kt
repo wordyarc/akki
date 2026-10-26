@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalContracts::class, ExperimentalAtomicApi::class, InternalAkkiApi::class)
+@file:OptIn(ExperimentalContracts::class, ExperimentalAtomicApi::class)
 
 package io.akki
 
