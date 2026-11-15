@@ -49,7 +49,7 @@ internal class DefaultBackend(private val notice: String) : LogBackend {
     private fun StringBuilder.appendFields(context: LogContext, fields: Map<String, Any?>) {
         if (context.fields.isEmpty() && fields.isEmpty()) return
         var separator = " {"
-        context.forEachField(fields) { key, value ->
+        context.forEachFieldWith(fields) { key, value ->
             append(separator).append(key).append('=').append(value)
             separator = ", "
         }

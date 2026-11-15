@@ -2,7 +2,7 @@
 
 package io.akki
 
-import io.akki.internal.forEachField
+import io.akki.internal.forEachFieldWith
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -48,6 +48,6 @@ class RecordFieldsTest {
     }
 
     private fun LogContext.visited(recordFields: Map<String, Any?>): List<Pair<String, Any?>> = buildList {
-        forEachField(recordFields) { key, value -> add(key to value) }
+        forEachFieldWith(recordFields) { key, value -> add(key to value) }
     }
 }

@@ -4,7 +4,7 @@ import io.akki.InternalAkkiApi
 import io.akki.LogContext
 
 @InternalAkkiApi
-public inline fun LogContext.forEachField(
+public inline fun LogContext.forEachFieldWith(
     recordFields: Map<String, Any?>,
     action: (key: String, value: Any?) -> Unit,
 ) {

@@ -181,7 +181,7 @@ public final class io/akki/internal/LogScopeKt {
 }
 
 public final class io/akki/internal/RecordFieldsKt {
-	public static final fun forEachField (Lio/akki/LogContext;Ljava/util/Map;Lkotlin/jvm/functions/Function2;)V
+	public static final fun forEachFieldWith (Lio/akki/LogContext;Ljava/util/Map;Lkotlin/jvm/functions/Function2;)V
 }
 
 public final class io/akki/internal/Setting {

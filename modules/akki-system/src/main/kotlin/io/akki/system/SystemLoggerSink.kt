@@ -5,7 +5,7 @@ package io.akki.system
 import io.akki.InternalAkkiApi
 import io.akki.LogContext
 import io.akki.backend.Sink
-import io.akki.internal.forEachField
+import io.akki.internal.forEachFieldWith
 import java.util.ResourceBundle
 import java.lang.System.Logger.Level as SystemLevel
 
@@ -36,7 +36,7 @@ private fun withFields(message: String, fields: Map<String, Any?>): String {
     return buildString {
         append(message)
         var separator = " {"
-        context.forEachField(fields) { key, value ->
+        context.forEachFieldWith(fields) { key, value ->
             append(separator).append(key).append('=').append(value)
             separator = ", "
         }

@@ -5,7 +5,7 @@ package io.akki.slf4j
 import io.akki.InternalAkkiApi
 import io.akki.LogContext
 import io.akki.backend.Sink
-import io.akki.internal.forEachField
+import io.akki.internal.forEachFieldWith
 import org.slf4j.Logger
 import org.slf4j.MDC
 import org.slf4j.spi.CallerBoundaryAware
@@ -24,7 +24,7 @@ internal class Slf4jSink(
         val context = LogContext.current()
         when (target) {
             ContextTarget.KEY_VALUE_PAIRS -> {
-                context.forEachField(fields) { key, value -> event.addKeyValue(key, value) }
+                context.forEachFieldWith(fields) { key, value -> event.addKeyValue(key, value) }
                 event.log(message)
             }
             ContextTarget.MDC -> logThroughMdc(event, message, context, fields)
@@ -45,7 +45,7 @@ internal class Slf4jSink(
         val keys = ArrayList<String>(capacity)
         val previous = ArrayList<String?>(capacity)
         try {
-            context.forEachField(fields) { key, value -> put(key, value, keys, previous) }
+            context.forEachFieldWith(fields) { key, value -> put(key, value, keys, previous) }
             event.log(message)
         } finally {
             for (index in keys.indices.reversed()) {
