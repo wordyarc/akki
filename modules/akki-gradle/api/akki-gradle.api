@@ -1,3 +1,18 @@
+public final class io/akki/gradle/AkkiBackend {
+	public static final field Companion Lio/akki/gradle/AkkiBackend$Companion;
+	public static final field NONE Lio/akki/gradle/AkkiBackend;
+	public static final field SLF4J Lio/akki/gradle/AkkiBackend;
+	public static final field SYSTEM_LOGGER Lio/akki/gradle/AkkiBackend;
+	public fun equals (Ljava/lang/Object;)Z
+	public static final fun fromClassName (Ljava/lang/String;)Lio/akki/gradle/AkkiBackend;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/akki/gradle/AkkiBackend$Companion {
+	public final fun fromClassName (Ljava/lang/String;)Lio/akki/gradle/AkkiBackend;
+}
+
 public abstract class io/akki/gradle/AkkiCompilerOptions {
 	public fun <init> ()V
 	public abstract fun getMinLevel ()Lorg/gradle/api/provider/Property;
@@ -22,16 +37,16 @@ public final class io/akki/gradle/AkkiGradlePlugin : org/jetbrains/kotlin/gradle
 }
 
 public abstract class io/akki/gradle/AkkiJvmOptions {
-	public static final field Companion Lio/akki/gradle/AkkiJvmOptions$Companion;
-	public static final field SLF4J_BACKEND Ljava/lang/String;
 	public fun <init> ()V
 	public abstract fun getBackend ()Lorg/gradle/api/provider/Property;
-	public abstract fun getIncludeSlf4jBackend ()Lorg/gradle/api/provider/Property;
 	public abstract fun getLoggerNameStyle ()Lorg/gradle/api/provider/Property;
-	public abstract fun getSlf4jContext ()Lorg/gradle/api/provider/Property;
+	public abstract fun getSlf4j ()Lio/akki/gradle/AkkiSlf4jOptions;
+	public final fun slf4j (Lorg/gradle/api/Action;)V
 }
 
-public final class io/akki/gradle/AkkiJvmOptions$Companion {
+public abstract class io/akki/gradle/AkkiSlf4jOptions {
+	public fun <init> ()V
+	public abstract fun getContext ()Lorg/gradle/api/provider/Property;
 }
 
 public final class io/akki/gradle/LoggerNameStyle : java/lang/Enum {

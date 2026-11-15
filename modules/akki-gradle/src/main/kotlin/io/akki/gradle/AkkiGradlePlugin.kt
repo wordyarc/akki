@@ -44,8 +44,8 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
         val extension = project.extensions.getByType(AkkiExtension::class.java)
         kotlinCompilation.defaultSourceSet.dependencies { implementation("$core:$pluginVersion") }
         if (kotlinCompilation.platformType == KotlinPlatformType.jvm) {
-            val backend = extension.jvm.includeSlf4jBackend.map { included ->
-                if (included) listOf(project.dependencies.create("$slf4j:$pluginVersion")) else emptyList()
+            val backend = extension.jvm.backend.orElse(AkkiBackend.SLF4J).map { chosen ->
+                listOfNotNull(chosen.module).map { project.dependencies.create("$group:$it:$pluginVersion") }
             }
             project.configurations.named(kotlinCompilation.defaultSourceSet.runtimeOnlyConfigurationName) {
                 it.dependencies.addAllLater(backend)
@@ -75,9 +75,8 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
             it.description =
                 "Writes META-INF/akki.properties with the runtime settings of the ${sourceSet.name} source set"
             it.loggerNameStyle.set(options.loggerNameStyle)
-            it.backend.set(options.backend)
-            it.includeSlf4jBackend.set(options.includeSlf4jBackend)
-            it.slf4jContext.set(options.slf4jContext)
+            it.backend.set(options.backend.map { backend -> backend.className })
+            it.slf4jContext.set(options.slf4j.context)
             it.outputDirectory.set(project.layout.buildDirectory.dir("generated/akki/${sourceSet.name}/resources"))
         }
         sourceSet.resources.srcDir(properties)
@@ -104,8 +103,6 @@ public class AkkiGradlePlugin : KotlinCompilerPluginSupportPlugin {
         val group: String by lazy { property("group") }
 
         val core: String by lazy { "$group:akki-core" }
-
-        val slf4j: String by lazy { "$group:akki-slf4j" }
 
         val artifacts: List<String> by lazy { property("artifacts").split(',') }
 

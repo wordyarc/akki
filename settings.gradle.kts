@@ -30,6 +30,7 @@ rootProject.name = "akki"
 listOf(
     "akki-core",
     "akki-slf4j",
+    "akki-system",
     "akki-compiler-compat",
     "akki-compiler",
     "akki-gradle",

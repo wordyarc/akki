@@ -191,7 +191,9 @@ class AkkiGradlePluginTest {
             extra = """
                 akki {
                     jvm {
-                        backend.set(providers.gradleProperty("backend"))
+                        backend.set(
+                            providers.gradleProperty("backend").map { io.akki.gradle.AkkiBackend.fromClassName(it) },
+                        )
                     }
                 }
             """.trimIndent(),
@@ -204,11 +206,11 @@ class AkkiGradlePluginTest {
         assertContains(declared, "AKKI DECLARED consumer.OrderService - received A-1")
         assertEquals(null, akkiProperties(projectDirectory))
 
-        val selected: String = runConsumer(projectDirectory, "-Pbackend=${AkkiJvmOptions.SLF4J_BACKEND}").output
+        val selected: String = runConsumer(projectDirectory, "-Pbackend=$SLF4J_BACKEND").output
         val line = lineOf(Consumer.Selected, """log.info("received""")
         assertContains(selected, "AKKI INFO consumer.OrderService [consumer.OrderService.handle:$line] - received A-1")
         assertFalse(selected.contains("AKKI DECLARED"), selected)
-        assertEquals("io.akki.backend=${AkkiJvmOptions.SLF4J_BACKEND}\n", akkiProperties(projectDirectory))
+        assertEquals("io.akki.backend=$SLF4J_BACKEND\n", akkiProperties(projectDirectory))
     }
 
     @Test
@@ -219,7 +221,9 @@ class AkkiGradlePluginTest {
             extra = """
                 akki {
                     jvm {
-                        backend.set(providers.gradleProperty("backend"))
+                        backend.set(
+                            providers.gradleProperty("backend").map { io.akki.gradle.AkkiBackend.fromClassName(it) },
+                        )
                     }
                 }
             """.trimIndent(),
@@ -228,7 +232,7 @@ class AkkiGradlePluginTest {
         val declared: String = runConsumer(projectDirectory).output
         assertContains(declared, "AKKI DECLARED consumer.OrderService - received A-1")
 
-        val selected: String = runConsumer(projectDirectory, "-Pbackend=${AkkiJvmOptions.SLF4J_BACKEND}").output
+        val selected: String = runConsumer(projectDirectory, "-Pbackend=$SLF4J_BACKEND").output
         val line = lineOf(Consumer.ModularSelected, """log.info("received""")
         assertContains(selected, "AKKI INFO consumer.OrderService [consumer.OrderService.handle:$line] - received A-1")
         assertFalse(selected.contains("AKKI DECLARED"), selected)
@@ -236,41 +240,63 @@ class AkkiGradlePluginTest {
 
     @Test
     fun `rejects a backend that is not a class name`(@TempDir projectDirectory: Path) {
-        prepareConsumer(projectDirectory, Consumer.Core, extra = """akki { jvm { backend = "akki-slf4j" } }""")
+        prepareConsumer(
+            projectDirectory,
+            Consumer.Core,
+            extra = """akki { jvm { backend = io.akki.gradle.AkkiBackend.fromClassName("akki-slf4j") } }""",
+        )
 
         val output: String = consumerRunner(projectDirectory).buildAndFail().output
 
-        assertContains(output, "Execution failed for task ':writeMainAkkiProperties'")
         assertContains(
             output,
-            "akki: 'akki-slf4j' in akki.jvm.backend is not a class name: expected the class name of a LogBackend, " +
-                "for example ${AkkiJvmOptions.SLF4J_BACKEND}",
+            "akki: 'akki-slf4j' is not a class name: expected the class name of a LogBackend, " +
+                "for example com.example.TenantBackend",
         )
     }
 
     @Test
-    fun `rejects selecting akki-slf4j while excluding it`(@TempDir projectDirectory: Path) {
+    fun `logs through System Logger and adds its backend instead of slf4j`(@TempDir projectDirectory: Path) {
         prepareConsumer(
             projectDirectory,
-            Consumer.Core,
+            Consumer.Bare,
             extra = """
-                akki {
-                    jvm {
-                        backend = io.akki.gradle.AkkiJvmOptions.SLF4J_BACKEND
-                        includeSlf4jBackend = false
+                $SYSTEM_LOGGER
+
+                tasks.register("akkiBackends") {
+                    doLast {
+                        val backends = configurations.getByName("runtimeClasspath").incoming.resolutionResult.allComponents
+                            .mapNotNull { it.moduleVersion }
+                            .filter { it.group == "$GROUP" && (it.name == "akki-slf4j" || it.name == "akki-system") }
+                        println("AKKI backends=" + backends.map { it.name })
                     }
                 }
             """.trimIndent(),
         )
 
-        val output: String = consumerRunner(projectDirectory).buildAndFail().output
+        val output: String = runConsumer(projectDirectory).output
+        assertContains(output, "consumer.OrderService handle\nINFO: received A-1")
+        assertFalse(output.contains("akki:"), output)
+        assertEquals("io.akki.backend=$SYSTEM_BACKEND\n", akkiProperties(projectDirectory))
 
-        assertContains(output, "Execution failed for task ':writeMainAkkiProperties'")
-        assertContains(
-            output,
-            "akki: akki.jvm.backend selects akki-slf4j, but akki.jvm.includeSlf4jBackend is false. " +
-                "Include akki-slf4j or select another backend",
-        )
+        val backends: String = GradleRunner.create()
+            .withProjectDir(projectDirectory.toFile())
+            .withArguments("akkiBackends", "--console=plain")
+            .build()
+            .output
+        assertContains(backends, "AKKI backends=[akki-system]")
+    }
+
+    @Test
+    fun `selects System Logger over an slf4j backend that a dependency brings`(@TempDir projectDirectory: Path) {
+        prepareConsumer(projectDirectory, Consumer.Slf4j, extra = SYSTEM_LOGGER)
+
+        val output: String = runConsumer(projectDirectory).output
+
+        assertContains(output, "consumer.OrderService handle\nINFO: received A-1")
+        assertFalse(output.contains("AKKI INFO"), output)
+        assertFalse(output.contains("akki:"), output)
+        assertContains(output, "AKKI evaluated=0")
     }
 
     @Test
@@ -278,7 +304,7 @@ class AkkiGradlePluginTest {
         prepareConsumer(
             projectDirectory,
             Consumer.Bootstrap,
-            extra = "akki { jvm { slf4jContext = io.akki.gradle.Slf4jContext.MDC } }",
+            extra = "akki { jvm { slf4j { context = io.akki.gradle.Slf4jContext.MDC } } }",
         )
 
         runConsumer(projectDirectory, "jar")
@@ -288,15 +314,15 @@ class AkkiGradlePluginTest {
     }
 
     @Test
-    fun `rejects an slf4j context target while excluding akki-slf4j`(@TempDir projectDirectory: Path) {
+    fun `rejects an slf4j setting while selecting System Logger`(@TempDir projectDirectory: Path) {
         prepareConsumer(
             projectDirectory,
             Consumer.Core,
             extra = """
                 akki {
                     jvm {
-                        slf4jContext = io.akki.gradle.Slf4jContext.MDC
-                        includeSlf4jBackend = false
+                        backend = io.akki.gradle.AkkiBackend.SYSTEM_LOGGER
+                        slf4j { context = io.akki.gradle.Slf4jContext.MDC }
                     }
                 }
             """.trimIndent(),
@@ -307,9 +333,29 @@ class AkkiGradlePluginTest {
         assertContains(output, "Execution failed for task ':writeMainAkkiProperties'")
         assertContains(
             output,
-            "akki: akki.jvm.slf4jContext configures akki-slf4j, but akki.jvm.includeSlf4jBackend is false. " +
-                "Include akki-slf4j or remove the setting",
+            "akki: akki.jvm.slf4j configures akki-slf4j, but akki.jvm.backend selects akki-system. " +
+                "Select another backend or remove the setting",
         )
+    }
+
+    @Test
+    fun `ships an slf4j setting with a backend of the application`(@TempDir projectDirectory: Path) {
+        prepareConsumer(
+            projectDirectory,
+            Consumer.Bootstrap,
+            extra = """
+                akki {
+                    jvm {
+                        backend = io.akki.gradle.AkkiBackend.NONE
+                        slf4j { context = io.akki.gradle.Slf4jContext.MDC }
+                    }
+                }
+            """.trimIndent(),
+        )
+
+        runConsumer(projectDirectory, "jar")
+
+        assertEquals("io.akki.slf4j.context=mdc\n", akkiProperties(projectDirectory))
     }
 
     @Test
@@ -345,6 +391,14 @@ class AkkiGradlePluginTest {
             output,
         )
         assertContains(output, "AKKI modules=consumer,io.akki.core slf4j=true")
+    }
+
+    @Test
+    fun `binds System Logger as a service on the module path`(@TempDir projectDirectory: Path) {
+        val output = build(projectDirectory, consumer = Consumer.Modular, extra = SYSTEM_LOGGER)
+
+        assertContains(output, "consumer.OrderService handle\nINFO: received A-1")
+        assertContains(output, "AKKI modules=consumer,io.akki.core slf4j=false")
     }
 
     @Test
@@ -483,12 +537,17 @@ class AkkiGradlePluginTest {
     }
 
     @Test
-    fun `leaves the slf4j backend out when the jvm block excludes it`(@TempDir projectDirectory: Path) {
-        val output = build(projectDirectory, consumer = Consumer.Bare, extra = "akki { jvm { includeSlf4jBackend = false } }")
+    fun `adds no backend when the jvm block selects none`(@TempDir projectDirectory: Path) {
+        val output = build(
+            projectDirectory,
+            consumer = Consumer.Bare,
+            extra = "akki { jvm { backend = io.akki.gradle.AkkiBackend.NONE } }",
+        )
 
         assertContains(output, "akki: no backend is available, writing INFO and higher to stderr. $ADD_BACKEND_HINT")
         assertFalse(output.contains(SLF4J_HINT), output)
         assertTrue(output.contains("INFO  consumer.OrderService - received A-1"), output)
+        assertEquals(null, akkiProperties(projectDirectory))
     }
 
     @ParameterizedTest(name = "pomOnly={0}")
@@ -1125,5 +1184,22 @@ class AkkiGradlePluginTest {
         const val ADD_BACKEND_HINT: String = "Add a backend such as akki-slf4j to the runtime classpath."
 
         const val AKKI_PROPERTIES: String = "META-INF/akki.properties"
+
+        const val SLF4J_BACKEND: String = "io.akki.slf4j.Slf4jBackend"
+
+        const val SYSTEM_BACKEND: String = "io.akki.system.SystemLoggerBackend"
+
+        val SYSTEM_LOGGER: String =
+            """
+            akki {
+                jvm {
+                    backend = io.akki.gradle.AkkiBackend.SYSTEM_LOGGER
+                }
+            }
+
+            application {
+                applicationDefaultJvmArgs = listOf("-Duser.language=en")
+            }
+            """.trimIndent()
     }
 }

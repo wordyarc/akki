@@ -41,6 +41,7 @@ class PublishedDependenciesTest {
         fun artifacts(): List<Arguments> = listOf(
             Arguments.of("akki-core-jvm", setOf(STDLIB, BOM)),
             Arguments.of("akki-slf4j", setOf(akki("akki-core-jvm"), STDLIB, BOM)),
+            Arguments.of("akki-system", setOf(akki("akki-core-jvm"), STDLIB, BOM)),
             Arguments.of("akki-test-jvm", setOf(akki("akki-core-jvm"), STDLIB, BOM)),
             Arguments.of("akki-coroutines-jvm", setOf(akki("akki-core-jvm"), COROUTINES, STDLIB, BOM)),
             Arguments.of("akki-context-propagation", setOf(akki("akki-core-jvm"), STDLIB, BOM)),

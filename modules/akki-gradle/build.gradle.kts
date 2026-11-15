@@ -11,12 +11,13 @@ plugins {
     id("com.gradle.plugin-publish")
 }
 
-description = "Gradle plugin that applies the akki compiler plugin, adds akki-core and akki-slf4j and keeps every " +
+description = "Gradle plugin that applies the akki compiler plugin, adds akki-core and a backend and keeps every " +
     "akki module at the plugin version"
 
 val testRepositories: Configuration = testRepositoriesOf(
     ":akki-core",
     ":akki-slf4j",
+    ":akki-system",
     ":akki-compiler",
     ":akki-gradle",
     ":akki-test",
@@ -39,6 +40,7 @@ fun artifactConfiguration(name: String): Configuration = configurations.create(n
 
 val akkiCoreJar: Configuration = artifactConfiguration("akkiCoreJar")
 val akkiSlf4jJar: Configuration = artifactConfiguration("akkiSlf4jJar")
+val akkiSystemJar: Configuration = artifactConfiguration("akkiSystemJar")
 val akkiTestJar: Configuration = artifactConfiguration("akkiTestJar")
 val akkiContextPropagationJar: Configuration = artifactConfiguration("akkiContextPropagationJar")
 
@@ -46,6 +48,7 @@ dependencies {
     compileOnly(libs.kotlin.gradle.plugin.api)
     akkiCoreJar(project(":akki-core"))
     akkiSlf4jJar(project(":akki-slf4j"))
+    akkiSystemJar(project(":akki-system"))
     akkiTestJar(project(":akki-test"))
     akkiContextPropagationJar(project(":akki-context-propagation"))
     testImplementation(gradleTestKit())
@@ -74,6 +77,7 @@ tasks.test {
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.test.repository", files(prepareTestRepository)))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.core.jar", akkiCoreJar))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.slf4j.jar", akkiSlf4jJar))
+    jvmArgumentProviders.add(ClasspathSystemProperty("akki.system.jar", akkiSystemJar))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.test.jar", akkiTestJar))
     jvmArgumentProviders.add(ClasspathSystemProperty("akki.context.propagation.jar", akkiContextPropagationJar))
     systemProperty("org.gradle.testkit.dir", layout.buildDirectory.dir("test-kit").get().asFile)

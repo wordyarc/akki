@@ -37,6 +37,20 @@ class JvmModuleTest {
     }
 
     @Test
+    fun `system registers its backend factory and requires only core`() {
+        val system = descriptor("akki.system.jar")
+
+        assertEquals("io.akki.system", system.name())
+        assertEquals(setOf("io.akki.system"), system.exports().map { it.source() }.toSet())
+        assertEquals(
+            listOf("io.akki.system.SystemLoggerBackendFactory"),
+            system.provides().single { it.service() == "io.akki.internal.LogBackendFactory" }.providers(),
+        )
+        assertEquals(setOf("io.akki.core", "java.base"), system.requires().map { it.name() }.toSet())
+        assertTrue(system.requires().any { it.name() == "io.akki.core" && TRANSITIVE in it.modifiers() })
+    }
+
+    @Test
     fun `test module exports its package`() {
         val test = descriptor("akki.test.jar")
 

@@ -21,9 +21,6 @@ internal abstract class WriteAkkiProperties : DefaultTask() {
     abstract val backend: Property<String>
 
     @get:Input
-    abstract val includeSlf4jBackend: Property<Boolean>
-
-    @get:Input
     @get:Optional
     abstract val slf4jContext: Property<Slf4jContext>
 
@@ -37,7 +34,7 @@ internal abstract class WriteAkkiProperties : DefaultTask() {
         directory.mkdirs()
         val properties = listOfNotNull(
             loggerNameStyle.orNull?.let { "$LOGGER_NAME_STYLE_PROPERTY=${it.propertyValue()}" },
-            backend.orNull?.let { "$BACKEND_PROPERTY=${validated(it)}" },
+            backend.orNull?.let { "$BACKEND_PROPERTY=$it" },
             slf4jContext.orNull?.let { "$SLF4J_CONTEXT_PROPERTY=${validated(it).propertyValue()}" },
         )
         if (properties.isEmpty()) return
@@ -46,37 +43,17 @@ internal abstract class WriteAkkiProperties : DefaultTask() {
         file.writeText(properties.joinToString("\n", postfix = "\n"))
     }
 
-    private fun validated(backend: String): String {
-        if (!backend.isClassName()) {
-            throw GradleException(
-                "akki: '$backend' in akki.jvm.backend is not a class name: expected the class name of a LogBackend, " +
-                    "for example ${AkkiJvmOptions.SLF4J_BACKEND}",
-            )
-        }
-        if (backend == AkkiJvmOptions.SLF4J_BACKEND && !includeSlf4jBackend.get()) {
-            throw GradleException(
-                "akki: akki.jvm.backend selects akki-slf4j, but akki.jvm.includeSlf4jBackend is false. " +
-                    "Include akki-slf4j or select another backend",
-            )
-        }
-        return backend
-    }
-
     private fun validated(context: Slf4jContext): Slf4jContext {
-        if (!includeSlf4jBackend.get()) {
+        if (backend.orNull == AkkiBackend.SYSTEM_LOGGER.className) {
             throw GradleException(
-                "akki: akki.jvm.slf4jContext configures akki-slf4j, but akki.jvm.includeSlf4jBackend is false. " +
-                    "Include akki-slf4j or remove the setting",
+                "akki: akki.jvm.slf4j configures akki-slf4j, but akki.jvm.backend selects akki-system. " +
+                    "Select another backend or remove the setting",
             )
         }
         return context
     }
 
     private fun Enum<*>.propertyValue(): String = name.lowercase().replace('_', '-')
-
-    private fun String.isClassName(): Boolean = split('.').all { segment ->
-        segment.isNotEmpty() && segment.first().isJavaIdentifierStart() && segment.all { it.isJavaIdentifierPart() }
-    }
 
     companion object {
         const val AKKI_PROPERTIES_RESOURCE: String = "META-INF/akki.properties"

@@ -1,0 +1,6 @@
+public final class io/akki/system/SystemLoggerBackend : io/akki/backend/LogBackend {
+	public fun <init> ()V
+	public fun bind (Ljava/lang/String;)Lio/akki/backend/LoggerBinding;
+	public fun toString ()Ljava/lang/String;
+}
+

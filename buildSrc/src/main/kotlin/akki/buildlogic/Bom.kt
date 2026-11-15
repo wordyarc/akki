@@ -17,6 +17,7 @@ val BOM_ARTIFACTS: List<String> = listOf(
     "akki-core",
     "akki-core-jvm",
     "akki-slf4j",
+    "akki-system",
     "akki-test",
     "akki-test-jvm",
     "akki-coroutines",

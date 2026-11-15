@@ -25,6 +25,7 @@ tasks.register<KoverMarkdownReport>("koverMarkdownReport") {
 dependencies {
     kover(project(":akki-core"))
     kover(project(":akki-slf4j"))
+    kover(project(":akki-system"))
     kover(project(":akki-compiler-compat"))
     kover(project(":akki-compiler"))
     kover(project(":akki-test"))
