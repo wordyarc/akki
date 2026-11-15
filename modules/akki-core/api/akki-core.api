@@ -180,6 +180,10 @@ public final class io/akki/internal/LogScopeKt {
 	public static final fun withLogScope (Lio/akki/internal/LogScope;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 }
 
+public final class io/akki/internal/RecordFieldsKt {
+	public static final fun forEachField (Lio/akki/LogContext;Ljava/util/Map;Lkotlin/jvm/functions/Function2;)V
+}
+
 public final class io/akki/internal/Setting {
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
 	public final fun getSource ()Ljava/lang/String;

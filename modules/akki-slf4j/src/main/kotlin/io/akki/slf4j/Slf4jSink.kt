@@ -1,7 +1,11 @@
+@file:OptIn(InternalAkkiApi::class)
+
 package io.akki.slf4j
 
+import io.akki.InternalAkkiApi
 import io.akki.LogContext
 import io.akki.backend.Sink
+import io.akki.internal.forEachField
 import org.slf4j.Logger
 import org.slf4j.MDC
 import org.slf4j.spi.CallerBoundaryAware
@@ -17,11 +21,10 @@ internal class Slf4jSink(
         val event = logger.atLevel(level)
         if (event is CallerBoundaryAware) event.setCallerBoundary(CALLER_BOUNDARY)
         cause?.let(event::setCause)
-        val context = LogContext.current().fields
+        val context = LogContext.current()
         when (target) {
             ContextTarget.KEY_VALUE_PAIRS -> {
-                context.forEach { (key, value) -> if (key !in fields) event.addKeyValue(key, value) }
-                fields.forEach { (key, value) -> event.addKeyValue(key, value) }
+                context.forEachField(fields) { key, value -> event.addKeyValue(key, value) }
                 event.log(message)
             }
             ContextTarget.MDC -> logThroughMdc(event, message, context, fields)
@@ -31,18 +34,18 @@ internal class Slf4jSink(
     private fun logThroughMdc(
         event: LoggingEventBuilder,
         message: String,
-        context: Map<String, Any?>,
+        context: LogContext,
         fields: Map<String, Any?>,
     ) {
-        if (context.isEmpty() && fields.isEmpty()) {
+        val capacity = context.fields.size + fields.size
+        if (capacity == 0) {
             event.log(message)
             return
         }
-        val keys = ArrayList<String>(context.size + fields.size)
-        val previous = ArrayList<String?>(context.size + fields.size)
+        val keys = ArrayList<String>(capacity)
+        val previous = ArrayList<String?>(capacity)
         try {
-            context.forEach { (key, value) -> if (key !in fields) put(key, value, keys, previous) }
-            fields.forEach { (key, value) -> put(key, value, keys, previous) }
+            context.forEachField(fields) { key, value -> put(key, value, keys, previous) }
             event.log(message)
         } finally {
             for (index in keys.indices.reversed()) {

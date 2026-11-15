@@ -1,9 +1,13 @@
+@file:OptIn(InternalAkkiApi::class)
+
 package io.akki.system
 
+import io.akki.InternalAkkiApi
 import io.akki.LogContext
 import io.akki.backend.Sink
-import java.lang.System.Logger.Level as SystemLevel
+import io.akki.internal.forEachField
 import java.util.ResourceBundle
+import java.lang.System.Logger.Level as SystemLevel
 
 internal class SystemLoggerSink(
     private val logger: System.Logger,
@@ -27,8 +31,15 @@ internal class SystemLoggerSink(
 }
 
 private fun withFields(message: String, fields: Map<String, Any?>): String {
-    val context = LogContext.current().fields
-    if (context.isEmpty() && fields.isEmpty()) return message
-    val entries = context.entries.filter { it.key !in fields } + fields.entries
-    return entries.joinToString(prefix = "$message {", postfix = "}") { (key, value) -> "$key=$value" }
+    val context = LogContext.current()
+    if (context.fields.isEmpty() && fields.isEmpty()) return message
+    return buildString {
+        append(message)
+        var separator = " {"
+        context.forEachField(fields) { key, value ->
+            append(separator).append(key).append('=').append(value)
+            separator = ", "
+        }
+        append('}')
+    }
 }

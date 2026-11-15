@@ -1,5 +1,8 @@
+@file:OptIn(InternalAkkiApi::class)
+
 package io.akki.internal
 
+import io.akki.InternalAkkiApi
 import io.akki.Level
 import io.akki.LogContext
 import io.akki.backend.LogBackend
@@ -36,17 +39,21 @@ internal class DefaultBackend(private val notice: String) : LogBackend {
         append(loggerName)
         append(" - ")
         append(message)
-        appendFields(LogContext.current().fields, fields)
+        appendFields(LogContext.current(), fields)
         cause?.let {
             append('\n')
             append(it.stackTraceToString().trimEnd())
         }
     }
 
-    private fun StringBuilder.appendFields(context: Map<String, Any?>, fields: Map<String, Any?>) {
-        if (context.isEmpty() && fields.isEmpty()) return
-        val entries = context.entries.filter { it.key !in fields } + fields.entries
-        entries.joinTo(this, prefix = " {", postfix = "}") { (key, value) -> "$key=$value" }
+    private fun StringBuilder.appendFields(context: LogContext, fields: Map<String, Any?>) {
+        if (context.fields.isEmpty() && fields.isEmpty()) return
+        var separator = " {"
+        context.forEachField(fields) { key, value ->
+            append(separator).append(key).append('=').append(value)
+            separator = ", "
+        }
+        append('}')
     }
 
     override fun toString(): String = "DefaultBackend"
