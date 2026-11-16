@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.diagnostics.rendering.BaseSourcelessDiagnosticRender
 import org.jetbrains.kotlin.diagnostics.rendering.CommonRenderers
 import org.jetbrains.kotlin.diagnostics.error0
 import org.jetbrains.kotlin.diagnostics.error1
+import org.jetbrains.kotlin.diagnostics.warning2
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtExpression
 
@@ -34,6 +35,8 @@ internal object AkkiErrors : KtDiagnosticsContainer() {
     )
 
     val BLANK_LOGGER_NAME by error0<KtElement>()
+
+    val RECORD_FIELD_SHADOWED by warning2<KtElement, String, String>()
 
     val INCOMPATIBLE_AKKI_CORE by errorWithoutSource()
 
@@ -72,6 +75,13 @@ internal object AkkiDefaultErrorMessages : BaseDiagnosticRendererFactory() {
         map.put(
             AkkiErrors.BLANK_LOGGER_NAME,
             "'Log.named' requires a non-blank logger name.",
+        )
+        map.put(
+            AkkiErrors.RECORD_FIELD_SHADOWED,
+            "This call goes to ''{1}'', not to ''io.akki.{0}'', and the record does not get these fields. " +
+                "Call ''io.akki.{0}'' by its qualified name to write them.",
+            CommonRenderers.STRING,
+            CommonRenderers.STRING,
         )
         map.put(AkkiErrors.INCOMPATIBLE_AKKI_CORE, MESSAGE_PLACEHOLDER)
         map.put(AkkiErrors.AKKI_CANNOT_START, MESSAGE_PLACEHOLDER)

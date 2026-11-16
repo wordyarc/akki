@@ -1,0 +1,16 @@
+/members.kt:18:23: warning: This call goes to 'fixture.Form.field', not to 'io.akki.field', and the record does not get these fields. Call 'io.akki.field' by its qualified name to write them.
+
+/members.kt:19:23: warning: This call goes to 'fixture.Form.fields', not to 'io.akki.fields', and the record does not get these fields. Call 'io.akki.fields' by its qualified name to write them.
+
+/members.kt:20:23: warning: This call goes to 'fixture.Form.fields', not to 'io.akki.fields', and the record does not get these fields. Call 'io.akki.fields' by its qualified name to write them.
+
+/members.kt:21:39: warning: This call goes to 'fixture.Form.field', not to 'io.akki.field', and the record does not get these fields. Call 'io.akki.field' by its qualified name to write them.
+
+/members.kt:26:9: warning: This call goes to 'fixture.Form.fields', not to 'io.akki.fields', and the record does not get these fields. Call 'io.akki.fields' by its qualified name to write them.
+
+/members.kt:30:24: warning: This call goes to 'fixture.Form.field', not to 'io.akki.field', and the record does not get these fields. Call 'io.akki.field' by its qualified name to write them.
+
+/members.kt:48:23: warning: This call goes to 'fixture.Fluent.field', not to 'io.akki.field', and the record does not get these fields. Call 'io.akki.field' by its qualified name to write them.
+
+/members.kt:73:19: warning: This call goes to '<local>.field', not to 'io.akki.field', and the record does not get these fields. Call 'io.akki.field' by its qualified name to write them.
+/samePackage.kt:87:19: warning: This call goes to 'fixture.jobs.field', not to 'io.akki.field', and the record does not get these fields. Call 'io.akki.field' by its qualified name to write them.

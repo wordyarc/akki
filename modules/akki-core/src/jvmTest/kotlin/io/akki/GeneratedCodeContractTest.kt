@@ -52,18 +52,22 @@ class GeneratedCodeContractTest {
     }
 
     @Test
-    fun `field and fields are public static methods of RecordScopeKt that take the scope first`(): Unit {
+    fun `field and fields are static synthetic methods of RecordScopeKt that take the scope first`(): Unit {
         val facade = Class.forName("io.akki.RecordScopeKt")
         val field = facade.getMethod("field", RecordScope::class.java, String::class.java, Any::class.java)
-        val fields = facade.getMethod("fields", RecordScope::class.java, emptyArray<Pair<String, Any?>>().javaClass)
+        val pairs = facade.getMethod("fields", RecordScope::class.java, emptyArray<Pair<String, Any?>>().javaClass)
+        val map = facade.getMethod("fields", RecordScope::class.java, Map::class.java)
         val scope = RecordScope(emptyMap())
 
         field.invoke(null, scope, "a", 1)
-        fields.invoke(null, scope, arrayOf("b" to 2))
+        pairs.invoke(null, scope, arrayOf("b" to 2))
+        map.invoke(null, scope, mapOf("c" to 3))
 
-        assertTrue(Modifier.isPublic(field.modifiers) && Modifier.isStatic(field.modifiers), field.toString())
-        assertTrue(Modifier.isPublic(fields.modifiers) && Modifier.isStatic(fields.modifiers), fields.toString())
-        assertEquals(mapOf("a" to 1, "b" to 2), scope.fields)
+        for (method in listOf(field, pairs, map)) {
+            assertTrue(Modifier.isPublic(method.modifiers) && Modifier.isStatic(method.modifiers), method.toString())
+            assertTrue(method.isSynthetic, method.toString())
+        }
+        assertEquals(mapOf("a" to 1, "b" to 2, "c" to 3), scope.fields)
     }
 
     @Test

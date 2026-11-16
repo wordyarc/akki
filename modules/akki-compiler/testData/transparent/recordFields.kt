@@ -46,9 +46,11 @@ fun box(): String {
         field("b", effects.mark("replaced field", 2))
         "merged"
     }
+    logger.debug { fields(effects.mark("disabled map", mapOf("a" to 1))); "disabled" }
+    logger.info { fields(effects.mark("map", mapOf("a" to 1, "b" to 2))); "a map" }
     assertEquals("returned at 2", early(logger, listOf(1, 2, 3)))
 
-    assertEquals(listOf("inner field", "outer field", "argument", "replaced field"), effects.toList())
+    assertEquals(listOf("inner field", "outer field", "argument", "replaced field", "map"), effects.toList())
     assertEquals(
         listOf(
             "inner" to listOf("inner" to 1),
@@ -56,6 +58,7 @@ fun box(): String {
             "helper" to listOf("requestId" to "r-1", "tenant" to "other"),
             "a of Owner" to listOf("item" to "a"),
             "merged" to listOf("a" to 1, "b" to 2),
+            "a map" to listOf("a" to 1, "b" to 2),
             "item" to listOf("item" to 1),
         ),
         logger.records.map { it.message to it.fields.toList() },

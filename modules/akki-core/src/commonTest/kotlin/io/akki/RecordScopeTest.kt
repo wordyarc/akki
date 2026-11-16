@@ -32,10 +32,26 @@ class RecordScopeTest {
         val logger = RecordingLogger("records")
 
         logger.info { field("a", 1); field("b", 2); "one by one" }
-        logger.info { fields("a" to 1, "b" to 2); "at once" }
+        logger.info { fields("a" to 1, "b" to 2); "as pairs" }
+        logger.info { fields(linkedMapOf("a" to 1, "b" to 2)); "as a map" }
 
-        assertEquals(logger.records[0].fields, logger.records[1].fields)
-        assertEquals(logger.records[0].fields.keys.toList(), logger.records[1].fields.keys.toList())
+        assertEquals(List(3) { listOf("a" to 1, "b" to 2) }, logger.records.map { it.fields.toList() })
+    }
+
+    @Test
+    fun `a map written in the lambda is added to the fields argument and is not changed`(): Unit {
+        val logger = RecordingLogger("records")
+        val argument = mapOf("jobId" to "j-1", "attempt" to 1)
+        val written = mapOf("attempt" to 2, "tenant" to null)
+
+        logger.info(fields = argument) { fields(written); field("queue", "main"); "retrying" }
+
+        assertEquals(
+            listOf("jobId" to "j-1", "attempt" to 2, "tenant" to null, "queue" to "main"),
+            logger.records.single().fields.toList(),
+        )
+        assertEquals(mapOf("jobId" to "j-1", "attempt" to 1), argument)
+        assertEquals(mapOf("attempt" to 2, "tenant" to null), written)
     }
 
     @Test
@@ -75,9 +91,10 @@ class RecordScopeTest {
         val logger = RecordingLogger("records")
 
         logger.info { fields(); "plain" }
+        logger.info { fields(emptyMap()); "plain" }
         logger.info { "plain" }
 
-        assertEquals(listOf(emptyMap(), emptyMap()), logger.records.map { it.fields })
+        assertEquals(List(3) { emptyMap<String, Any?>() }, logger.records.map { it.fields })
     }
 
     @Test
@@ -151,12 +168,17 @@ class RecordScopeTest {
     }
 
     @Test
-    fun `toString lists the fields written so far`(): Unit {
-        val scope = RecordScope(emptyMap())
+    fun `toString lists the fields written so far in the format of LogContext`(): Unit {
+        val scope = RecordScope(mapOf("a" to 1))
 
-        assertEquals("RecordScope({})", scope.toString())
-        scope.put("a", 1)
-        assertEquals("RecordScope({a=1})", scope.toString())
+        assertEquals("RecordScope()", RecordScope(emptyMap()).toString())
+        assertEquals("RecordScope(a=1)", scope.toString())
+        scope.put("b", null)
+        assertEquals("RecordScope(a=1, b=null)", scope.toString())
+        assertEquals(
+            LogContext("a" to 1, "b" to null).toString().removePrefix("LogContext"),
+            scope.toString().removePrefix("RecordScope"),
+        )
     }
 
     context(_: RecordScope)

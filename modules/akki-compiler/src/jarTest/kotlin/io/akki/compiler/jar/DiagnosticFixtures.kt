@@ -23,6 +23,7 @@ internal val pluginDiagnosticSeverities: Map<String, String> = mapOf(
     "LOG_AS_INITIALIZER" to "info",
     "LOGGING_CALL_REFERENCE" to "error",
     "LOGGING_CALL_REMOVED" to "info",
+    "RECORD_FIELD_SHADOWED" to "warning",
 )
 
 private val compilerDiagnosticSeverities = mapOf(

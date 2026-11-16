@@ -128,8 +128,9 @@ public final class io/akki/RecordScope {
 }
 
 public final class io/akki/RecordScopeKt {
-	public static final fun field (Lio/akki/RecordScope;Ljava/lang/String;Ljava/lang/Object;)V
-	public static final fun fields (Lio/akki/RecordScope;[Lkotlin/Pair;)V
+	public static final synthetic fun field (Lio/akki/RecordScope;Ljava/lang/String;Ljava/lang/Object;)V
+	public static final synthetic fun fields (Lio/akki/RecordScope;Ljava/util/Map;)V
+	public static final synthetic fun fields (Lio/akki/RecordScope;[Lkotlin/Pair;)V
 }
 
 public abstract interface class io/akki/backend/LogBackend {

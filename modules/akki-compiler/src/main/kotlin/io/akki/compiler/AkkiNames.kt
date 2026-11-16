@@ -38,6 +38,8 @@ internal object AkkiNames {
     val CAUSE: Name = Name.identifier("cause")
     val FIELDS: Name = Name.identifier("fields")
 
+    val RECORD_FUNCTIONS: Set<Name> = setOf(Name.identifier("field"), FIELDS)
+
     val LOGGER_FIELD: Name = Name.identifier("\$\$log")
     val LOGGER_HOLDER: Name = Name.identifier("\$Log")
 

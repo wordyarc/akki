@@ -1,14 +1,25 @@
 package io.akki
 
+import kotlin.jvm.JvmSynthetic
+
 @ExperimentalAkkiApi
+@JvmSynthetic
 context(scope: RecordScope)
 public fun field(key: String, value: Any?) {
     scope.put(key, value)
 }
 
 @ExperimentalAkkiApi
+@JvmSynthetic
 context(scope: RecordScope)
 public fun fields(vararg fields: Pair<String, Any?>) {
+    for ((key, value) in fields) scope.put(key, value)
+}
+
+@ExperimentalAkkiApi
+@JvmSynthetic
+context(scope: RecordScope)
+public fun fields(fields: Map<String, Any?>) {
     for ((key, value) in fields) scope.put(key, value)
 }
 
@@ -24,5 +35,6 @@ public class RecordScope @PublishedApi internal constructor(private val initial:
         fields[key] = value
     }
 
-    override fun toString(): String = "RecordScope($fields)"
+    override fun toString(): String =
+        fields.entries.joinToString(prefix = "RecordScope(", postfix = ")") { (key, value) -> "$key=$value" }
 }

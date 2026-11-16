@@ -164,8 +164,8 @@ if (log.isEnabled(Level.TRACE)) { /* ... */ }
 
 The fields of a record can also be written in its lambda, where they are computed only when the level is enabled,
 like the message. This API is experimental and needs `@OptIn(ExperimentalAkkiApi::class)`: `field("jobId", job.id)`
-writes one field and `fields("jobId" to job.id, "attempt" to attempt)` writes several. They are added to the `fields`
-argument, and a value written in the lambda replaces a value with the same key:
+writes one field and `fields("jobId" to job.id, "attempt" to attempt)` writes several; `fields` also takes a map.
+They are added to the `fields` argument, and a value written in the lambda replaces a value with the same key:
 
 ```kotlin
 log.debug { fields("jobId" to job.id, "queue" to queue.dump()); "polled" }
@@ -429,10 +429,11 @@ Every other value ships in its jar and selects the backend of each application t
   `fields`. Ordinary arguments, including the `fields` argument, are evaluated even when the level is disabled.
 * The lambda of a record has the type `context(RecordScope) () -> String`. A module compiled with a language version
   below `2.4` calls it only with the `-Xcontext-parameters` compiler option. A function of type `() -> String` is not
-  a message: call it in the lambda, `log.info { message() }`. From Java, pass `record -> "message"`.
+  a message: call it in the lambda, `log.info { message() }`. From Java, pass `record -> "message"`; Java does not
+  see `field` and `fields` and passes fields as the `fields` argument.
 * Inside a class that declares its own `field(key, value)` or `fields(...)` function with the same parameters, a call
-  in the lambda of a record goes to that function, and the record does not get these fields. Call
-  `io.akki.field(...)` by its qualified name there.
+  in the lambda of a record goes to that function, and the record does not get these fields. The compiler plugin
+  reports such a call with the `RECORD_FIELD_SHADOWED` warning. Call `io.akki.field(...)` by its qualified name there.
 * `recordLogs` and `LogContext` apply to the current thread. Executors and other threads use the global
   backend. They start with an empty context unless the task is wrapped with `LogContext.wrap` or carried by
   `akki-context-propagation`.
