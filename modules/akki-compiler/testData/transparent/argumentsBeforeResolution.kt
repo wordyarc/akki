@@ -15,7 +15,7 @@ fun box(): String {
     var message = "original"
     var cause: Throwable = originalCause
     var fields: Map<String, Any?> = originalFields
-    var supplier = { "original" }
+    var supplier: context(RecordScope) () -> String = { "original" }
     val logger = object : Logger() {
         override val name = "freezing"
         override fun sink(level: Level): Sink {

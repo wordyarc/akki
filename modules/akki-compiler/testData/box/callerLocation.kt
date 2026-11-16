@@ -1,4 +1,6 @@
 // WITH_LOGBACK
+@file:OptIn(io.akki.ExperimentalAkkiApi::class)
+
 package fixture
 
 import helpers.capturedCallers
@@ -15,6 +17,8 @@ fun box(): String {
             val message = "lazy"
             message
         }
+        expected += Throwable().stackTrace[0].lineNumber + 1
+        Log.named("caller").info { field("id", 1); "lazy with a field" }
         expected += Throwable().stackTrace[0].lineNumber + 1
         Log.named("caller").info(
             fields = mapOf("id" to 1),

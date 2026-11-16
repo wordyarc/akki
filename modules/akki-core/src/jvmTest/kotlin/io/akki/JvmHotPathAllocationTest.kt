@@ -10,7 +10,7 @@ import io.akki.testing.allocatedBytes
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-@OptIn(DelicateAkkiApi::class)
+@OptIn(DelicateAkkiApi::class, ExperimentalAkkiApi::class)
 class JvmHotPathAllocationTest {
     private val silent = LogBackend { LoggerBinding { null } }
     private val fields: Map<String, Any?> = mapOf("user" to 42)
@@ -41,6 +41,7 @@ class JvmHotPathAllocationTest {
         logger.debug { "lazy $attempt" }
         logger.debug("constant", fields = fields)
         logger.debug(fields = fields) { "lazy $attempt" }
+        logger.debug { field("attempt", attempt); "lazy $attempt" }
     }
 
     private companion object {

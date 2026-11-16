@@ -26,8 +26,11 @@ internal val pluginDiagnosticSeverities: Map<String, String> = mapOf(
 )
 
 private val compilerDiagnosticSeverities = mapOf(
+    "NO_CONTEXT_ARGUMENT" to "error",
     "NON_LOCAL_SUSPENSION_POINT" to "error",
+    "NONE_APPLICABLE" to "error",
     "NOTHING_TO_INLINE" to "warning",
+    "OPT_IN_USAGE_ERROR" to "error",
     "OVERRIDING_FINAL_MEMBER" to "error",
 )
 

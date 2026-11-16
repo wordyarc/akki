@@ -20,7 +20,7 @@ fun box(): String {
 
     fun cause(): Throwable = IllegalStateException("cause-${numbered("cause")}")
     fun fields(): Map<String, Any?> = mapOf("value" to numbered("fields"))
-    val variableMessage: () -> String = { "variable-${numbered("variable-message")}" }
+    val variableMessage: context(RecordScope) () -> String = { "variable-${numbered("variable-message")}" }
 
     withLogScope(LogScope(effects.markingResolutions(backend))) {
         effects.mark("receiver", logger).debug("disabled-${numbered("disabled-message")}", cause(), fields())

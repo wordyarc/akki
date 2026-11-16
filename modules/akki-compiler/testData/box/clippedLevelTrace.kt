@@ -1,6 +1,6 @@
 // MIN_LEVEL: TRACE
 // WITH_HELPERS
-@file:OptIn(io.akki.InternalAkkiApi::class)
+@file:OptIn(io.akki.InternalAkkiApi::class, io.akki.ExperimentalAkkiApi::class)
 
 package fixture
 
@@ -18,7 +18,7 @@ fun box(): String {
 
     val gate = withLogScope(LogScope(backend)) {
         logger.trace("trace-${effects.mark("trace")}")
-        logger.debug { "debug-${effects.mark("debug-lazy")}" }
+        logger.debug { field("k", effects.mark("debug-lazy-field")); "debug-${effects.mark("debug-lazy")}" }
         effects.mark("receiver", logger).debug("receiver-${effects.mark("receiver-message")}")
         logger.debug(fields = mapOf("k" to effects.mark("debug-fields")), message = "debug-named")
         logger.info("info-${effects.mark("info")}")
@@ -30,7 +30,7 @@ fun box(): String {
         "trace-trace,debug-debug-lazy,receiver-receiver-message,debug-named,info-info,warn-warn",
         backend.records.joinToString(",") { it.message },
     )
-    assertEquals("trace,debug-lazy,receiver,receiver-message,debug-fields,info,warn", effects.toString())
+    assertEquals("trace,debug-lazy-field,debug-lazy,receiver,receiver-message,debug-fields,info,warn", effects.toString())
     assertEquals("enabled=true,sink=true", gate)
     return "OK"
 }

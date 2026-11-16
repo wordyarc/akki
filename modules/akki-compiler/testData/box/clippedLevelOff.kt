@@ -1,6 +1,6 @@
 // WITH_HELPERS
 // MIN_LEVEL: OFF
-@file:OptIn(io.akki.InternalAkkiApi::class)
+@file:OptIn(io.akki.InternalAkkiApi::class, io.akki.ExperimentalAkkiApi::class)
 
 package fixture
 
@@ -19,7 +19,7 @@ fun box(): String {
 
     val gate = withLogScope(LogScope(backend)) {
         logger.trace("trace-${effects.mark("trace")}")
-        logger.debug { "debug-${effects.mark("debug-lazy")}" }
+        logger.debug { field("k", effects.mark("debug-lazy-field")); "debug-${effects.mark("debug-lazy")}" }
         effects.mark("receiver", logger).debug("receiver-${effects.mark("receiver-message")}")
         logger.info("info-${effects.mark("info")}")
         logger.error("error-${effects.mark("error")}")

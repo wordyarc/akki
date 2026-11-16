@@ -38,7 +38,7 @@ private fun uninitializedMessage(logger: Logger) {
 }
 
 private fun uninitializedSupplier(logger: Logger) {
-    lateinit var message: () -> String
+    lateinit var message: context(RecordScope) () -> String
     logger.debug(message = message)
 }
 

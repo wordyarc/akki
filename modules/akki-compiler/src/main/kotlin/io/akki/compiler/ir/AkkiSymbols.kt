@@ -12,41 +12,33 @@ import org.jetbrains.kotlin.ir.declarations.IrEnumEntry
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
+import org.jetbrains.kotlin.ir.symbols.IrConstructorSymbol
 import org.jetbrains.kotlin.ir.symbols.IrEnumEntrySymbol
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.types.classOrNull
 import org.jetbrains.kotlin.ir.util.classId
+import org.jetbrains.kotlin.ir.util.constructors
 import org.jetbrains.kotlin.ir.util.defaultType
 import org.jetbrains.kotlin.ir.util.functions
 import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.hasShape
 import org.jetbrains.kotlin.ir.util.invokeFun
 import org.jetbrains.kotlin.ir.util.nonDispatchParameters
+import org.jetbrains.kotlin.ir.util.properties
 import org.jetbrains.kotlin.ir.util.resolveFakeOverride
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.StandardClassIds
 
-internal enum class EmitSlot {
-    MESSAGE,
-    CAUSE,
-    FIELDS,
-}
-
-internal class EmitArgument(
-    val slot: EmitSlot,
-    val source: IrValueParameter,
-    val destination: IrValueParameter,
-)
-
 internal class LoggerCall(
     val level: IrEnumEntrySymbol,
     val receiver: IrValueParameter,
     val message: IrValueParameter,
+    val cause: IrValueParameter,
+    val fields: IrValueParameter,
     val isLazy: Boolean,
-    val arguments: List<EmitArgument>,
 )
 
 internal class AkkiSymbols private constructor(context: IrPluginContext, finder: DeclarationFinder) {
@@ -89,19 +81,33 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
 
     val emit: IrSimpleFunctionSymbol = emitFunction.symbol
 
+    val causeType: IrType = emitFunction.parameters[2].type
+
+    val fieldsType: IrType = emitFunction.parameters[3].type
+
+    private val recordScope: IrClassSymbol = finder.classOrFail(AkkiNames.RECORD_SCOPE_ID)
+
+    val newRecordScope: IrConstructorSymbol =
+        recordScope.owner.constructors.singleOrNull { it.hasShape(regularParameters = 1) }?.symbol
+            ?: incompatibleCore(RECORD_SCOPE_SIGNATURE)
+
+    val recordFields: IrSimpleFunctionSymbol =
+        recordScope.owner.properties.singleOrNull { it.name == AkkiNames.FIELDS }?.getter?.symbol
+            ?: incompatibleCore(RECORD_FIELDS_SIGNATURE)
+
     val emptyMap: IrSimpleFunctionSymbol = finder.findFunctions(AkkiNames.EMPTY_MAP_ID)
         .singleOrNull { it.owner.hasShape() }
         ?: incompatibleCore("kotlin.collections.emptyMap()")
 
     val invoke: IrSimpleFunctionSymbol =
-        (context.irBuiltIns.functionN(0).invokeFun ?: incompatibleCore("kotlin.Function0.invoke()")).symbol
+        (context.irBuiltIns.functionN(1).invokeFun ?: incompatibleCore("kotlin.Function1.invoke()")).symbol
 
     private val calls: Map<IrSimpleFunctionSymbol, LoggerCall> = buildMap {
-        val function0 = context.irBuiltIns.functionN(0).symbol
+        val recordMessage = context.irBuiltIns.functionN(1).symbol
         val overloads = logger.owner.functions.groupBy(IrSimpleFunction::name)
         for (entry in level.owner.declarations.filterIsInstance<IrEnumEntry>()) {
             for (overload in overloads[AkkiNames.levelMethod(entry.name)].orEmpty()) {
-                val call = overload.loggerCall(context, entry.symbol, function0) ?: continue
+                val call = overload.loggerCall(context, entry.symbol, recordMessage) ?: continue
                 put(overload.symbol, call)
             }
         }
@@ -122,37 +128,21 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
     private fun IrSimpleFunction.loggerCall(
         context: IrPluginContext,
         level: IrEnumEntrySymbol,
-        function0: IrClassSymbol,
+        recordMessage: IrClassSymbol,
     ): LoggerCall? {
         if (!hasShape(dispatchReceiver = true, regularParameters = 3)) return null
         val receiver = parameters.first().takeIf { it.type.classOrNull == logger } ?: return null
         val message = parameter(AkkiNames.MESSAGE) ?: return null
-        val isLazy = message.type.classOrNull == function0
+        val isLazy = message.type.classOrNull == recordMessage
         if (!isLazy && message.type != context.irBuiltIns.stringType) return null
         return LoggerCall(
             level = level,
             receiver = receiver,
             message = message,
+            cause = parameter(AkkiNames.CAUSE) ?: return null,
+            fields = parameter(AkkiNames.FIELDS) ?: return null,
             isLazy = isLazy,
-            arguments = emitArguments(
-                message = message,
-                cause = parameter(AkkiNames.CAUSE) ?: return null,
-                fields = parameter(AkkiNames.FIELDS) ?: return null,
-            ),
         )
-    }
-
-    private fun emitArguments(
-        message: IrValueParameter,
-        cause: IrValueParameter,
-        fields: IrValueParameter,
-    ): List<EmitArgument> {
-        val (toMessage, toCause, toFields) = emitFunction.nonDispatchParameters
-        return listOf(
-            EmitArgument(EmitSlot.MESSAGE, message, toMessage),
-            EmitArgument(EmitSlot.CAUSE, cause, toCause),
-            EmitArgument(EmitSlot.FIELDS, fields, toFields),
-        ).sortedBy { it.source.indexInParameters }
     }
 
     companion object {
@@ -165,6 +155,8 @@ internal class AkkiSymbols private constructor(context: IrPluginContext, finder:
         private const val NAMED_SIGNATURE: String = "Log.named(name: String): Logger"
         private const val EMIT_SIGNATURE: String =
             "Sink.emit(message: String, cause: Throwable?, fields: Map<String, Any?>)"
+        private const val RECORD_SCOPE_SIGNATURE: String = "RecordScope(initial: Map<String, Any?>)"
+        private const val RECORD_FIELDS_SIGNATURE: String = "RecordScope.fields: Map<String, Any?>"
 
         fun find(context: IrPluginContext, compat: CompilerCompat): AkkiSymbols? {
             val finder = context.finderForBuiltins()

@@ -7,7 +7,8 @@
 // 1 info-\\u0001
 // 2 io/akki/backend/Sink\.emit
 // 2 io/akki/Logger\.isEnabled
-@file:OptIn(io.akki.InternalAkkiApi::class)
+// 0 io/akki/RecordScope
+@file:OptIn(io.akki.InternalAkkiApi::class, io.akki.ExperimentalAkkiApi::class)
 
 package fixture
 
@@ -31,7 +32,7 @@ fun box(): String {
 
     val gate = withLogScope(LogScope(backend)) {
         logger.trace("trace-${effects.mark("trace")}")
-        logger.debug { "debug-${effects.mark("debug-lazy")}" }
+        logger.debug { field("k", effects.mark("debug-lazy-field")); "debug-${effects.mark("debug-lazy")}" }
         effects.mark("receiver", logger).debug("receiver-${effects.mark("receiver-message")}")
         logger.debug(fields = mapOf("k" to effects.mark("debug-fields")), message = "debug-named")
         suppressed(logger)

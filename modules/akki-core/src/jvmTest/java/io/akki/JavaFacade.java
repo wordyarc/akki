@@ -28,9 +28,9 @@ final class JavaFacade {
     }
 
     static void lazy(Logger log, Throwable cause, Map<String, Object> fields) {
-        log.info(() -> "lazy");
-        log.warn(cause, () -> "lazy with cause");
-        log.error(cause, fields, () -> "lazy with fields");
+        log.info(record -> "lazy");
+        log.warn(cause, record -> "lazy with cause");
+        log.error(cause, fields, record -> "lazy with fields");
     }
 
     static LogContext context(Map<String, Object> fields) {

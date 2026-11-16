@@ -1,0 +1,95 @@
+@file:OptIn(markerClass = [ExperimentalAkkiApi::class])
+package fixture
+
+fun box(): String {
+  val logger: RecordingLogger = RecordingLogger(name = "records")
+  val value: Function1<RecordScope, String> = context($context-RecordScope: RecordScope)
+  local fun <anonymous>(): String {
+    field(/* scope = $context-RecordScope, */ key = "source", value = "value")
+    return "from a value"
+  }
+
+  { // BLOCK
+    val tmp_0: Map<String, Any?> = emptyMap<String, Any?>()
+    val tmp_1: Sink? = logger.sink(level = Level.INFO)
+    when {
+      EQEQ(arg0 = tmp_1, arg1 = null).not() -> { // BLOCK
+        tmp_1.emit(message = { // RETURNABLE BLOCK
+          return "plain"
+        }, cause = null, fields = tmp_0)
+      }
+    }
+  }
+  { // BLOCK
+    val tmp_2: Map<String, Any?> = emptyMap<String, Any?>()
+    val tmp_3: Sink? = logger.sink(level = Level.INFO)
+    when {
+      EQEQ(arg0 = tmp_3, arg1 = null).not() -> { // BLOCK
+        val tmp_4: RecordScope = RecordScope(initial = tmp_2)
+        tmp_3.emit(message = { // RETURNABLE BLOCK
+          field(/* scope = tmp_4, */ key = "attempt", value = 2)
+          return "one field"
+        }, cause = null, fields = tmp_4.<get-fields>())
+      }
+    }
+  }
+  { // BLOCK
+    val tmp_5: IllegalStateException = IllegalStateException(p0 = "boom")
+    val tmp_6: Map<String, Any?> = emptyMap<String, Any?>()
+    val tmp_7: Sink? = logger.sink(level = Level.WARN)
+    when {
+      EQEQ(arg0 = tmp_7, arg1 = null).not() -> { // BLOCK
+        val tmp_8: RecordScope = RecordScope(initial = tmp_6)
+        tmp_7.emit(message = { // RETURNABLE BLOCK
+          requestFields(/* $context-RecordScope = tmp_8, */ id = "r-1")
+          return "helper"
+        }, cause = tmp_5, fields = tmp_8.<get-fields>())
+      }
+    }
+  }
+  { // BLOCK
+    val tmp_9: Map<String, Any?> = emptyMap<String, Any?>()
+    val tmp_10: Function1<RecordScope, String> = value
+    val tmp_11: Sink? = logger.sink(level = Level.ERROR)
+    when {
+      EQEQ(arg0 = tmp_11, arg1 = null).not() -> { // BLOCK
+        val tmp_12: RecordScope = RecordScope(initial = tmp_9)
+        tmp_11.emit(message = tmp_10.invoke(p1 = tmp_12), cause = null, fields = tmp_12.<get-fields>())
+      }
+    }
+  }
+  { // BLOCK
+    val tmp_13: Map<String, String> = mapOf<String, String>(pair = to<String, String>(/* <this> = "jobId", */ that = "j-1"))
+    val tmp_14: Sink? = logger.sink(level = Level.INFO)
+    when {
+      EQEQ(arg0 = tmp_14, arg1 = null).not() -> { // BLOCK
+        tmp_14.emit(message = { // RETURNABLE BLOCK
+          return "argument only"
+        }, cause = null, fields = tmp_13)
+      }
+    }
+  }
+  { // BLOCK
+    val tmp_15: Map<String, Any> = mapOf<String, Any>(pairs = [to<String, String>(/* <this> = "jobId", */ that = "j-1"), to<String, Int>(/* <this> = "attempt", */ that = 1)])
+    val tmp_16: Sink? = logger.sink(level = Level.INFO)
+    when {
+      EQEQ(arg0 = tmp_16, arg1 = null).not() -> { // BLOCK
+        val tmp_17: RecordScope = RecordScope(initial = tmp_15)
+        tmp_16.emit(message = { // RETURNABLE BLOCK
+          field(/* scope = tmp_17, */ key = "attempt", value = 2)
+          return "merged"
+        }, cause = null, fields = tmp_17.<get-fields>())
+      }
+    }
+  }
+  assertEquals<List<Pair<String, Map<String, Any?>>>>(expected = listOf<Pair<String, Map<String, Any?>>>(elements = [to<String, Map<String, Any?>>(/* <this> = "plain", */ that = emptyMap<String, Any?>()), to<String, Map<String, Int>>(/* <this> = "one field", */ that = mapOf<String, Int>(pair = to<String, Int>(/* <this> = "attempt", */ that = 2))), to<String, Map<String, String>>(/* <this> = "helper", */ that = mapOf<String, String>(pairs = [to<String, String>(/* <this> = "requestId", */ that = "r-1"), to<String, String>(/* <this> = "tenant", */ that = "acme")])), to<String, Map<String, String>>(/* <this> = "from a value", */ that = mapOf<String, String>(pair = to<String, String>(/* <this> = "source", */ that = "value"))), to<String, Map<String, String>>(/* <this> = "argument only", */ that = mapOf<String, String>(pair = to<String, String>(/* <this> = "jobId", */ that = "j-1"))), to<String, Map<String, Any>>(/* <this> = "merged", */ that = mapOf<String, Any>(pairs = [to<String, String>(/* <this> = "jobId", */ that = "j-1"), to<String, Int>(/* <this> = "attempt", */ that = 2)]))]), actual = map<LogRecord, Pair<String, Map<String, Any?>>>(/* <this> = logger.<get-records>(), */ transform = local fun <anonymous>(it: LogRecord): Pair<String, Map<String, Any?>> {
+    return to<String, Map<String, Any?>>(/* <this> = it.<get-message>(), */ that = it.<get-fields>())
+  }
+))
+  return "OK"
+}
+
+context($context-RecordScope: RecordScope)
+private fun requestFields(id: String) {
+  fields(/* scope = $context-RecordScope, */ fields = [to<String, String>(/* <this> = "requestId", */ that = id), to<String, String>(/* <this> = "tenant", */ that = "acme")])
+}

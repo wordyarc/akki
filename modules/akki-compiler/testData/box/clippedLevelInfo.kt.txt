@@ -1,4 +1,4 @@
-@file:OptIn(markerClass = [InternalAkkiApi::class])
+@file:OptIn(markerClass = [InternalAkkiApi::class, ExperimentalAkkiApi::class])
 package fixture
 
 package /* static final field */ val $$log$0: Logger = Log.named(name = "fixture")

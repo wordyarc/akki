@@ -24,6 +24,20 @@ public annotation class DelicateAkkiApi
 )
 @RequiresOptIn(
     level = RequiresOptIn.Level.ERROR,
+    message = "This API is experimental: its shape can change, and it can be removed, in any release.",
+)
+public annotation class ExperimentalAkkiApi
+
+@MustBeDocumented
+@Retention(AnnotationRetention.BINARY)
+@Target(
+    AnnotationTarget.CLASS,
+    AnnotationTarget.FUNCTION,
+    AnnotationTarget.PROPERTY,
+    AnnotationTarget.TYPEALIAS,
+)
+@RequiresOptIn(
+    level = RequiresOptIn.Level.ERROR,
     message = "This API is shared between akki modules and can change without notice.",
 )
 public annotation class InternalAkkiApi

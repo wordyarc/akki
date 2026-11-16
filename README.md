@@ -162,6 +162,28 @@ log.warn(cause, mapOf("jobId" to job.id, "attempt" to attempt)) { "retrying" }
 if (log.isEnabled(Level.TRACE)) { /* ... */ }
 ```
 
+The fields of a record can also be written in its lambda, where they are computed only when the level is enabled,
+like the message. This API is experimental and needs `@OptIn(ExperimentalAkkiApi::class)`: `field("jobId", job.id)`
+writes one field and `fields("jobId" to job.id, "attempt" to attempt)` writes several. They are added to the `fields`
+argument, and a value written in the lambda replaces a value with the same key:
+
+```kotlin
+log.debug { fields("jobId" to job.id, "queue" to queue.dump()); "polled" }
+```
+
+Import `io.akki.field` and `io.akki.fields`; a call outside a record does not compile. To reuse a set of fields,
+declare a function with the record in its context and call it in the lambda:
+
+```kotlin
+@OptIn(ExperimentalAkkiApi::class)
+context(_: RecordScope)
+fun requestFields(request: Request) {
+    fields("requestId" to request.id, "tenant" to request.tenant)
+}
+
+log.info { requestFields(request); "accepted" }
+```
+
 The nearest enclosing declaration with a qualified name determines the logger name. Companion objects and enum
 entry bodies share their class's logger. Lambdas, local classes, and anonymous classes use the enclosing class's
 logger, or the file's logger at the top level. For example, top-level functions in `Jobs.kt` use `com.example.Jobs`.
@@ -403,8 +425,14 @@ Every other value ships in its jar and selects the backend of each application t
   [Command line and other build tools](#command-line-and-other-build-tools).
 * Accurate caller lines require the compiler plugin. Inline wrappers around `log` produce synthetic line numbers. Java
   calls report `io.akki.Logger` unless that class is registered in logback's `frameworkPackages`.
-* Only a message passed as a lambda is lazy. Ordinary arguments, including fields, are evaluated even when the
-  level is disabled.
+* Only the lambda of a record is lazy: its message and the fields written in it with the experimental `field` and
+  `fields`. Ordinary arguments, including the `fields` argument, are evaluated even when the level is disabled.
+* The lambda of a record has the type `context(RecordScope) () -> String`. A module compiled with a language version
+  below `2.4` calls it only with the `-Xcontext-parameters` compiler option. A function of type `() -> String` is not
+  a message: call it in the lambda, `log.info { message() }`. From Java, pass `record -> "message"`.
+* Inside a class that declares its own `field(key, value)` or `fields(...)` function with the same parameters, a call
+  in the lambda of a record goes to that function, and the record does not get these fields. Call
+  `io.akki.field(...)` by its qualified name there.
 * `recordLogs` and `LogContext` apply to the current thread. Executors and other threads use the global
   backend. They start with an empty context unless the task is wrapped with `LogContext.wrap` or carried by
   `akki-context-propagation`.

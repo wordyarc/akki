@@ -10,7 +10,7 @@ inline fun Logger.inlineReport(message: () -> String) {
 
 fun Logger.report(message: () -> String): Int {
     val line = Throwable().stackTrace[0].lineNumber + 1
-    info(message = message)
+    info { message() }
     return line
 }
 

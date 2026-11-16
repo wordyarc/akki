@@ -1,7 +1,7 @@
 // CHECK_BYTECODE_TEXT
-// 0 kotlin/jvm/functions/Function0
+// 0 kotlin/jvm/functions/Function
 // 0 box\$lambda
-@file:OptIn(io.akki.InternalAkkiApi::class)
+@file:OptIn(io.akki.InternalAkkiApi::class, io.akki.ExperimentalAkkiApi::class)
 
 package fixture
 
@@ -17,8 +17,11 @@ fun box(): String {
     withLogScope(LogScope(backend)) {
         Log.named("fixture").info { "value=${++counter}" }
         Log.named("fixture").debug { "never=${++counter}" }
+        Log.named("fixture").warn { field("counter", ++counter); "with a field" }
+        Log.named("fixture").trace { field("counter", ++counter); "never with a field" }
     }
-    assertEquals("value=1", backend.records.map { it.message }.joinToString(","))
-    assertEquals(1, counter)
+    assertEquals(listOf("value=1", "with a field"), backend.records.map { it.message })
+    assertEquals(mapOf("counter" to 2), backend.records.last().fields)
+    assertEquals(2, counter)
     return "OK"
 }

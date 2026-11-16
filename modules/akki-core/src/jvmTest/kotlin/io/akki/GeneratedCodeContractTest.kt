@@ -40,6 +40,33 @@ class GeneratedCodeContractTest {
     }
 
     @Test
+    fun `RecordScope that the lazy level methods inline has a public constructor and a public fields getter`(): Unit {
+        val constructor = RecordScope::class.java.getConstructor(Map::class.java)
+        val fields = RecordScope::class.java.getMethod("getFields")
+        val initial = mapOf("a" to 1)
+
+        assertTrue(Modifier.isPublic(constructor.modifiers), constructor.toString())
+        assertTrue(Modifier.isPublic(fields.modifiers), fields.toString())
+        assertEquals(Map::class.java, fields.returnType)
+        assertSame(initial, fields.invoke(constructor.newInstance(initial)))
+    }
+
+    @Test
+    fun `field and fields are public static methods of RecordScopeKt that take the scope first`(): Unit {
+        val facade = Class.forName("io.akki.RecordScopeKt")
+        val field = facade.getMethod("field", RecordScope::class.java, String::class.java, Any::class.java)
+        val fields = facade.getMethod("fields", RecordScope::class.java, emptyArray<Pair<String, Any?>>().javaClass)
+        val scope = RecordScope(emptyMap())
+
+        field.invoke(null, scope, "a", 1)
+        fields.invoke(null, scope, arrayOf("b" to 2))
+
+        assertTrue(Modifier.isPublic(field.modifiers) && Modifier.isStatic(field.modifiers), field.toString())
+        assertTrue(Modifier.isPublic(fields.modifiers) && Modifier.isStatic(fields.modifiers), fields.toString())
+        assertEquals(mapOf("a" to 1, "b" to 2), scope.fields)
+    }
+
+    @Test
     fun `AKKI_VERSION is a static string constant of the internal package`(): Unit {
         val field = Class.forName("io.akki.internal.AkkiVersionKt").getDeclaredField("AKKI_VERSION")
 

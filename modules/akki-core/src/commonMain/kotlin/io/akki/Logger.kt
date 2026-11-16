@@ -24,9 +24,11 @@ public abstract class Logger {
     public inline fun trace(
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
-        message: () -> String,
+        message: context(RecordScope) () -> String,
     ) {
-        sink(Level.TRACE)?.emit(message(), cause, fields)
+        val sink = sink(Level.TRACE) ?: return
+        val scope = RecordScope(fields)
+        sink.emit(message(scope), cause, scope.fields)
     }
 
     @Suppress("NOTHING_TO_INLINE")
@@ -43,9 +45,11 @@ public abstract class Logger {
     public inline fun debug(
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
-        message: () -> String,
+        message: context(RecordScope) () -> String,
     ) {
-        sink(Level.DEBUG)?.emit(message(), cause, fields)
+        val sink = sink(Level.DEBUG) ?: return
+        val scope = RecordScope(fields)
+        sink.emit(message(scope), cause, scope.fields)
     }
 
     @Suppress("NOTHING_TO_INLINE")
@@ -62,9 +66,11 @@ public abstract class Logger {
     public inline fun info(
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
-        message: () -> String,
+        message: context(RecordScope) () -> String,
     ) {
-        sink(Level.INFO)?.emit(message(), cause, fields)
+        val sink = sink(Level.INFO) ?: return
+        val scope = RecordScope(fields)
+        sink.emit(message(scope), cause, scope.fields)
     }
 
     @Suppress("NOTHING_TO_INLINE")
@@ -81,9 +87,11 @@ public abstract class Logger {
     public inline fun warn(
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
-        message: () -> String,
+        message: context(RecordScope) () -> String,
     ) {
-        sink(Level.WARN)?.emit(message(), cause, fields)
+        val sink = sink(Level.WARN) ?: return
+        val scope = RecordScope(fields)
+        sink.emit(message(scope), cause, scope.fields)
     }
 
     @Suppress("NOTHING_TO_INLINE")
@@ -100,8 +108,10 @@ public abstract class Logger {
     public inline fun error(
         cause: Throwable? = null,
         fields: Map<String, Any?> = emptyMap(),
-        message: () -> String,
+        message: context(RecordScope) () -> String,
     ) {
-        sink(Level.ERROR)?.emit(message(), cause, fields)
+        val sink = sink(Level.ERROR) ?: return
+        val scope = RecordScope(fields)
+        sink.emit(message(scope), cause, scope.fields)
     }
 }

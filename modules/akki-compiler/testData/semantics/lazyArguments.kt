@@ -20,16 +20,18 @@ private object InitializedLogger : Logger() {
 }
 
 private class Message {
-    fun text(): String = error("disabled message body")
+    fun text(record: RecordScope): String = error("disabled message body")
 }
 
 private fun receiver(): Message = effects.mark("bound receiver", Message())
 private fun cause(): Throwable = effects.mark("cause", IllegalStateException())
 private fun fields(): Map<String, Any?> = effects.mark("fields", emptyMap())
-private fun supplier(): () -> String = effects.mark("supplier") { error("disabled supplier body") }
+private fun supplier(): context(RecordScope) () -> String =
+    effects.mark("supplier") { error("disabled supplier body") }
 
 private fun selected(logger: Logger): Logger = effects.mark("logger", logger)
-private fun failingSupplier(): () -> String = throw IllegalArgumentException("supplier expression")
+private fun failingSupplier(): context(RecordScope) () -> String =
+    throw IllegalArgumentException("supplier expression")
 
 fun box(): String {
     val logger = RecordingLogger(minLevel = Level.INFO)

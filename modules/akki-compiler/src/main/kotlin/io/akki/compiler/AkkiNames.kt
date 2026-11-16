@@ -18,6 +18,7 @@ internal object AkkiNames {
     val SINK_ID: ClassId = BACKEND_PACKAGE.classId("Sink")
     val CALL_SITE_ID: ClassId = INTERNAL_PACKAGE.classId("CallSite")
     val LOG_ID: ClassId = PACKAGE.classId("Log")
+    val RECORD_SCOPE_ID: ClassId = PACKAGE.classId("RecordScope")
 
     val EMPTY_MAP_ID: CallableId =
         CallableId(StandardNames.COLLECTIONS_PACKAGE_FQ_NAME, Name.identifier("emptyMap"))

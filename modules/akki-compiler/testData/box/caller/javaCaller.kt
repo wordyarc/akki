@@ -13,7 +13,7 @@ public final class JavaCaller {
 
     public static int writeLazy(Logger logger) {
         int line = new Throwable().getStackTrace()[0].getLineNumber() + 1;
-        logger.info(() -> "lazy from Java");
+        logger.info(record -> "lazy from Java");
         return line;
     }
 }

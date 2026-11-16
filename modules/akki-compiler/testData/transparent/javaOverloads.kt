@@ -2,10 +2,11 @@
 package fixture;
 
 import io.akki.Logger;
-import kotlin.jvm.functions.Function0;
+import io.akki.RecordScope;
+import kotlin.jvm.functions.Function1;
 
 public final class JavaCaller {
-    public static void write(Logger logger, Throwable cause, Function0<String> message) {
+    public static void write(Logger logger, Throwable cause, Function1<RecordScope, String> message) {
         logger.trace("eager");
         logger.trace("cause", cause);
         logger.trace(message);
