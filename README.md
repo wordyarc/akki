@@ -6,8 +6,8 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.wordyarc/akki-core)](https://central.sonatype.com/artifact/io.github.wordyarc/akki-core)
 [![Gradle Plugin Portal](https://img.shields.io/gradle-plugin-portal/v/io.github.wordyarc.akki)](https://plugins.gradle.org/plugin/io.github.wordyarc.akki)
 
-Log in Kotlin without declaring a logger. The compiler plugin names the logger after the enclosing declaration.
-Requires Kotlin `2.4.0` or newer.
+Logging for Kotlin without logger declarations. `log` is the logger of the enclosing class or file, and a compiler
+plugin resolves it at compile time.
 
 ```kotlin
 import io.akki.log
@@ -19,142 +19,68 @@ class JobProcessor {
 }
 ```
 
-For a `JobProcessor` in `com.example`, the plugin turns `log` into a read of a static field holding the
-`com.example.JobProcessor` logger. It also rewrites logging calls to call the backend directly, preserving the
-caller line. An optional compile-time threshold removes records below the selected level from the bytecode.
+For a `JobProcessor` in `com.example`, the compiler plugin turns `log` into a read of a static field that holds the
+`com.example.JobProcessor` logger.
 
-## Modules
+* Logging calls go to the backend directly, so it reports the line of the calling code.
+* A message lambda runs only when the level is enabled. Records carry structured fields and a per-thread
+  [context](#context).
+* A compile-time threshold removes records below a level from the bytecode.
+* Records go to SLF4J 2, to `System.Logger` or to your own `LogBackend`.
+* `akki-test` captures records in tests.
 
-* `akki-core`: the logging API.
-  * `log` and `logger()` use the enclosing declaration's logger and require the compiler plugin.
-  * `Log.of<T>()` and `Log.named("...")` work without the compiler plugin. From Java, call `Log.of(Class)` or
-    `Log.named`.
-  * `Logger` provides eager and lazy overloads of `trace`, `debug`, `info`, `warn`, and `error`.
-  * `LogBackend` connects a backend.
-  * `LogContext` carries fields that every record of the current thread gets.
-* `akki-slf4j`: backend for SLF4J 2, enabled when an SLF4J 2 provider is available at runtime.
-* `akki-system`: backend for `System.Logger`, the logging API of the JDK; it needs no other library.
-* `akki-compiler`: Kotlin compiler plugin, one artifact for every supported Kotlin release.
-* `akki-gradle`: applies the compiler plugin, adds `akki-core` and the backend of the build, `akki-slf4j` unless another
-  one is selected, and keeps every akki module at the plugin version.
-* `akki-test`: captures test logs with `recordLogs { }`, `RecordingBackend` or `RecordingLogger`.
-* `akki-coroutines`: carries a `LogContext` in a coroutine context via `asContextElement()` and
-  provides a suspending `withLogFields { }`.
-* `akki-test-coroutines`: provides suspending `recordLogs { }` for coroutine tests.
-* `akki-context-propagation`: registers a Micrometer `ThreadLocalAccessor` for `LogContext`, so Reactor and Spring
-  carry the context themselves.
-* `akki-bom`: supplies the version of every akki artifact as a Gradle platform.
+## Requirements
+
+* Kotlin `2.4.0` or a newer release listed in [Kotlin compatibility](#kotlin-compatibility).
+* JDK 17 or newer. Only JVM compilations are supported.
 
 ## Setup
 
 ### Gradle
 
-The Gradle plugin applies the compiler plugin and adds `akki-core` and `akki-slf4j` to every `jvm` compilation:
-
 ```kotlin
 plugins {
     kotlin("jvm") version "2.4.21"
-    id("io.github.wordyarc.akki") version "0.3.0"
+    id("io.github.wordyarc.akki") version "0.4.0"
 }
 ```
 
-#### Backend
+The Gradle plugin applies the compiler plugin to every JVM compilation and adds `akki-core` and `akki-slf4j`. Records
+go to the SLF4J 2 provider of the application, such as logback-classic. Without a provider, akki prints a one-time
+notice and writes records at `INFO` and higher to stderr. [Backends](#backends) lists the alternatives.
 
-Logging uses the application's SLF4J 2 provider; Spring Boot, for example, includes logback-classic. You can add a
-provider explicitly:
+Other akki modules take the version of the Gradle plugin. With `akki-bom` as a platform they are declared without one:
 
 ```kotlin
 dependencies {
-    runtimeOnly("ch.qos.logback:logback-classic:1.5.20")
-}
-```
-
-If no provider is available, akki prints a one-time notice and writes records at `INFO` and higher to stderr.
-
-An application without SLF4J can log through `System.Logger` instead. The Gradle plugin then adds `akki-system` in
-place of `akki-slf4j`:
-
-```kotlin
-akki {
-    jvm {
-        backend = io.akki.gradle.AkkiBackend.SYSTEM_LOGGER
-    }
-}
-```
-
-The JDK routes these records to `java.util.logging`, or to its console logger in a runtime image without the
-`java.logging` module, and levels and output are configured there.
-
-A library leaves `backend` unset and keeps `akki-slf4j`: an application that does not use akki then gets the library's
-records through its own SLF4J provider. Without a provider `akki-slf4j` stays inactive, and a `LogBackend` that the
-application registers wins over it. To add no backend at all, set `backend = io.akki.gradle.AkkiBackend.NONE`.
-
-If a dependency registers its own `LogBackend`, akki prefers it to the backend of an akki module. The `backend` setting
-in [Configuration](#configuration) overrides that choice.
-
-#### Tests
-
-To capture logs in tests:
-
-```kotlin
-dependencies {
-    testImplementation("io.github.wordyarc:akki-test:0.3.0")
-}
-```
-
-#### Versions of akki modules
-
-With `akki-bom` as a platform, akki modules are declared without a version; in a Kotlin Multiplatform source set,
-write `project.dependencies.platform(...)` instead:
-
-```kotlin
-dependencies {
-    testImplementation(platform("io.github.wordyarc:akki-bom:0.3.0"))
+    testImplementation(platform("io.github.wordyarc:akki-bom:0.4.0"))
     testImplementation("io.github.wordyarc:akki-test")
     testImplementation("io.github.wordyarc:akki-test-coroutines")
 }
 ```
 
-In the compilations it applies to, the Gradle plugin compiles against every akki module at its own version: a module
-declared at an older version is raised, a newer one that a dependency brings is lowered, and a newer one declared
-directly fails the build. The runtime classpath is not pinned: a library built with a newer akki keeps the version it
-needs. The pin stays local to the build and never reaches published metadata. Every akki library depends on
-`akki-bom`, so Gradle aligns the runtime classpath, and builds without the plugin, to the newest akki version in the
-graph.
+The Gradle plugin compiles against every akki module at its own version, and a newer one declared directly fails the
+build. The runtime classpath is aligned by `akki-bom`, which every akki module depends on.
 
-### Command line and other build tools
+### Command line
 
-Outside Gradle, pass the `akki-compiler` jar to the compiler with `-Xplugin`, its options with `-P`, and put
-`akki-core` and a backend on the classpath yourself. The compiler plugin reports an `akki-core` of a different
-version:
+Pass the `akki-compiler` jar to the compiler with `-Xplugin` and its options with `-P`. The compilation needs
+`akki-core` on the classpath, and a backend module goes on the runtime classpath. The compiler plugin reports an
+`akki-core` of a different version.
 
 ```shell
-kotlinc -Xplugin=akki-compiler-0.3.0.jar -P plugin:io.akki:minLevel=info -classpath akki-core-jvm-0.3.0.jar -d out src
+kotlinc -Xplugin=akki-compiler.jar -P plugin:io.akki:minLevel=info -classpath akki-core-jvm.jar -d out src
 ```
-
-The logger name style and the backend are set with `-D` options or in `META-INF/akki.properties` on the classpath;
-see [Configuration](#configuration).
-
-### Versions and Kotlin compatibility
-
-All akki artifacts use the same release version, following [semantic versioning](https://semver.org). Until `1.0`,
-minor releases may introduce breaking changes. Patch releases provide fixes and backward-compatible additions;
-these can include support for an additional Kotlin release.
-
-The compiler plugin is tested on the Kotlin releases listed below, and Gradle and the command line use the same
-`akki-compiler` artifact. Beta and RC builds of Kotlin are accepted too, and a dev build `X.Y.Z-dev-N` counts as
-the `X.Y.Z` release. IDE and SNAPSHOT builds are rejected. On an older compiler the compilation fails with an
-error that names the oldest supported version.
-
-| akki    | Kotlin                                | Compiler plugin            |
-|---------|---------------------------------------|----------------------------|
-| `0.3.0` | `2.4.0`, `2.4.10`, `2.4.20`, `2.4.21` | `akki-compiler`            |
-| `0.2.0` | `2.4.0`, `2.4.10`, `2.4.20`           | `akki-compiler-kotlin-2.4` |
-| `0.1.0` | `2.4.x`                               | `akki-compiler`            |
 
 ## Usage
 
+### Logging
+
+`Logger` has `trace`, `debug`, `info`, `warn` and `error`. Each takes the message as a string or as a lambda, with an
+optional cause and fields.
+
 ```kotlin
+log.info("started")
 log.debug { "queue: ${queue.dump()}" }      // the lambda runs only when the level is enabled
 log.error(cause) { "job ${job.id} failed" }
 log.warn(cause, mapOf("jobId" to job.id, "attempt" to attempt)) { "retrying" }
@@ -162,62 +88,46 @@ log.warn(cause, mapOf("jobId" to job.id, "attempt" to attempt)) { "retrying" }
 if (log.isEnabled(Level.TRACE)) { /* ... */ }
 ```
 
-The fields of a record can also be written in its lambda, where they are computed only when the level is enabled,
-like the message. This API is experimental and needs `@OptIn(ExperimentalAkkiApi::class)`: `field("jobId", job.id)`
-writes one field and `fields("jobId" to job.id, "attempt" to attempt)` writes several; `fields` also takes a map.
-They are added to the `fields` argument, and a value written in the lambda replaces a value with the same key:
+Only the lambda is lazy. The other arguments, including `fields`, are evaluated even when the level is disabled.
+
+The lambda has the type `context(RecordScope) () -> String`, so a function of type `() -> String` is not a message:
+call it in the lambda, `log.info { message() }`. A module with a language version below `2.4` calls the lambda
+overloads only with the `-Xcontext-parameters` compiler option. From Java, pass `record -> "message"` and pass fields
+as the `fields` argument.
+
+Fields written in the lambda are lazy too. This API is experimental and needs `@OptIn(ExperimentalAkkiApi::class)`
+and imports of `io.akki.field` and `io.akki.fields`. A value written in the lambda replaces the value of the same key
+in the `fields` argument.
 
 ```kotlin
 log.debug { fields("jobId" to job.id, "queue" to queue.dump()); "polled" }
 ```
 
-Import `io.akki.field` and `io.akki.fields`; a call outside a record does not compile. To reuse a set of fields,
-declare a function with the record in its context and call it in the lambda:
+To reuse a set of fields, declare a function with `context(_: RecordScope)` and call it in the lambda. Inside a class
+that declares its own `field` or `fields` function with the same parameters, the call goes to that function. The
+compiler plugin reports it with the `RECORD_FIELD_SHADOWED` warning; call `io.akki.field(...)` by its qualified name
+there.
+
+### Logger names
+
+The nearest enclosing declaration with a qualified name gives the logger its name. Companion objects and enum entry
+bodies use the logger of their class. Lambdas, local classes and anonymous classes use the logger of the enclosing
+class, or of the file at the top level: top-level functions in `Jobs.kt` log to `com.example.Jobs`.
+
+`logger()` returns the same logger as a value. The `Log` factory names a logger explicitly and works without the
+compiler plugin, from Java too:
 
 ```kotlin
-@OptIn(ExperimentalAkkiApi::class)
-context(_: RecordScope)
-fun requestFields(request: Request) {
-    fields("requestId" to request.id, "tenant" to request.tenant)
-}
-
-log.info { requestFields(request); "accepted" }
+private val log = logger()                      // the logger of the enclosing declaration
+private val log = Log.of<JobProcessor>()
+private val log = Log.of(javaClass)             // the runtime class, for abstract base classes
+private val history = Log.named("jobs.history")
 ```
 
-The nearest enclosing declaration with a qualified name determines the logger name. Companion objects and enum
-entry bodies share their class's logger. Lambdas, local classes, and anonymous classes use the enclosing class's
-logger, or the file's logger at the top level. For example, top-level functions in `Jobs.kt` use `com.example.Jobs`.
+### Context
 
-Use `logger()` to store the declaration's logger in a property:
-
-```kotlin
-private val log = logger()
-
-class JobProcessor {
-    private val log = logger()
-}
-```
-
-The `Log` factory also works without the compiler plugin:
-
-```kotlin
-private val log = Log.of<JobProcessor>()        // from the type argument
-private val log = Log.of(JobProcessor::class)   // from a KClass
-private val log = Log.of(javaClass)             // from the runtime Class, for abstract base classes
-private val history = Log.named("jobs.history") // from an arbitrary name
-```
-
-The compiler plugin can fold constant factory calls into static field reads. A folded `Log.of` for the enclosing type
-shares the field used by `log`. `Log.of(javaClass)` always looks up the logger at runtime.
-
-### Context fields
-
-`LogContext` holds fields that every record written on the current thread carries, such as a request id. A context is
-an immutable value, safe to keep and to pass to other threads: `+` merges two contexts or adds one field and prefers
-the right operand, `-` removes a key, a `null` value keeps its key, `key in context` tells such a key from a missing
-one, and `LogContext.EMPTY` has no fields. Fields of a record shadow context fields with the same key.
-`withLogFields` adds fields to the current context for the duration of a block. `withLogContext` enters exactly the
-given context; use it to clear the context or to re-enter one captured earlier:
+`LogContext` holds fields that every record written on the current thread carries, such as a request id. Fields of a
+record shadow context fields with the same key.
 
 ```kotlin
 withLogFields("requestId" to request.id, "tenant" to tenant) {
@@ -225,22 +135,21 @@ withLogFields("requestId" to request.id, "tenant" to tenant) {
     withLogFields("step" to "validate") { log.debug("ok") } // requestId, tenant, step
     withLogContext(LogContext.EMPTY) { cleanup() }          // no context
 }
-
-val entry = (LogContext.current() + ("requestId" to id)).enter() // an interceptor that cannot wrap the call
-try { chain.proceed() } finally { entry.close() }
 ```
 
-The entry returned by `enter()` must be closed on the thread that entered it, innermost first. From Java, create
-`new LogContext(Map)`, combine contexts with `plus`, and close the entry in try-with-resources.
+A context is an immutable value: `+` merges contexts or adds a field, `-` removes a key. `withLogContext` replaces
+the current context with the given one. Where a block cannot wrap the code, `context.enter()` returns an entry that is
+closed on the same thread, innermost first. From Java, create `new LogContext(Map)`, combine contexts with `plus` and
+close the entry in try-with-resources.
 
-To run a task on another thread with the context of the submitting thread, wrap it: `LogContext.current().wrap(task)`
-accepts a `Runnable`, a `Callable` or a lambda and enters the context around the task. From Java, call
-`LogContexts.wrap(context, task)`.
+Other threads start with an empty context. `LogContext.current().wrap(task)` takes a `Runnable`, a `Callable` or a
+lambda and runs it in the context of the submitting thread; from Java, call `LogContexts.wrap(context, task)`.
 
-The block of `withLogFields` and `withLogContext` cannot suspend. In coroutines, use `withLogFields` from
-`akki-coroutines`: the fields follow the coroutine across dispatchers. Import one of the two `withLogFields`
-explicitly: with star imports of both packages the call is ambiguous. `LogContext.asContextElement()` does the same
-for a whole context:
+### Coroutines and reactive code
+
+The blocks of `withLogFields` and `withLogContext` cannot suspend. `akki-coroutines` provides a suspending
+`withLogFields` in `io.akki.coroutines` and `asContextElement()`; both carry the context across dispatchers. Import
+one `withLogFields` explicitly: with star imports of both packages the call is ambiguous.
 
 ```kotlin
 withLogFields("jobId" to job.id) { run(job) }                         // suspending, from io.akki.coroutines
@@ -248,71 +157,31 @@ runBlocking(LogContext.current().asContextElement()) { ... }          // carry t
 launch(Dispatchers.IO + LogContext.EMPTY.asContextElement()) { ... }  // background work without the context
 ```
 
-An entry opened with `enter()` inside a coroutine lasts until the next suspension; afterwards the coroutine's own
-context is restored.
+`enter()` binds a context to the thread, not to the coroutine: in a coroutine that carries a context element, an entry
+opened by hand lasts until the next suspension.
 
-Reactor and Spring propagate thread-local state with Micrometer `context-propagation`. `akki-context-propagation`
-registers a `ThreadLocalAccessor` for the context under `LogContextAccessor.KEY`, so `ContextSnapshot` and Spring's
-`ContextPropagatingTaskDecorator` carry the context to other threads. With `Hooks.enableAutomaticContextPropagation()`,
-which Spring Boot turns on with `spring.reactor.context-propagation=auto`, a context written to the Reactor `Context`
-is in effect in every operator. A `WebFilter` puts it there:
+`akki-context-propagation` registers a Micrometer `ThreadLocalAccessor` under `LogContextAccessor.KEY`, so Reactor
+with automatic context propagation and Spring's `ContextPropagatingTaskDecorator` carry the context. The application
+adds Micrometer `context-propagation` itself and, on the module path, declares `requires context.propagation`.
 
 ```kotlin
 chain.filter(exchange).contextWrite { it.put(LogContextAccessor.KEY, LogContext("requestId" to id)) }
 ```
 
-The module needs Micrometer `context-propagation` on the classpath; on the module path the application declares
-`requires context.propagation` itself.
+### Testing
 
-### Backends
-
-`akki-slf4j` passes the context and the fields to SLF4J as key-value pairs, context first, and uses the exception as
-the cause. Logback pattern layouts print key-value pairs with `%kvp`. For patterns that read `%X{...}`, the
-`io.akki.slf4j.context` setting in [Configuration](#configuration) switches `akki-slf4j` to MDC: the context and the
-fields of a record go there instead of key-value pairs, and MDC is restored after the record. A custom `LogBackend`
-reads the context with `LogContext.current()` inside `Sink.emit`: akki does not merge it into `fields`.
-
-`akki-system` appends the context and the fields to the message as `{key=value, ...}`, context first: `System.Logger`
-has no structured fields. It passes the exception as the cause and leaves braces and quotes of the message as written.
-`WARN` becomes `WARNING`; the other levels keep their names. `java.util.logging` reports the class and the method of
-the code that wrote the record.
-
-If a `LogBackend` is registered with `ServiceLoader`, akki chooses it over `akki-slf4j` and `akki-system`; when
-several are registered, it takes the first by class name and reports the others to stderr. It does the same when
-`akki-slf4j` with a provider and `akki-system` are both on the classpath. The `io.akki.backend` setting names the
-class of the backend to use instead: `io.akki.slf4j.Slf4jBackend` for `akki-slf4j`,
-`io.akki.system.SystemLoggerBackend` for `akki-system`. If the selection matches no backend, or the selected backend
-cannot start, akki reports it to stderr once and chooses the backend as if the setting were unset.
-Calling `Log.install(backend)` replaces the backend for the whole process.
-
-`LogBackend.filter` wraps a backend with a predicate over the logger name and the level. It runs in
-`sink(level)`, so a rejected record is as cheap as a disabled level: its message lambda is not run. The predicate can
-read `LogContext.current()`: the logger stays at `DEBUG`, and `DEBUG` records of every tenant but one are dropped. An
-application installs the filtered backend by declaring it in `META-INF/services/io.akki.backend.LogBackend`:
-
-```kotlin
-class TenantBackend : LogBackend by Slf4jBackend().filter { name, level ->
-    level >= Level.INFO || LogContext.current()["tenant"] == "acme"
-}
-```
-
-### Tests
+`recordLogs` from `akki-test` returns the records that the block writes on the current thread, so tests running in
+parallel do not see each other's records. For suspending code, import `recordLogs` from `akki-test-coroutines`.
 
 ```kotlin
 val records = recordLogs { processor.run(Job("nightly-report")) }
 assertEquals("started nightly-report", records.single().message)
 ```
 
-A capture belongs to one thread, so tests running in parallel never see each other's records. For coroutine tests,
-import `recordLogs` from `akki-test-coroutines`: it keeps capturing when the coroutine moves between dispatchers.
-`LogRecord.context` holds the context in effect when the record was written, separately from its `fields`:
+A `LogRecord` has the logger name, the level, the message, the cause, the `fields` of the record and, separately, the
+`context` in effect when it was written.
 
-```kotlin
-assertEquals(LogContext("requestId" to 7), records.single().context)
-```
-
-Code that takes a `Logger` as a parameter can get a `RecordingLogger` instead. It keeps its own `records`, needs no
-installed backend and records what every thread writes to it:
+Code that takes a `Logger` as a parameter can get a `RecordingLogger`, which records what every thread writes to it:
 
 ```kotlin
 val logger = RecordingLogger(minLevel = Level.INFO)
@@ -320,39 +189,61 @@ Processor(logger).run(Job("nightly-report"))
 assertEquals("started nightly-report", logger.records.single().message)
 ```
 
-### Configuration
+## Backends
 
-The `akki {}` block has two parts. `compilerOptions {}` holds the compiler plugin settings, which change the
-generated code. `jvm {}` holds the runtime settings of `jvm` compilations: the backend with its module and its
-settings, and the logger name style. They ship with the application and leave the generated code unchanged.
+| Backend         | Module        | Context and fields                                                                |
+|-----------------|---------------|-----------------------------------------------------------------------------------|
+| SLF4J 2         | `akki-slf4j`  | key-value pairs, `%kvp` in logback patterns; MDC with `io.akki.slf4j.context=mdc` |
+| `System.Logger` | `akki-system` | appended to the message as `{key=value, ...}`                                     |
+| Custom          | your own      | fields arrive in `Sink.emit`, the context is read with `LogContext.current()`     |
 
-Set `minLevel` to remove lower-level records from the compiled code:
+`akki-system` needs no other library. The JDK routes its records to `java.util.logging`, or to its console logger in
+a runtime image without the `java.logging` module, and levels and output are configured there.
+
+A custom backend implements `LogBackend` and is registered with `ServiceLoader` in
+`META-INF/services/io.akki.backend.LogBackend`. `LogBackend.filter` wraps a backend with a predicate over the logger
+name and the level. A rejected record costs as little as a disabled level: its lambda is not run.
 
 ```kotlin
+class TenantBackend : LogBackend by Slf4jBackend().filter { name, level ->
+    level >= Level.INFO || LogContext.current()["tenant"] == "acme"
+}
+```
+
+A registered `LogBackend` wins over `akki-slf4j` and `akki-system`. Among several candidates akki takes the first by
+class name and names the others on stderr. The `backend` setting overrides this choice. `Log.install(backend)`
+replaces the backend for the whole process until the returned installation is closed, and is marked
+`@DelicateAkkiApi` for that reason.
+
+## Configuration
+
+`compilerOptions {}` changes the generated code. `jvm {}` holds runtime settings: the Gradle plugin writes them to
+`META-INF/akki.properties` in the main resources, so they ship with the application. Every setting is optional.
+
+```kotlin
+import io.akki.gradle.AkkiBackend
+import io.akki.gradle.LoggerNameStyle
+import io.akki.gradle.MinLevel
+import io.akki.gradle.Slf4jContext
+
 akki {
     compilerOptions {
-        minLevel = io.akki.gradle.MinLevel.INFO
+        minLevel = MinLevel.INFO                    // remove records below INFO from the bytecode
     }
-}
-```
-
-`isEnabled` with a constant level below `minLevel` compiles to `false`, so a block guarded by it is skipped together
-with the records it prepares. A level computed at runtime and a reference such as `log::isEnabled` keep the runtime
-answer.
-
-By default, logger names use source notation, such as `com.example.Outer.Inner`. Set `loggerNameStyle` to use JVM
-names instead: `com.example.Outer$Inner` and `JobsKt` for files:
-
-```kotlin
-akki {
     jvm {
-        loggerNameStyle = io.akki.gradle.LoggerNameStyle.JVM_CLASS
+        loggerNameStyle = LoggerNameStyle.JVM_CLASS // com.example.Outer$Inner and JobsKt
+        backend = AkkiBackend.SLF4J
+        slf4j {
+            context = Slf4jContext.MDC              // write the context and fields to MDC for %X{...} patterns
+        }
     }
 }
 ```
 
-`backend` names the backend of the application. It decides which akki module the Gradle plugin adds to the runtime
-classpath and which backend akki uses:
+With `minLevel`, `isEnabled` with a constant level below the threshold compiles to `false`, and `MinLevel.OFF` removes
+every record. The build fails when `slf4j {}` has settings and `backend` selects `akki-system`.
+
+`backend` decides which module the Gradle plugin adds to the runtime classpath and which backend akki uses:
 
 | `backend`                          | Module added  | Backend used                                                          |
 |------------------------------------|---------------|-----------------------------------------------------------------------|
@@ -362,40 +253,8 @@ classpath and which backend akki uses:
 | `AkkiBackend.fromClassName("...")` | none          | the `LogBackend` of that class                                        |
 | `AkkiBackend.NONE`                 | none          | chosen at run time among the backends on the classpath                |
 
-Set it when the application logs through `System.Logger`, or when a dependency registers a `LogBackend` and the
-application should use a different one, `akki-slf4j` for example:
-
-```kotlin
-akki {
-    jvm {
-        backend = io.akki.gradle.AkkiBackend.SLF4J
-    }
-}
-```
-
-`fromClassName` takes the class name of a `LogBackend` that the application provides and fails on a value that is not
-a class name; the class name of `akki-slf4j` or `akki-system` gives the same backend as its constant.
-
-Each backend with settings has its own block. In `slf4j {}`, set `context` to `MDC` to have `akki-slf4j` write the
-context to MDC instead of key-value pairs, as described in [Backends](#backends):
-
-```kotlin
-akki {
-    jvm {
-        slf4j {
-            context = io.akki.gradle.Slf4jContext.MDC
-        }
-    }
-}
-```
-
-The settings apply to every `Slf4jBackend`, including one that a `LogBackend` of the application wraps. The build fails
-when `backend` selects `akki-system`.
-
-The Gradle plugin writes these settings to `META-INF/akki.properties` in the main resources. They ship with the
-application, so `test`, `run`, `bootRun` and the jar use the same values. A system property with the same name, set
-with `-Dio.akki.backend=io.akki.slf4j.Slf4jBackend` for example, takes precedence over the resource. An empty system
-property, `-Dio.akki.backend=`, unsets the value shipped in the resource.
+Outside Gradle, set the runtime settings in `META-INF/akki.properties` on the classpath. A system property with the
+same name takes precedence, and an empty one, `-Dio.akki.backend=`, unsets the value of the resource.
 
 | Property                  | Values                                                                 | When unset                                          |
 |---------------------------|------------------------------------------------------------------------|-----------------------------------------------------|
@@ -403,47 +262,60 @@ property, `-Dio.akki.backend=`, unsets the value shipped in the resource.
 | `io.akki.backend`         | class name of a registered `LogBackend` or of an akki module's backend | a registered `LogBackend`, otherwise an akki module |
 | `io.akki.slf4j.context`   | `key-value-pairs`, `mdc`                                               | `key-value-pairs`                                   |
 
-These settings belong to the application. A library leaves them unset: they ship in its jar and apply to every
-application that uses it. A setting never makes logging throw. akki reports an unknown property or value to stderr
-once, naming the system property or the file that set it, and uses the default instead. Two resources with different
-values for one property are reported with both files, and the property stays unset until a system property sets it.
-A property of a backend, `io.akki.<backend>.<name>`, is checked by that backend: `akki-slf4j` reports a misspelled
-`io.akki.slf4j.*` key or an unknown value the same way, and the key goes unchecked while `akki-slf4j` is not on the
-classpath.
+The class names of the akki backends are `io.akki.slf4j.Slf4jBackend` and `io.akki.system.SystemLoggerBackend`.
 
-A library leaves `backend` unset, as described in [Backend](#backend), or sets `AkkiBackend.NONE` to bring no backend.
-Every other value ships in its jar and selects the backend of each application that uses the library.
+A setting never makes logging throw. akki reports an unknown property or value, or a backend that cannot start, to
+stderr once, names the source and uses the default. Two resources with different values for one property leave it
+unset until a system property sets it. The settings are read once, when the first logger is created or the first
+record is written: `System.setProperty` in `main` may come too late.
+
+Runtime settings belong to the application. A library leaves `jvm {}` empty, or sets `AkkiBackend.NONE` to bring no
+backend: any other value ships in its jar and applies to every application that uses it.
+
+## Modules
+
+All artifacts are published under the group `io.github.wordyarc` with the same version.
+
+| Module                     | Purpose                                                                        |
+|----------------------------|--------------------------------------------------------------------------------|
+| `akki-core`                | the logging API: `log`, `Log`, `Logger`, `LogContext`, `LogBackend`            |
+| `akki-slf4j`               | backend for SLF4J 2                                                            |
+| `akki-system`              | backend for `System.Logger`                                                    |
+| `akki-compiler`            | Kotlin compiler plugin, one artifact for every supported Kotlin release        |
+| `akki-gradle`              | Gradle plugin `io.github.wordyarc.akki`                                        |
+| `akki-test`                | `recordLogs { }`, `RecordingBackend`, `RecordingLogger`                        |
+| `akki-coroutines`          | `LogContext` in coroutines                                                     |
+| `akki-test-coroutines`     | suspending `recordLogs { }`                                                    |
+| `akki-context-propagation` | `LogContext` in Reactor and Spring through Micrometer `context-propagation`    |
+| `akki-bom`                 | the version of every akki artifact as a Gradle platform                        |
+
+## Kotlin compatibility
+
+| akki    | Kotlin                                            |
+|---------|---------------------------------------------------|
+| `0.4.0` | `2.4.0`, `2.4.10`, `2.4.20`, `2.4.21`, `2.5.0-RC` |
+| `0.3.0` | `2.4.0`, `2.4.10`, `2.4.20`, `2.4.21`             |
+| `0.2.0` | `2.4.0`, `2.4.10`, `2.4.20`                       |
+| `0.1.0` | `2.4.x`                                           |
+
+The compiler plugin is tested on the listed releases. Their Beta, RC and dev builds are accepted; IDE and SNAPSHOT
+builds are rejected. A compiler older than `2.4.0` fails the compilation with an error that names the oldest
+supported version; a newer one that the compiler plugin cannot link against, with an error that names the newest
+tested release.
+
+Releases follow [semantic versioning](https://semver.org). The API is experimental: until `1.0`, minor releases may
+break compatibility.
 
 ## Limitations
 
-* Only JVM compilations are supported. Android needs minSdk 34 and has not been tested.
-* Supported Kotlin releases are listed in the compatibility table. Their Beta and RC builds are accepted, and so are
-  dev builds of a release; IDE and SNAPSHOT builds are not.
-* `log` and `logger()` compile without the compiler plugin but throw when called. Use `Log.of` or `Log.named` in that
-  case.
-* Only the Gradle plugin sets up the compiler plugin and the akki dependencies automatically; see
-  [Command line and other build tools](#command-line-and-other-build-tools).
-* Accurate caller lines require the compiler plugin. Inline wrappers around `log` produce synthetic line numbers. Java
-  calls report `io.akki.Logger` unless that class is registered in logback's `frameworkPackages`.
-* Only the lambda of a record is lazy: its message and the fields written in it with the experimental `field` and
-  `fields`. Ordinary arguments, including the `fields` argument, are evaluated even when the level is disabled.
-* The lambda of a record has the type `context(RecordScope) () -> String`. A module compiled with a language version
-  below `2.4` calls it only with the `-Xcontext-parameters` compiler option. A function of type `() -> String` is not
-  a message: call it in the lambda, `log.info { message() }`. From Java, pass `record -> "message"`; Java does not
-  see `field` and `fields` and passes fields as the `fields` argument.
-* Inside a class that declares its own `field(key, value)` or `fields(...)` function with the same parameters, a call
-  in the lambda of a record goes to that function, and the record does not get these fields. The compiler plugin
-  reports such a call with the `RECORD_FIELD_SHADOWED` warning. Call `io.akki.field(...)` by its qualified name there.
-* `recordLogs` and `LogContext` apply to the current thread. Executors and other threads use the global
-  backend. They start with an empty context unless the task is wrapped with `LogContext.wrap` or carried by
-  `akki-context-propagation`.
-* `io.akki.loggerNameStyle`, `io.akki.backend` and `io.akki.slf4j.context` are read once, when the first logger is
-  created or the first record is written. Set them in `jvm {}` or with the `-D` option; `System.setProperty` in `main`
-  may come too late.
+* Android needs minSdk 34 and has not been tested. The Gradle plugin adds no backend module and writes no runtime
+  settings for Android compilations.
+* `log` and `logger()` compile without the compiler plugin but throw when called. Use `Log.of` or `Log.named` there.
+* Inline wrappers around `log` produce synthetic line numbers. Calls from Java report `io.akki.Logger` as the caller
+  unless that class is registered in logback's `frameworkPackages`.
 * Records removed by `minLevel` cannot be restored through runtime logging configuration.
 * `akki-system` writes fields as text, and `java.util.logging` reports the class and the method of the caller without
   the line.
 * Markers are not supported. With `io.akki.slf4j.context=mdc`, MDC holds the context only while akki writes a record:
-  logs that other code writes through SLF4J do not get the fields unless the application puts them into MDC itself.
+  logs that other code writes through SLF4J do not get the fields.
 * `Log.named` keeps every logger it creates, so applications need a bounded set of names.
-* The API is experimental. Releases before `1.0` may break compatibility.
