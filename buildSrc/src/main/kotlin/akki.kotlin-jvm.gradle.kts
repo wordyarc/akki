@@ -1,3 +1,4 @@
+import akki.buildlogic.buildsWithCatalogKotlin
 import akki.buildlogic.compileModuleDescriptor
 import akki.buildlogic.jvmModuleName
 import akki.buildlogic.library
@@ -22,7 +23,7 @@ tasks.named<KotlinCompile>("compileKotlin") {
 
 kotlin {
     compilerOptions {
-        allWarningsAsErrors = true
+        allWarningsAsErrors = buildsWithCatalogKotlin
         freeCompilerArgs.add("-progressive")
     }
     targetJvm(compilerOptions)

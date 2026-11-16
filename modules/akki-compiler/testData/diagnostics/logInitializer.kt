@@ -1,4 +1,3 @@
-// RUN_PIPELINE_TILL: BACKEND
 package fixture
 
 import io.akki.*

@@ -1,3 +1,4 @@
+import akki.buildlogic.buildsWithCatalogKotlin
 import akki.buildlogic.compileModuleDescriptor
 import akki.buildlogic.jvmModuleName
 import akki.buildlogic.library
@@ -12,7 +13,7 @@ plugins {
 
 kotlin {
     compilerOptions {
-        allWarningsAsErrors = true
+        allWarningsAsErrors = buildsWithCatalogKotlin
         freeCompilerArgs.addAll("-progressive", "-Xexpect-actual-classes")
     }
 

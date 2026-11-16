@@ -16,3 +16,6 @@ internal fun Project.library(alias: String): Provider<MinimalExternalModuleDepen
 internal fun Project.version(alias: String): String =
     libs.findVersion(alias).orElseThrow { IllegalStateException("no version '$alias' in the version catalog") }
         .requiredVersion
+
+internal val Project.buildsWithCatalogKotlin: Boolean
+    get() = !providers.gradleProperty("akki.kotlin").isPresent

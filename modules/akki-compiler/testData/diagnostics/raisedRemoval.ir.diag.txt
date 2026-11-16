@@ -1,1 +1,1 @@
-/raisedRemoval.kt:10:12: fixed_warning: The 'debug' record is below 'minLevel=info' and is removed at compile time.
+/raisedRemoval.kt:9:12: fixed_warning: The 'debug' record is below 'minLevel=info' and is removed at compile time.

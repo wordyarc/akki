@@ -9,10 +9,12 @@ import org.jetbrains.kotlin.test.builders.configureFirHandlersStep
 import org.jetbrains.kotlin.test.builders.configureIrHandlersStep
 import org.jetbrains.kotlin.test.directives.DiagnosticsDirectives
 import org.jetbrains.kotlin.test.directives.FirDiagnosticsDirectives
+import org.jetbrains.kotlin.test.directives.TestPhaseDirectives
 import org.jetbrains.kotlin.test.runners.AbstractFirPhasedDiagnosticTest
 import org.jetbrains.kotlin.test.runners.codegen.AbstractJvmBlackBoxCodegenTestBase
 import org.jetbrains.kotlin.test.services.EnvironmentBasedStandardLibrariesPathProvider
 import org.jetbrains.kotlin.test.services.KotlinStandardLibrariesPathProvider
+import org.jetbrains.kotlin.test.services.TestPhase
 import org.junit.jupiter.api.parallel.Isolated
 
 abstract class AbstractAkkiBoxTest : AbstractJvmBlackBoxCodegenTestBase(FirParser.LightTree) {
@@ -65,6 +67,7 @@ abstract class AbstractAkkiDiagnosticsTest : AbstractFirPhasedDiagnosticTest(Fir
             configureAkki()
             defaultDirectives {
                 +FirDiagnosticsDirectives.DISABLE_GENERATED_FIR_TAGS
+                TestPhaseDirectives.RUN_PIPELINE_TILL with TestPhase.entries.last()
             }
             configureFirHandlersStep {
                 useHandlers(::FirSourcelessDiagnosticsHandler)

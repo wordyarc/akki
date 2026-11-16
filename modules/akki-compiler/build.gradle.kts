@@ -252,6 +252,7 @@ kover {
     currentProject {
         instrumentation {
             disabledForTestTasks.addAll(jarTestTasks)
+            excludedClasses.add("org.jetbrains.kotlin.*")
         }
     }
 }

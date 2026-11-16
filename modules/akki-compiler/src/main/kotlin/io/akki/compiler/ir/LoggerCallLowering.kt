@@ -4,6 +4,7 @@ package io.akki.compiler.ir
 
 import io.akki.compiler.AkkiErrors
 import io.akki.compiler.MinLevel
+import io.akki.compiler.compat.CompilerCompat
 import org.jetbrains.kotlin.backend.common.FileLoweringPass
 import org.jetbrains.kotlin.backend.common.IrElementTransformerVoidWithContext
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
@@ -43,6 +44,7 @@ internal class LoggerCallLowering(
     private val context: IrPluginContext,
     private val symbols: AkkiSymbols,
     private val minLevel: MinLevel,
+    private val compat: CompilerCompat,
 ) : FileLoweringPass, IrElementTransformerVoidWithContext() {
     override fun lower(irFile: IrFile) {
         irFile.transform(this, null)
@@ -61,7 +63,7 @@ internal class LoggerCallLowering(
 
     private fun clip(call: IrCall, target: LoggerCall): IrExpression? {
         val scope = currentScope?.scope?.scopeOwnerSymbol ?: return null
-        context.diagnosticReporter.at(call, currentFile).report(
+        with(compat) { context.diagnosticReporter.diagnosticContext(call, currentFile) }.report(
             AkkiErrors.LOGGING_CALL_REMOVED,
             target.level.owner.name.asString().lowercase(),
             minLevel.option,

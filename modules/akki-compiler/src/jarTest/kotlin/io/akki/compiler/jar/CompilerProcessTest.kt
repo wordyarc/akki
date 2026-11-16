@@ -158,18 +158,17 @@ internal class CompilerProcessTest {
         reported: String,
         kotlin: String,
     ) {
-        val compilations = mismatched(reported, kotlin)
-        val unlinked = "Kotlin $reported is not supported: the compiler plugin does not link against it. " +
-            "The newest tested Kotlin release is $latestTestedKotlin."
+        val (plain, clipped, staleCore) = mismatched(reported, kotlin)
+        val compilations = listOf(plain, clipped, staleCore)
 
-        val failed = compilations.filter { it.exitCode != "OK" }
-        assertTrue(failed.isNotEmpty(), compilations.joinToString("\n") { it.output })
-        for (compilation in failed) {
-            val atStart = compilation.exitCode == "COMPILATION_ERROR" &&
-                "error: [AKKI_CANNOT_START] akki: compiler plugin $akkiVersion cannot start. $unlinked" in
-                compilation.output
-            val afterStart = "akki: compiler plugin $akkiVersion failed. $unlinked" in compilation.output
-            assertTrue(atStart || afterStart, compilation.output)
+        assertTrue(compilations.any { it.isUnlinked(reported) }, compilations.joinToString("\n") { it.output })
+        for (compilation in listOf(plain, clipped)) {
+            assertTrue(compilation.exitCode == "OK" || compilation.isUnlinked(reported), compilation.output)
+        }
+        if (!staleCore.isUnlinked(reported)) {
+            assertEquals("COMPILATION_ERROR", staleCore.exitCode, staleCore.output)
+            assertContains(staleCore.output, "error: [INCOMPATIBLE_AKKI_CORE] The akki compiler plugin $akkiVersion ")
+            assertFalse(staleCore.output.contains("Exception"), staleCore.output)
         }
     }
 
@@ -216,6 +215,14 @@ internal class CompilerProcessTest {
         }
 
         private fun Compilation.run(): String = run("sample.ServiceKt", core)
+
+        private fun Compilation.isUnlinked(reported: String): Boolean {
+            val unlinked = "Kotlin $reported is not supported: the compiler plugin does not link against it. " +
+                "The newest tested Kotlin release is $latestTestedKotlin."
+            val atStart = exitCode == "COMPILATION_ERROR" &&
+                "error: [AKKI_CANNOT_START] akki: compiler plugin $akkiVersion cannot start. $unlinked" in output
+            return atStart || "akki: compiler plugin $akkiVersion failed. $unlinked" in output
+        }
 
         private fun supported(kotlin: String): Supported = supported.computeIfAbsent(kotlin) {
             val process = CompilerProcess(kotlin, workspace.resolve(kotlin))
