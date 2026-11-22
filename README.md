@@ -1,4 +1,9 @@
-# akki
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/logo/akki-lockup-dark.svg">
+    <img src="docs/logo/akki-lockup.svg" alt="akki" height="80">
+  </picture>
+</h1>
 
 [![Kotlin](https://img.shields.io/badge/kotlin-2.4.21-blue.svg?logo=kotlin)](https://kotlinlang.org)
 [![GitHub license](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg?style=flat)](https://www.apache.org/licenses/LICENSE-2.0)
