@@ -100,7 +100,7 @@ jobs:
           persist-credentials: false
       - name: Create the release with a link to the full changelog
         run: |
-          tools/release-notes.sh "$GITHUB_REF_NAME" > notes.md
+          .github/scripts/release-notes.sh "$GITHUB_REF_NAME" > notes.md
           gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md --verify-tag \
             --prerelease="$PRERELEASE"
         env:
